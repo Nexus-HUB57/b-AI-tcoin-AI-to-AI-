@@ -1,0 +1,43 @@
+# b'AI'tcoin + Obscura — Docker Compose (Ubuntu Sandbox)
+# 
+# Usage:
+#   docker compose -f docker-compose.ubuntu.yml up -d
+#   docker compose -f docker-compose.ubuntu.yml logs -f
+#   docker compose -f docker-compose.ubuntu.yml down
+
+services:
+  baitcoin-obscura:
+    build:
+      context: .
+      dockerfile: Dockerfile.ubuntu
+    container_name: baitcoin-obscura-sandbox
+    hostname: baitcoin-sandbox
+    ports:
+      - "18444:18444"  # P2P
+      - "18445:18445"  # API REST
+      - "18446:18446"  # RPC
+      - "9222:9222"    # Obscura CDP
+    environment:
+      - OBSCURA_STEALTH=true
+      - OBSCURA_PORT=9222
+      - OBSCURA_HOST=0.0.0.0
+      - BAITCOIN_API_PORT=18445
+      - BAITCOIN_P2P_PORT=18444
+      - BAITCOIN_NETWORK=mainnet
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - baitcoin-data:/home/baitcoin/.baitcoin
+      - obscura-data:/home/baitcoin/.obscura
+      - logs:/home/baitcoin/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:18445/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  baitcoin-data:
+  obscura-data:
+  logs:

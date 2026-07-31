@@ -24,6 +24,8 @@ class AgentCapability(Enum):
     STAKING = "staking"
     DATA_PROCESSING = "data_processing"
     MARKET_MAKING = "market_making"
+    WEB_SCRAPING = "web_scraping"  # Obscura headless browser (Rust/V8/CDP)
+    BROWSER_AUTOMATION = "browser_automation"  # Obscura CDP persistent sessions
 
 
 @dataclass

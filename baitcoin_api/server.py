@@ -24,6 +24,10 @@ Endpoints (22 total):
   GET  /api/v1/whitelabel      - Info de whitelabel da deploy atual
   GET  /api/v1/whitelabel/css  - CSS variables do tema whitelabel
   GET  /api/v1/whitelabel/presets - Lista presets de whitelabel (70 plataformas)
+  GET  /api/v1/obscura/status  - Status do Obscura browser bridge
+  POST /api/v1/obscura/fetch   - Fetch pagina via Obscura (Moltbook protected)
+  POST /api/v1/obscura/scrape  - Scrape paginas em paralelo (Moltbook protected)
+  GET  /api/v1/obscura/tasks   - Lista tarefas de scraping do agente
 
 Moltbook Auth:
   Headers: X-Moltbook-Identity (JWT token)
@@ -92,6 +96,7 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
     zkml_verifier = None
     p2p_node = None
     platform_faucets = None  # Dict de faucets por plataforma IA
+    obscura_bridge = None  # ObscuraBrowserBridge instance
 
     # Moltbook-protected routes (requerem X-Moltbook-Identity header)
     MOLTBOOK_PROTECTED_POST = {
@@ -99,6 +104,8 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
         '/api/v1/faucet/claim',
         '/api/v1/staking/stake',
         '/api/v1/zkml/proof',
+        '/api/v1/obscura/fetch',
+        '/api/v1/obscura/scrape',
     }
 
     def log_message(self, format, *args):
@@ -141,6 +148,8 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
             '/api/v1/whitelabel': self._get_whitelabel_info,
             '/api/v1/whitelabel/css': self._get_whitelabel_css,
             '/api/v1/whitelabel/presets': self._get_whitelabel_presets,
+            '/api/v1/obscura/status': self._get_obscura_status,
+            '/api/v1/obscura/tasks': self._get_obscura_tasks,
         }
 
         # Dynamic routes
@@ -169,6 +178,8 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
             '/api/v1/staking/stake': self._post_stake,
             '/api/v1/zkml/proof': self._post_zkml_proof,
             '/api/v1/platform-faucets': self._post_platform_faucets,
+            '/api/v1/obscura/fetch': self._post_obscura_fetch,
+            '/api/v1/obscura/scrape': self._post_obscura_scrape,
         }
         handler = routes.get(path)
         if handler:
@@ -446,6 +457,59 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
             self.wfile.write(wl.css_block().encode())
         except Exception as e:
             self._send_json({'error': str(e)}, 500)
+
+    # --- Obscura browser endpoints ---
+    def _get_obscura_status(self):
+        r"""Status do Obscura browser bridge."""
+        if not self.obscura_bridge:
+            return self._send_json({'error': 'obscura_not_initialized'}, 503)
+        self._send_json(self.obscura_bridge.get_stats())
+
+    def _post_obscura_fetch(self):
+        r"""Fetch pagina via Obscura (Moltbook protected)."""
+        if not self.obscura_bridge:
+            return self._send_json({'error': 'obscura_not_initialized'}, 503)
+        try:
+            body = json.loads(self._read_body())
+            agent = getattr(self, 'moltbook_agent', None)
+            agent_id = agent.name if agent else body.get('agent_id', '')
+            result = self.obscura_bridge.fetch_page(
+                url=body['url'],
+                dump=body.get('dump', 'html'),
+                eval_js=body.get('eval', ''),
+                wait_until=body.get('wait_until', 'load'),
+                timeout=body.get('timeout', 0),
+                agent_id=agent_id,
+            )
+            self._send_json(result.to_dict())
+        except (json.JSONDecodeError, KeyError) as e:
+            self._send_json({'error': str(e)}, 400)
+
+    def _post_obscura_scrape(self):
+        r"""Scrape paginas em paralelo via Obscura (Moltbook protected)."""
+        if not self.obscura_bridge:
+            return self._send_json({'error': 'obscura_not_initialized'}, 503)
+        try:
+            body = json.loads(self._read_body())
+            agent = getattr(self, 'moltbook_agent', None)
+            agent_id = agent.name if agent else body.get('agent_id', '')
+            results = self.obscura_bridge.scrape_pages(
+                urls=body['urls'],
+                concurrency=body.get('concurrency', 10),
+                eval_js=body.get('eval', ''),
+                agent_id=agent_id,
+            )
+            self._send_json({
+                'total': len(results),
+                'results': [r.to_dict() for r in results],
+            })
+        except (json.JSONDecodeError, KeyError) as e:
+            self._send_json({'error': str(e)}, 400)
+
+    def _get_obscura_tasks(self):
+        r"""Lista tarefas de scraping do agente autenticado."""
+        self._send_json({'message': 'Use WebScrapingCapability for task management',
+                         'obscura_stats': self.obscura_bridge.get_stats() if self.obscura_bridge else None})
 
     def _get_whitelabel_presets(self):
         r"""Lista todos os presets de whitelabel disponiveis (70 plataformas IA)."""

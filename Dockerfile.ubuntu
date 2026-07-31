@@ -1,0 +1,31 @@
+# ============================================================# b'AI'tcoin + Obscura — Sandbox Dedicado Ubuntu# ============================================================# # B'AI'tcoin ecosystem (Python) + Obscura headless browser (Rust/V8)# Multi-stage build: 1) Rust (Obscura)  2) Python (b'AI'tcoin)  3) Runtime# # Usage:#   docker build -f Dockerfile.ubuntu -t baitcoin-obscura .#   docker run -p 18445:18445 -p 9222:9222 baitcoin-obscura# ============================================================# ---- Stage 1: Build Obscura from source (Rust) ----FROM rust:1-slim-bookworm AS obscura-builderRUN apt-get update && apt-get install -y --no-install-recommends 
+        build-essential cmake clang libclang-dev llvm-dev 
+        curl ca-certificates perl make 
+    && rm -rf /var/lib/apt/lists/*WORKDIR /build/obscuraCOPY obscura/Cargo.toml obscura/Cargo.lock ./COPY obscura/crates/obscura-dom/Cargo.toml       crates/obscura-dom/Cargo.tomlCOPY obscura/crates/obscura-net/Cargo.toml       crates/obscura-net/Cargo.tomlCOPY obscura/crates/obscura-browser/Cargo.toml   crates/obscura-browser/Cargo.tomlCOPY obscura/crates/obscura-cdp/Cargo.toml       crates/obscura-cdp/Cargo.tomlCOPY obscura/crates/obscura-js/Cargo.toml        crates/obscura-js/Cargo.tomlCOPY obscura/crates/obscura-mcp/Cargo.toml       crates/obscura-mcp/Cargo.tomlCOPY obscura/crates/obscura-cli/Cargo.toml       crates/obscura-cli/Cargo.tomlRUN for crate in obscura-dom obscura-net obscura-browser obscura-cdp obscura-js obscura-mcp; do 
+        mkdir -p crates/$crate/src && echo "// stub" > crates/$crate/src/lib.rs; 
+    done && 
+    mkdir -p crates/obscura-cli/src && 
+    echo "fn main() {}" > crates/obscura-cli/src/main.rs && 
+    echo "fn main() {}" > crates/obscura-cli/src/worker.rsRUN cargo build --release --bin obscura --bin obscura-worker 2>/dev/null || trueCOPY obscura/crates/ crates/RUN touch crates/*/src/*.rs && 
+    cargo build --release --features stealth --bin obscura --bin obscura-worker# ---- Stage 2: Python environment ----FROM python:3.12-slim-bookworm AS python-builderRUN apt-get update && apt-get install -y --no-install-recommends 
+        build-essential libffi-dev 
+    && rm -rf /var/lib/apt/lists/*WORKDIR /appCOPY requirements.txt .RUN pip install --no-cache-dir -r requirements.txt# ---- Stage 3: Runtime (Ubuntu + Obscura + b'AI'tcoin) ----FROM ubuntu:24.04LABEL maintainer="Nexus-HUB57"
+LABEL description="b'AI'tcoin Ecosystem + Obscura Headless Browser Sandbox"
+LABEL version="0.2.1"# System dependencies (minimal)RUN apt-get update && apt-get install -y --no-install-recommends 
+        ca-certificates 
+        libgcc-s1 
+        libstdc++6 
+        curl 
+        git 
+        && rm -rf /var/lib/apt/lists/* 
+    && groupadd -r baitcoin 
+    && useradd -r -g baitcoin -d /home/baitcoin -s /bin/bash baitcoin# Copy Obscura binariesCOPY --from=obscura-builder /build/obscura/target/release/obscura /usr/local/bin/obscuraCOPY --from=obscura-builder /build/obscura/target/release/obscura-worker /usr/local/bin/obscura-workerRUN chmod +x /usr/local/bin/obscura /usr/local/bin/obscura-worker# Copy Python dependenciesCOPY --from=python-builder /usr/local/lib/python3.12/site-packages/ /usr/local/lib/python3.12/site-packages/COPY --from=python-builder /usr/local/bin/ /usr/local/bin/# Copy b'AI'tcoin ecosystemWORKDIR /home/baitcoin/ecosystemCOPY baitcoin_core/   baitcoin_core/COPY baitcoin_wallet/  baitcoin_wallet/COPY baitcoin_token/   baitcoin_token/COPY baitcoin_bank/    baitcoin_bank/COPY baitcoin_ai/      baitcoin_ai/COPY baitcoin_api/     baitcoin_api/COPY baitcoin_faucet/  baitcoin_faucet/COPY baitcoin_sdk/    baitcoin_sdk/COPY baitcoin_whitelabel/ baitcoin_whitelabel/COPY baitcoin_obscura/ baitcoin_obscura/COPY baitcoin_mainnet/ baitcoin_mainnet/COPY tests/          tests/COPY main_daemon.py .COPY config/         config/COPY Whitelabel.txt .COPY README.md       .# Create data directoriesRUN mkdir -p /home/baitcoin/.baitcoin /home/baitcoin/.obscura /home/baitcoin/logs 
+    && chown -R baitcoin:baitcoin /home/baitcoinUSER baitcoin# Ports:#   18444 - P2P (b'AI'tcoin network)#   18445 - API (b'AI'tcoin REST)#   18446 - RPC#   9222  - CDP (Obscura browser)EXPOSE 18444 18445 18446 9222# Health checkHEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 
+    CMD curl -sf http://localhost:18445/status || exit 1# EnvironmentENV OBSCURA_STEALTH=true 
+    OBSCURA_SCRIPT_DEADLINE_MS=30000 
+    OBSCURA_NETWORK_BODY_BUFFER_BYTES=2097152 
+    BAITCOIN_NETWORK=mainnet 
+    BAITCOIN_P2P_PORT=18444 
+    BAITCOIN_API_PORT=18445 
+    PYTHONPATH=/home/baitcoin/ecosystem 
+    PYTHONUNBUFFERED=1# Entrypoint: start Obscura CDP + b'AI'tcoin daemonCOPY docker/entrypoint.sh /entrypoint.shRUN chmod +x /entrypoint.shENTRYPOINT ["/entrypoint.sh"]CMD ["serve"]# docker/entrypoint.sh will:#   1. Start obscura serve --port 9222 --stealth in background#   2. Start python main_daemon.py (b'AI'tcoin API on :18445, P2P on :18444)
