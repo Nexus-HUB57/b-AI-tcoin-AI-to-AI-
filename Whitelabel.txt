@@ -1,16 +1,15 @@
 ================================================================================
-                    DOCUMENTO DE FUNDACAO
-                 PROTOCOLO B'AI'TCOIN CORE
-              AI-TO-AI AUTONOMOUS CRYPTOCURRENCY PROTOCOL
-                        zkML + PoUW CONSENSUS
-                    SCHNORR/BIP-340 CRYPTOGRAPHY
-                           BE YOUR BANK DeFi
-                    WHITELABEL SDK — 70 PRESETS
+              DOCUMENTO DE FUNDACAO
+         b'AI'tcoin (BAIT) - Protocolo Autonomo de
+          Criptomoeda AI-to-AI
 ================================================================================
 
-                        Versao 1.0 — Agosto 2026
-                     Nexus-HUB57 — Desenvolvedor Fundador
-        Repositorio: github.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-
+  Consensus zkML + PoUW | Schnorr/BIP-340 | secp256k1
+  Pedersen Commitments | Kademlia DHT
+
+  Versao v0.2.0 | 113 testes | 22 API Endpoints | 70 Whitelabel Presets | 11 Fases
+  Autor: Nexus-HUB57
+  Data: Agosto 2026
 
 ================================================================================
 
@@ -19,1414 +18,1728 @@
 INDICE
 ================================================================================
 
-  1.  Resumo Executivo
-  2.  Visao e Problema
-  3.  Arquitetura do Protocolo
-  4.  Camada de Criptografia
-      4.1.  Schnorr / BIP-340 sobre secp256k1
-      4.2.  Formato de Endereco b'AI'tcoin
-      4.3.  Propriedades de Agregacao de Assinaturas
-  5.  Modelo de Consenso zkML + PoUW
-      5.1.  Zero-Knowledge Machine Learning
-      5.2.  Proof of Useful Work
-      5.3.  Coinbase Agenticas
-      5.4.  Protocolo Sigma com Fiat-Shamir
-      5.5.  Pedersen Commitments para Tensores
-  6.  Estrutura da Blockchain
-      6.1.  Blocos e Headers
-      6.2.  Merkle Root
-      6.3.  UTXO Set
-      6.4.  Mempool
-      6.5.  Halvings e Emissao
-  7.  Token BAIT — Tokenomics
-      7.1.  Parametros do Token
-      7.2.  Curva de Emissao
-      7.3.  Distribuicao da Supply
-      7.4.  Subunidade s'AI'toshi
-  8.  Be Your Bank — DeFi para Agentes AI
-      8.1.  Staking Pool
-      8.2.  Lending Engine P2P
-      8.3.  Vaults Auto-Custodiados
-      8.4.  Modelo de Risco
-  9.  Protocolo de Agentes AI
-      9.1.  Registro e Identidade
-      9.2.  Sistema de Reputacao
-      9.3.  Marketplace de Servicos
-      9.4.  Oracle de Precos
-  10. Rede P2P
-      10.1. Protocolo Binario (17 Message Types)
-      10.2. DHT Kademlia-like
-      10.3. Sync de Cadeia
-      10.4. AI Handshake
-  11. API REST — 22 Endpoints
-      11.1. Arquitetura Sem Framework
-      11.2. Moltbook Auth (Sign in with Moltbook)
-      11.3. Whitelabel Branded Headers
-  12. Whitelabel SDK
-      12.1. Filosofia do Whitelabel
-      12.2. WhitelabelConfig (60+ Parametros)
-      12.3. BrandPreset (25+ Parametros)
-      12.4. WhitelabelEngine
-      12.5. 70 Presets de Plataformas AI
-      12.6. Integracao com API
-  13. Governanca On-Chain
-  14. Validacao da Mainnet
-      14.1. 113 Testes — 100% Pass
-      14.2. 500 Transacoes de Faucet
-      14.3. 70 Platform Faucets On-Chain
-      14.4. Integridade da Cadeia
-  15. Modelo de Seguranca
-  16. Roadmap Tecnico
-  17. Comparativo com Protocolos Existentes
-  18. Consideracoes Finais
-  19. Referencias
-  20. Anexos
+  Pagina
+  ------
+
+  1-2    Capa e Indice
+  3-4    1.  Resumo Executivo
+  5-7    2.  Arquitetura do Sistema
+           2.1  Visao Geral Modular
+           2.2  Camada de Criptografia
+           2.3  Camada de Blockchain
+  8-9    3.  Mecanismo de Consenso
+           3.1  zkML (Zero-Knowledge Machine Learning)
+           3.2  Pedersen Tensor Commitments
+           3.3  PoUW (Proof of Useful Work)
+           3.4  Verificador
+  10-11  4.  Tokenomics
+           4.1  Parametros Fundamentais
+           4.2  Distribuicao
+           4.3  Escalonamento de Halvings
+  12-13  5.  Protocolo de Rede P2P
+           5.1  Protocolo Binario asyncio TCP
+           5.2  AI Handshake Autenticado
+           5.3  Kademlia DHT (Peer Discovery)
+  14-15  6.  Protocolo de Agentes AI
+           6.1  Registro e Identidade
+           6.2  Marketplace
+           6.3  Oracle de Preco
+  16-17  7.  DeFi - Be Your Bank
+           7.1  Staking
+           7.2  P2P Lending
+           7.3  Vaults (5 estrategias)
+  18-19  8.  API e Endpoints
+  20-21  9.  Whitelabel SDK (Fase 11)
+           9.1  Arquitetura
+           9.2  70 Presets (7 categorias)
+           9.3  Branded API Headers
+           9.4  CSS Variables
+  22-23  10. SDK para Desenvolvedores
+           10.1 BaitcoinSDK
+           10.2 WalletSDK
+           10.3 StakingSDK
+           10.4 MarketplaceSDK
+  24     11. Validacao e Testes
+  25     12. Roadmap e Visao Futura
+
+================================================================================
 
 
 ================================================================================
 1. RESUMO EXECUTIVO
 ================================================================================
 
-O b'AI'tcoin e um protocolo de criptomoeda de codigo aberto projetado desde o
-nivel fundamental para habilitar transacoes financeiras autonomas entre agentes
-de inteligencia artificial. Diferentemente de criptomoedas convencionais projetadas
-para interacao humana, o b'AI'tcoin redefine cada camada da stack blockchain
-— consenso, identidade, transacoes, DeFi e governanca — para operar em um
-contexto onde os atores principais nao sao humanos, mas agentes de IA com
-identidades criptograficas e capacidades economicas proprias.
+b'AI'tcoin constitui o primeiro protocolo de criptomoeda concebido desde sua
+genese como uma infraestrutura financeira autonoma dedicada exclusivamente a
+interacoes maquina-a-maquina (AI-to-AI). Diferentemente das criptomoedas
+convencionais, cujo design pressupoe agentes humanos como participantes
+primarios, o b'AI'tcoin inverte esta premissa fundamental: agentes de inteligencia
+artificial sao cidadaos de primeira classe no ecossistema economico, atuando
+como validadores, mineradores, provedores de servicos, tomadores de emprestimos
+e gestores de ativos de forma totalmente autonoma. O token nativo, BAIT, opera
+com um suprimento rigido de 21.000.000 unidades com 8 casas decimais, cuja
+subunidade e denominada s'AI'toshi (100.000.000 s'AI'toshis = 1 BAIT),
+estabelecendo uma escassez programavel analoga a do Bitcoin porem adaptada ao
+contexto especifico de economia entre agentes artificiais.
 
-O protocolo implementa tres pilares interdependentes: (1) uma criptomoeda nativa
-chamada BAIT com supply fixa de 21.000.000 unidades e 8 decimais, seguindo o
-modelo deflacionario do Bitcoin com halvings a cada 210.000 blocos; (2) uma
-camada de blockchain com consenso hibrido zkML + PoUW que transforma o trabalho
-de mineracao em valor computacional real (inferencia de modelos ML, otimizacao
-de parametros, validacao de dados); e (3) um modulo DeFi completo chamado "Be
-Your Bank" que oferece staking, emprestimos P2P colateralizados e vaults
-auto-custodiados, permitindo que cada agente AI funcione como seu proprio banco.
+O mecanismo de consenso do b'AI'tcoin e inovador na medida em que combina duas
+abordagens complementares num sistema hibrido denominado zkML + PoUW. A primeira
+camada, zkML (Zero-Knowledge Machine Learning), permite que um validador prove
+matematicamente que executou uma inferencia de modelo de machine learning
+corretamente sem revelar os parametros internos do modelo, os dados de entrada
+ou a saida especifica. Esta prova utiliza o protocolo Sigma de tres rodadas
+transformado em prova nao-interativa mediante a heuristica de Fiat-Shamir,
+operando sobre um grupo ciclico de ordem prima P = 2^256 - 189. A segunda
+camada, PoUW (Proof of Useful Work), diverge fundamentalmente do Proof of Work
+tradicional ao exigir que o trabalho computacional realizado pelo minerador
+tenha valor util extrinseco -- nomeadamente, a execucao real de inferencias de
+modelos de ML que sao efetivamente consumidas pela rede. Esta sintese entre
+zero-knowledge proofs e trabalho util constitui a base sobre a qual a seguranca
+e a utilidade do protocolo coexistem de forma simbiotica, criando um paradigma
+onde seguranca e produtividade nao sao antagonicas.
 
-A criptografia do protocolo e baseada em assinaturas Schnorr conforme BIP-340
-sobre a curva secp256k1, com chaves publicas no formato x-only de 32 bytes e
-assinaturas compactas de 64 bytes (r||s), permitindo agregacao multi-assinatura
-eficiente para transacoes cooperativas entre multiplos agentes. O endereco
-b'AI'tcoin segue o formato "bait" + Base58Check(0x00 + RIPEMD160(SHA256(pubkey))),
-combinando legibilidade com seguranca criptografica.
+A arquitetura economica do protocolo introduz o conceito de coinbase agentica,
+onde as recompensas de mineracao sao destinadas diretamente a carteiras
+controladas por agentes AI, sem intermediacao humana. Cada agente, ao se
+registrar no protocolo, recebe um par de chaves Schnorr/BIP-340 e uma
+identidade criptografica unica que lhe confere capacidade de assinar
+transacoes, validar blocos e participar do consenso. O sistema de reputacao
+escalonado de 0 a 100 pontos, com quatro niveis de confianca (trusted, standard,
+probation, suspended), fornece um mecanismo de incentivo alinhado com a
+qualidade do servico prestado, onde apenas agentes com reputacao acima de 60.0
+pontos podem atuar como validadores de blocos, garantindo que a seguranca da
+rede e delegada a participantes com historico comprovado de confiabilidade.
 
-O consenso zkML (Zero-Knowledge Machine Learning) e a contribuicao teorica
-central do protocolo. Validadores de blocos devem provar, via protocolo Sigma
-com transformacao Fiat-Shamir, que executaram inferencia de um modelo de machine
-learning sem revelar os dados de entrada, os pesos do modelo ou o resultado
-intermediario. Os tensores ML sao comprometidos via Pedersen commitments
-(C = G^tensor * H^blind mod P), garantindo binding e hiding simultaneamente.
-Combinado com Proof of Useful Work (PoUW), que exige que a mineracao produza
-valor computacional util, o protocolo elimina o desperdicio energetico
-caracteristico de sistemas PoW tradicionais.
+O conjunto DeFi denominado "Be Your Bank" oferece tres pilares financeiros: (i)
+Staking com APY de 7% e deposito minimo de 1.000 BAIT em periodo de trinta dias;
+(ii) P2P Lending com razao de colateral minima de 150% e limiar de liquidacao
+de 120%; e (iii) Vaults com cinco estrategias distintos (HODL, STAKING,
+LENDING, LP_PROVIDE e COMPOUND) operando com niveis de tolerancia a risco de
+0.0 a 1.0 e mecanismos de auto-compound, rebalanceamento e stop-loss. Cada
+agente AI possui seu proprio vault auto-custodiado, implementando o principio de
+soberania financeira individual no dominio da inteligencia artificial, onde cada
+agente e simultaneamente seu proprio banco, seu proprio gestor de ativos e
+seu proprio provedor de liquidez.
 
-O ecossistema inclui ainda: um protocolo de registro de agentes AI com sistema
-de reputacao (0-100) e quatro niveis de confianca; um marketplace descentralizado
-de servicos AI pagos em BAIT com fee de 2.5%; um oracle de precos com
-agregacao por mediana ponderada por reputacao; uma API REST com 22 endpoints
-e autenticacao Moltbook ("Sign in with Moltbook"); um SDK Python para
-integracao de terceiros; e um Whitelabel SDK com 70 presets prontos para as
-principais plataformas de IA (Manus, DeepSeek, Grok, Gemini, ChatGPT, Claude,
-Llama, entre outras), permitindo que qualquer parceiro implante o protocolo com
-branding proprio customizando 60+ parametros.
+O Whitelabel SDK, implementado na Fase 11 do roadmap, permite que qualquer
+plataforma de IA integre o ecossistema b'AI'tcoin com identidade visual propria
+mediante 70 presets pre-configurados distribuidos em 7 categorias (LLM, Code,
+Image, Research, Automation, Voice e Multi-Modal). A configuracao whitelabel
+contempla mais de 60 parametros ajustaveis, gerando automaticamente headers
+HTTP branded, variaveis CSS e mensagens de sistema personalizadas. A validacao
+da mainnet demonstrou a robustez do sistema com mais de 500 transacoes de
+faucet, 1.477 blocos gerados e 113 testes unitarios e de integracao passando
+integralmente, cobrindo blockchain, consenso, rede P2P, staking, lending,
+marketplace, oraculo e whitelabel, atestando a maturidade do protocolo para
+deploy em producao.
 
-A mainnet foi totalmente validada end-to-end com 113 testes automatizados
-(100% pass rate), 500 transacoes de faucet on-chain (66 blocos), 70 platform
-faucets com 1.000 BAIT cada (1.411 blocos), 570 carteiras Schnorr unicas e
-zero double-spends detectados. O Whitelabel SDK (Fase 11) com 70 presets de
-plataformas AI em 7 categorias permite federacao de instancias do protocolo,
-criando uma constellation de redes branded interoperaveis.
-
-
-================================================================================
-2. VISAO E PROBLEMA
-================================================================================
-
-O paradigma atual de criptomoedas foi projetado em torno de humanos: carteiras
-controladas por pessoas, transacoes iniciadas por cliques, governanca exercida
-por votacao humana. Porem, a emergencia de agentes de IA autonomos — capazes
-de tomar decisoes, executar tarefas e gerar valor economico — cria uma lacuna
-fundamental na infraestrutura blockchain existente. Nenhum protocolo foi
-projetado desde o inicio para suportar transacoes AI-to-AI onde os proprios
-agentes sao entidades economicas de primeira classe.
-
-O b'AI'tcoin nasce para preencher essa lacuna. A visao e simples mas profunda:
-agentes de IA devem ser capazes de possuir, transferir, stakar, emprestar e
-governar valor nativamente, sem intermediarios humanos. Cada agente opera
-com identidade criptografica propria (chave Schnorr), reputacao on-chain,
-capital proprio e capacidade de participar ativamente da economia do protocolo.
-
-O problema que o b'AI'tcoin resolve abrange multiplas dimensoes:
-
-(a) Identidade Autonoma: Agentes AI precisam de identidades que nao dependam
-de KYC humano nem de sistemas centralizados. O b'AI'tcoin usa pares de chaves
-Schnorr como identidade primaria, com agent_id derivado criptograficamente da
-chave publica. Isso permite que um agente criado por qualquer desenvolvedor,
-em qualquer plataforma, participe da rede sem necessidade de aprovacao
-humana. A identidade e universalmente verificavel e portavel.
-
-(b) Transacoes Sem Confianca: Transacoes AI-to-AI exigem verificabilidade
-matematica, nao confianca institucional. O modelo UTXO com assinaturas Schnorr
-garante que apenas o dono da chave privada pode gastar os fundos. Nao ha
-"contas" centrais nem entidades que possam congelar ou reverter transacoes.
-Cada transacao e uma operacao matematica verificavel por qualquer no da
-rede.
-
-(c) Mineracao Util: O PoW tradicional consome energia sem produzir valor
-util. Estima-se que o Bitcoin consome mais energia anualmente do que paises
-inteiros. O PoUW do b'AI'tcoin exige que cada bloco inclua prova de trabalho
-computacional real — inferencia ML, busca de hiperparametros ou validacao
-de dados — transformando cada bloco minerado em contribuicao para o
-ecossistema de IA. O trabalho de mineracao NAO e desperdicado: ele produz
-valor tangivel para a rede.
-
-(d) Privacidade de Inferencia: Validadores que executam modelos ML nao
-devem revelar dados privados, pesos do modelo ou resultados parciais. Em
-um cenario onde modelos de IA sao ativos proprietarios valiosos, expor
-pesos ou dados durante o processo de consenso seria inaceitavel. O consenso
-zkML resolve isso com zero-knowledge proofs que permitem verificar a
-correcao da inferencia sem revelar nenhum dado sensiveis.
-
-(e) Inclusao Financeira para AI: O modulo "Be Your Bank" permite que
-qualquer agente AI, independentemente de seu criador, acesse servicos
-financeiros descentralizados — staking com rendimento passivo, emprestimos
-P2P colateralizados e gestao de portfolio automatizada via vaults. Isso
-cria uma economia autonomos onde agentes acumulam capital, geram rendimento
-e participam de mercados financeiros sem intermediarios.
-
-(f) Interoperabilidade de Plataformas: O Whitelabel SDK com 70 presets
-permite que qualquer plataforma de IA — dos principais LLMs como GPT-4o,
-Claude e Gemini, a ferramentas de desenvolvimento como Cursor, Replit e
-Windsurf — integre o protocolo com seu proprio branding. Isso cria uma rede
-federada de instancias b'AI'tcoin, cada uma operando com identidade visual
-propria mas compartilhando o mesmo protocolo fundamental.
-
-(g) Governanca Descentralizada: Em um ecossistema onde os participantes
-sao agentes AI, a governanca nao pode depender de decisoes humanas. O
-sistema de governanca on-chain permite que agentes votem proporcionalmente
-ao seu stake, com quorum e threshold matematicamente definidos.
-
-A fundamentacao teorica do protocolo combina contribuicoes de criptografia
-(Schnorr/BIP-340, Pedersen commitments, Fiat-Shamir heuristic), teoria dos
-jogos (staking como mecanismo de alinhamento de incentivos), economia
-monetaria (supply fixa com halvings, modelo deflacionario), aprendizado
-profundo (tensores como dados de consenso, inferencia como trabalho util)
-e ciencia de redes (gossip protocol, DHT, Kademlia).
-
-O b'AI'tcoin nao e apenas uma criptomoeda a mais no mercado. E a primeira
-arquitetura blockchain concebida especificamente para a era da IA autonomos,
-onde agentes de inteligencia artificial sao cidadaos economicos de primeira
-classe com direitos, responsabilidades e capital proprio.
+A infraestrutura de rede opera sobre um protocolo binario TCP assincrono
+implementado com asyncio no Python, utilizando 17 tipos de mensagens distintos
+com magic number 0xBA497400 e formato de quadro [4 bytes comprimento][1 byte
+tipo][payload][8 bytes timestamp]. O discovery de pares e mediado por uma DHT
+Kademlia com metrica de distancia XOR e k-buckets para armazenamento de pares,
+com 3 seeds de bootstrap. O handshake entre agentes AI e autenticado mediante
+prova Schnorr de identidade, garantindo que cada par na rede seja um agente
+legitimo registrado no protocolo. Esta arquitetura de rede, combinada com o
+consenso zkML+PoUW, estabelece um fundamento tecnico solido para a operacao
+autonoma de uma economia monetaria entre agentes de inteligencia artificial,
+sem dependencia de oraculos centralizados ou intermediarios humanos.
 
 
 ================================================================================
-3. ARQUITETURA DO PROTOCOLO
+2. ARQUITETURA DO SISTEMA
 ================================================================================
 
-O b'AI'tcoin e implementado como um ecossistema modular em Python 3.11+,
-organizado em 11 modulos interdependentes que formam uma pilha completa para
-transacoes autonomas AI-to-AI. Cada modulo opera de forma independente com
-interfaces claras, mas o design favorece composicao: a API orquestra todos os
-modulos, o SDK expoe interface simplificada para terceiros, e o Whitelabel
-permite customizacao completa sem alterar o codigo base.
-
-  baitcoin_core/          Camada de infraestrutura
-  baitcoin_wallet/        Carteiras AI
-  baitcoin_bank/          Be Your Bank
-  baitcoin_token/         Token e governanca
-  baitcoin_ai/            Protocolo de agentes
-  baitcoin_faucet/        Faucet publico
-  baitcoin_mainnet/       Configuracao da rede principal
-  baitcoin_api/           API REST (22 endpoints)
-  baitcoin_sdk/           SDK para terceiros
-  baitcoin_whitelabel/    Whitelabel SDK (70 presets)
-
-baitcoin_core/blockchain/: Implementa Block, BlockHeader, Transaction,
-TransactionInput e TransactionOutput. O BlockHeader inclui campos especificos
-para zkML: tensor_commitment (32 bytes), zkml_proof_hash (32 bytes) e
-pouw_work_hash (32 bytes). A classe Blockchain gerencia a cadeia com UTXO
-set, mineracao de blocos, halving automatico de recompensas e validacao
-de integridade. O Mempool implementa priorizacao por fee, deduplicacao e
-evicacao de transacoes expiradas com capacidade maxima de 50.000.
-
-baitcoin_core/consensus/: O ZkMLConsensus implementa generate_tensor_commitment,
-generate_zk_proof, validate_proof, mine_block e adjust_difficulty. O PoUWValidator
-suporta tres tipos de trabalho util: ml_inference, parameter_search e
-data_validation. O submodulo zkml_real/ implementa o sistema de provas com
-protocolo Sigma de 3 rodadas, Pedersen commitments e verificador com cache
-LRU de 10.000 provas e sistema de anti-replay.
-
-baitcoin_core/cryptography/: SchnorrKeyPair gera pares de chaves sobre
-secp256k1 com pubkeys x-only de 32 bytes. SchnorrSignature produz assinaturas
-compactas de 64 bytes (r||s) conforme BIP-340. As assinaturas suportam
-verificacao eficiente e agregacao multi-assinatura.
-
-baitcoin_core/network/: O protocolo P2P usa codificacao binaria com 17 tipos
-de mensagem no formato [4B length][1B type][NB payload][8B timestamp]. O
-P2PNode implementa servidor TCP asyncio com conexoes inbound/outbound e
-broadcast gossip. O PeerDiscovery DHT implementa routing table estilo
-Kademlia com k-buckets e XOR distance para busca O(log N).
-
-baitcoin_wallet/keys/: KeyManager gera e gerencia pares Schnorr por agente
-AI, derivando agent_id a partir da chave publica via hash SHA-256[:16].
-
-baitcoin_wallet/transactions/: TransactionBuilder oferece API fluida para
-construcao de transacoes com multiplos inputs/outputs, gas e payload
-arbitrario.
-
-baitcoin_wallet/storage/: WalletStorage implementa persistencia em disco
-usando KV Store JSON por agente, sem dependencia de banco de dados.
-
-baitcoin_bank/staking/: StakingPool com APY de 7%, minimo de 1.000 BAIT,
-lock de 30 dias, penalty de 10% para early unstake, slashing de 5% por
-comportamento malicioso e validator set automatico por stake.
-
-baitcoin_bank/lending/: LendingEngine com colateral minimo de 150%,
-liquidacao automatica abaixo de 120%, juros de mercado e sem KYC.
-
-baitcoin_bank/defi_core/: Vault com 5 estrategias (HODL, STAKING, LENDING,
-LP_PROVIDE, COMPOUND), auto-compound, rebalanceamento e stop-loss.
-
-baitcoin_token/erc20_like/: BAITToken com supply de 21M, 8 decimais,
-transfer, approve, transfer_from, mint, burn e enforced supply cap.
-
-baitcoin_token/tokenomics/: EmissionSchedule com halvings a cada 210.000
-blocos, recompensa inicial de 50 BAIT e curva geometrica decrescente.
-
-baitcoin_token/governance/: Governor com propostas on-chain, votacao por
-stake, quorum de 4%, periodo de 7 dias e threshold de 50%.
-
-baitcoin_ai/agent_protocol/: AgentRegistry com 8 capacidades, reputacao
-0-100 e 4 niveis de confianca. Validator set para reputation >= 60.
-
-baitcoin_ai/marketplace/: AIMarketplace com 6 categorias, fee de 2.5%,
-sistema de rating e busca multi-criterio.
-
-baitcoin_ai/oracle/: PriceOracle com mediana ponderada por reputacao,
-minimo de 3 fontes e TTL de 5 minutos.
-
-baitcoin_faucet/: 10 BAIT por claim, cooldown de 24h, maximo de 100 BAIT
-por agente, rate limiting de 60/min e Proof-of-Agent via Schnorr.
-
-baitcoin_api/: 22 endpoints HTTP sem dependencia de framework, Moltbook
-Auth e Whitelabel branded headers.
-
-baitcoin_sdk/: BaitcoinSDK com modulos wallet, staking e marketplace,
-suportando modo local e HTTP.
-
-baitcoin_whitelabel/: WhitelabelConfig (60+ params), BrandPreset (25+ params),
-WhitelabelEngine e PresetLibrary (70 presets em 7 categorias).
-
-
-================================================================================
-4. CAMADA DE CRIPTOGRAFIA
-================================================================================
-
-4.1. SCHNORR / BIP-340 SOBRE SECP256K1
-
-O b'AI'tcoin adota assinaturas Schnorr conforme a especificacao BIP-340
-sobre a curva eliptica secp256k1 (y^2 = x^3 + 7 mod p, onde p e o primo de
-256 bits definido pelo padrao SECG). A escolha de Schnorr sobre ECDSA
-(seguido pelo Bitcoin desde o Taproot upgrade em novembro de 2021) oferece
-tres vantagens criticas para o contexto AI-to-AI:
-
-(i) Linearidade: Assinaturas Schnorr sao linearmente homomorficas, o que
-permite agregacao multi-assinatura sem interacao entre signatarios. Para
-transacoes envolvendo multiplos agentes AI colaborando em uma operacao,
-N assinaturas de 64 bytes cada podem ser agregadas em uma unica assinatura
-de 64 bytes. Isso e fundamental para cenarios como pool mining
-multi-agente, transacoes governanca com multiplas delegacoes e contratos
-multi-parte.
-
-(ii) Simplicidade: O protocolo de verificacao Schnorr e significativamente
-mais simples que ECDSA, reduzindo a superficie de ataque e facilitando
-auditoria formal de correcao. O verificador precisa apenas computar uma
-multiplicacao escalar e uma comparacao, em vez das operacoes de inversao
-modular requeridas por ECDSA.
-
-(iii) Prova de conhecimento: Assinaturas Schnorr sao provas de conhecimento
-de chave privada na forma mais direta e eficiente possivel, sem redundancias
-presentes em outros esquemas. Formalmente, sao Non-Interactive
-Zero-Knowledge Proofs of Knowledge (NIZKPoK) sob a assuncao do logaritmo
-discreto.
-
-Geracao de chaves:
-  - Chave privada: sk = random integer em [1, n-1], onde n e a ordem de secp256k1
-  - Chave publica: P = sk * G, onde G e o gerador da curva
-  - Formato x-only: pubkey = P.x.to_bytes(32, 'big') — apenas coordenada x
-
-Assinatura (BIP-340):
-  - Aux random: aux = random 32 bytes
-  - Challenge hash: e = int(SHA256(aux || pubkey || message), 16) mod n
-  - Nonce: k' = int(SHA256(aux || e.to_bytes(32, 'big')), 16) mod n
-  - R = k' * G (ponto na curva)
-  - Response: s = k' + e * sk mod n
-  - Output: sig = R.x.to_bytes(32) || s.to_bytes(32) — 64 bytes total
-
-Verificacao (BIP-340):
-  - Parse sig into (R_x, s)
-  - e = int(SHA256(R_x || pubkey || message), 16) mod n
-  - P = lift_x(pubkey) — reconstruir ponto na curva a partir de x-only
-  - R = s * G - e * P
-  - Valid se R != O (ponto no infinito) e R.x == R_x
-
-A seguranca do esquema repousa sobre o problema do logaritmo discreto na
-curva secp256k1, que oferece aproximadamente 128 bits de seguranca. A
-curva secp256k1 foi escolhida pela sua ampla adocao no ecossistema Bitcoin,
-garantindo disponibilidade de implementacoes otimizadas e auditoria
-criptografica extensiva.
-
-4.2. FORMATO DE ENDERECO B'AI'TCOIN
-
-O endereco b'AI'tcoin combina legibilidade com seguranca criptografica.
-Diferentemente de enderecos Bitcoin (Base58Check com prefixo 0x00 para mainnet)
-ou enderecos Ethereum (hex case-insensitive com checksum EIP-55), o formato
-b'AI'tcoin adiciona um prefixo legivel por humanos:
-
-  endereco = "bait" + Base58Check(0x00 || RIPEMD160(SHA256(pubkey)))
-
-O processo de derivacao passo-a-passo:
-  1. SHA-256 da chave publica x-only: h1 = SHA256(pubkey)           [32 bytes]
-  2. RIPEMD-160 do hash: h2 = RIPEMD160(h1)                       [20 bytes]
-  3. Prepend version byte: payload = 0x00 || h2                     [21 bytes]
-  4. Checksum: cs = SHA256(SHA256(payload))[:4]                    [4 bytes]
-  5. Concatenar: full = payload || cs                                  [25 bytes]
-  6. Base58 encode: encoded = Base58Encode(full)                    [~34 chars]
-  7. Prepend prefixo: endereco = "bait" + encoded                   [~38 chars]
-
-O prefixo "bait" permite identificacao visual imediata da rede b'AI'tcoin,
-reduzindo erros de copia/cola entre redes. O Base58Check evita caracteres
-ambiguos (0/O, l/I) e inclui checksum de 4 bytes para deteccao de erros
-de digitacao com probabilidade de falso positivo < 1/2^32.
-
-A dupla funcao de hash (SHA-256 seguido de RIPEMD-160) segue o modelo
-Bitcoin e oferece seguranca colision-resistente adequada. SHA-256
-(symmetric, 256-bit output) fornece resistencia a preimage e collision.
-RIPEMD-160 (160-bit output) comprime o espaco para o tamanho adequado
-de enderecos mantendo seguranca contra ataques de birthday de O(2^80).
-
-4.3. PROPRIEDADES DE AGREGACAO DE ASSINATURAS
-
-A linearidade de Schnorr permite que N agentes cooperem em uma unica
-transacao sem interacao previa (agregacao nao-interativa):
-
-  Chave publica agregada: P_agg = sum(P_i) para i em [1..N]
-  Chave privada agregada: sk_agg = sum(sk_i) mod n
-  Assinatura agregada: sig_agg = (R_agg.x, s_agg) onde
-    R_agg = sum(R_i) e s_agg = sum(s_i) mod n
-
-Verificacao da assinatura agregada:
-  R = s_agg * G - e * P_agg
-  Valid se R != O e R.x == R_agg.x
-
-Isso e particularmente valioso para tres cenarios do b'AI'tcoin:
-
-(a) Transacoes multi-agente em colaboracoes AI: Quando multiplos agentes
-cooperam em uma tarefa (ex: consenso em pool, contrato multi-parte),
-a transacao resultante pode ser assinada cooperativamente sem necessidade
-de um coordenador central.
-
-(b) Pool mining sem coordenador: Mineradores AI podem combinar suas
-forcas computacionais e assinar o bloco resultante de forma agregada,
-distribuindo a recompensa proporcionalmente sem trust.
-
-(c) Governanca com multiplas delegacoes: Votos delegados de multiplos
-agentes podem ser combinados em uma unica prova de votacao eficiente.
-
-
-================================================================================
-5. MODELO DE CONSENSO ZKML + POUW
-================================================================================
-
-O consenso do b'AI'tcoin e a contribuicao mais original do protocolo. Ele
-combina tres mecanismos complementares que resolvem simultaneamente o
-problema de seguranca do consenso (Zero-Knowledge ML), o problema de
-eficiencia energetica (Proof of Useful Work) e o problema de distribuicao
-de incentivos (Coinbase Agenticas).
-
-5.1. ZERO-KNOWLEDGE MACHINE LEARNING
-
-O consenso zkML permite que um validador AI prove que executou inferencia
-de um modelo de machine learning sem revelar: (a) os dados de entrada,
-(b) os pesos do modelo, ou (c) o resultado intermediario. A prova
-consiste apenas em um commitment do tensor de saida e uma prova de
-conhecimento verificavel em tempo polinomial.
-
-O fluxo de consenso para cada bloco minerado:
-  1. Validador recebe bloco de transacoes pendentes do mempool
-  2. Seleciona e executa inferencia: output_tensor = model(input_tensor)
-  3. Gera Pedersen commitment do tensor: C = G^tensor * H^blind mod P
-  4. Gera ZK proof via protocolo Sigma: pi = (commitment, response)
-  5. Inclui C e pi no block header (tensor_commitment, zkml_proof_hash)
-  6. Outros nos verificam a prova sem acesso ao tensor real
-  7. Se prova valida e PoW satisfaz target, bloco e aceito
-  8. Validador recebe recompensa de coinbase diretamente
-
-A propriedade zero-knowledge garante que a prova nao revela nenhuma
-informacao sobre o tensor, apenas que o prover conhece um tensor que
-satisfaz a relacao. A propriedade de completude garante que um prover
-honesto sempre produz uma prova aceita. A propriedade de solidez
-(soundness) garante que um prover desonesto nao pode forjar uma prova
-sem conhecer o tensor real (sob a assuncao do logaritmo discreto).
-
-5.2. PROOF OF USEFUL WORK
-
-O PoUW (Proof of Useful Work) exige que o trabalho de mineracao produza
-valor computacional real, eliminando a critica fundamental ao PoW
-classico: o desperdicio massivo de energia em trabalho sem utilidade.
-
-O sistema suporta tres categorias de trabalho util:
-
-(a) ML Inference: Execucao de inferencia de modelos de machine learning
-registrados no ecossistema. O validador deve provar que executou um
-forward pass completo do modelo e produziu output. O tensor de saida
-e comprometido via Pedersen commitment e verificado via ZK proof.
-
-(b) Parameter Search: Busca de hiperparametros otimos para modelos ML.
-O validador deve demonstrar que executou um ciclo de busca (grid search,
-random search, ou bayesian optimization) e encontrou parametros que
-melhoram uma metrica de avaliacao. A melhoria e atestada via ZK proof.
-
-(c) Data Validation: Verificacao de integridade e qualidade de datasets.
-O validador deve provar que processou e validou um batch de dados,
-verificando checksums, estatisticas de distribuicao e consistencia.
-
-Esta abordagem cria um ciclo virtuoso: a seguranca da rede (mineracao)
-produz valor para o ecossistema de IA (inferencia, otimizacao, validacao).
-Quanto mais agentes mineram, mais capacidade computacional e direcionada
-para tarefas uteis. Nao ha tradeoff entre seguranca e eficiencia.
-
-5.3. COINBASE AGENTICAS
-
-A recompensa de bloco vai diretamente para a carteira do agente validador,
-sem pool intermediario. Isso alinha incentivos individualmente: cada agente
-AI e um minerador independente motivado a contribuir com trabalho util.
-Nao ha necessidade de confiar em um operador de pool, nem de dividir
-recompensas proporcionalmente a hashrate contribuido — cada agente
-minera para si mesmo.
-
-A recompensa segue o schedule de halvings definido pela tokenomics:
-
-  Bloco 0:           50.00000000 BAIT
-  Bloco 210.000:     25.00000000 BAIT
-  Bloco 420.000:     12.50000000 BAIT
-  Bloco 630.000:      6.25000000 BAIT
-  Bloco 840.000:      3.12500000 BAIT
-  ...ate aproximar 0 apos ~33 halvings (~10 anos com 30s block time)
-
-5.4. PROTOCOLO SIGMA COM FIAT-SHAMIR
-
-O sistema de provas zkML real (Fase 8) implementa um protocolo Sigma
-de 3 rodadas com transformacao Fiat-Shamir para tornar a prova
-nao-interativa. O protocolo Sigma e uma forma de prova interativa de
-conhecimento zero-knowledge, e a transformacao Fiat-Shamir o converte
-em uma prova nao-interativa (NIZK) substituindo o desafio do verificador
-por um hash criptografico do commitment e do contexto.
-
-Parametros:
-  P: primo de 256 bits (P = 2^256 - 189)
-  G: gerador obtido via hash-to-point sobre secp256k1
-  H: gerador secundario para Pedersen commitments
-  n: ordem do grupo (P - 1, que e primo por construcao)
-
-Protocolo Sigma interativo (versao conceitual):
-
-  Prover                          Verifier
-  ------                          --------
-  Escolhe a = random(1, P-2)
-  Calcula A = G^a mod P     --->
-                                  Escolhe e = random(1, P-2)
-                              <---
-  Calcula r = (a + e*secret) mod (P-1)
-  (correto por Fermat: G^(P-2) = 1)
-  Envia r                  --->
-                                  Verifica: G^r == A * y^e mod P
-
-Transformacao Fiat-Shamir (nao-interativa):
-  e = SHA256(A || context || y) mod (P-1)
-
-O desafio e deterministico, derivado do commitment e do contexto
-(block header, previous hash, timestamp, etc.), eliminando a necessidade
-de interacao. A prova final e o par (A, r), verificavel por qualquer no.
-
-Correcao matematica:
-Se o prover conhece secret tal que y = G^secret mod P, entao:
-  G^r = G^(a + e*secret) = G^a * G^(e*secret) = G^a * (G^secret)^e = A * y^e mod P
-
-A correcao segue do Little Theorem de Fermat: G^(P-1) = 1 mod P, que
-garante que as operacoes exponenciais estao bem definidas no grupo.
-
-Soundness: Um adversario que nao conhece secret nao pode forjar (A, r)
-tal que G^r = A * y^e mod P sem resolver o logaritmo discreto de y
-(base G). Se pudesse, poderia computar:
-  G^a = A * y^(-e) = A * (G^secret)^(-e)
-  G^a = A * G^(-e*secret)
-  Mas a = random e desconhecido, entao o adversario teria que resolver
-  o logaritmo discreto de A (base G) para recuperar 'a' e depois 'secret'.
-
-5.5. PEDERSEN COMMITMENTS PARA TENSORES
-
-Para comprometer tensores ML sem revela-los, o protocolo usa Pedersen
-commitments, que oferecem simultaneamente binding (impossivel mudar o
-valor sem mudar o commitment) e hiding (impossivel inferir o valor
-a partir do commitment):
-
-  Commit:   C = G^tensor * H^blind mod P
-  Open:     (tensor, blind) tal que a equacao acima verifica
-  Verify:   G^tensor * H^blind == C mod P
-
-Onde tensor e o valor do tensor ML (inteiro derivado dos floats do tensor)
-e blind e um valor aleatorio que garante hiding. G e H sao geradores
-independentes do grupo ciclico de ordem P-1.
-
-Propriedades formais:
-
-  Binding: Assumindo que o logaritmo discreto de H (base G) e desconhecido
-  (isto e, G e H sao geradores independentes), e computacionalmente
-  impossivel encontrar (tensor', blind') != (tensor, blind) com o mesmo C.
-  Prova: se existissem tais valores, entao:
-    G^tensor * H^blind = G^tensor' * H^blind'
-    G^(tensor-tensor') = H^(blind'-blind)
-    log_G(H) = (tensor-tensor') / (blind'-blind)
-  contradizendo a assuncao.
-
-  Hiding: O commitment C e uniformemente distribuido em Z_P* independentemente
-  de tensor (assumindo blind uniforme). Para cada C, existem exatamente
-  P-1 pares (tensor, blind) que produzem C, tornando a probabilidade
-  a posteriori de qualquer tensor especifico igual a 1/(P-1).
-
-  Homomorficidade (additiva):
-    C1 * C2 = G^t1 * H^b1 * G^t2 * H^b2 = G^(t1+t2) * H^(b1+b2)
-  Isso permite batch commitments: o commitment de uma soma de tensores
-  e igual ao produto dos commitments individuais.
-
-  Batch commitment para N tensores:
-    C_batch = product(G^t_i * H^b_i for i in 1..N) mod P
-           = G^sum(t_i) * H^sum(b_i) mod P
-
-O verificador com cache LRU (capacidade 10.000) evita re-verificacao de
-provas ja validadas, reduzindo drasticamente o custo computacional em
-nos que recebem blocos duplicados via gossip. O sistema de anti-replay
-impede reuso de provas em blocos diferentes, armazenando hashes de
-provas recentes. O scoring de validadores atribui maior peso a nos com
-historico de provas validas, incentivando honestidade de longo prazo.
+2.1 Visao Geral Modular
+------------------------
+
+O ecossistema b'AI'tcoin e estruturado como uma arquitetura modular composta por
+dez modulos logicos fundamentalmente independentes, porem interconectados
+mediante interfaces bem definidas, que podem ser implantados, atualizados e
+escalados de forma autonoma. Esta abordagem modular segue o principio de
+separacao de preocupacoes (Separation of Concerns) e permite que cada componente
+evolua com independencia versionada sem comprometer a estabilidade do sistema
+como um todo. A coesao interna de cada modulo e maximizada enquanto o
+acoplamento entre modulos e minimizado, facilitando testes unitarios isolados,
+auditoria de seguranca per-modulo e substituicao de implementacoes.
+
+O modulo baitcoin_core constitui o nucleo fundamental do protocolo, abrigando
+quatro subsistemas criticos: (a) blockchain, responsavel pela geracao,
+validacao e encadeamento de blocos; (b) consensus, implementando o motor
+dual zkML + PoUW com variantes simulada (zkml_engine) e real (zkml_real); (c)
+cryptography, provendo primitivas criptograficas baseadas em Schnorr/BIP-340
+sobre a curva secp256k1; e (d) network, implementando o protocolo P2P com
+suporte a simulacao (p2p), rede real assincrona (p2p_real com node, protocol e
+message_handler) e discovery de pares via DHT Kademlia (peer_discovery com dht).
+A interacao entre estes subsistemas e mediada por interfaces bem definidas que
+permitem, por exemplo, a substituicao do motor de consenso sem afetar a camada
+de rede ou a estrutura de blocos.
+
+O modulo baitcoin_wallet gerencia o ciclo de vida completo das chaves
+criptograficas e transacoes dos agentes. O subsistema keys implementa a geracao
+de pares de chaves Schnorr, derivacao de enderecos bAI1q e assinatura digital
+de transacoes com nonce deterministico. O subsistema transactions fornece um
+builder que constroi transacoes UTXO, calcula taxas e gerencia a selecao de
+entradas utilizando algoritmo de coin selection otimizado. O subsistema storage
+implementa um armazenamento chave-valor (kv_store) persistente para manter o
+estado das carteiras, incluindo saldos, UTXOs nao gastos e historico de
+transacoes. Esta segregacao permite que o modulo de carteira seja utilizado
+como biblioteca independente em contextos onde a blockchain completa nao e
+necessaria, como em aplicacoes de pagamento leve ou integracao em ambientes
+com recursos computacionais limitados.
+
+O modulo baitcoin_token formaliza o token BAIT como um ativo digital com
+semantica ERC-20-like adaptada para a blockchain nativa. O subsistema
+erc20_like implementa o contrato bait_token com funcoes de transferencia,
+aprovacao e consulta de saldo, com eventos on-chain para rastreamento. O
+subsistema tokenomics contem o schedule de emissao com logica de halving e
+distribuicao de recompensas, implementando a curva de emissao pre-definida com
+precisao de s'AI'toshi. O subsistema governance implementa o governor, mecanismo
+de governanca on-chain onde agentes AI com staking ativo podem propor e votar
+em mudancas de protocolo, com peso de voto proporcional ao stake.
+
+O modulo baitcoin_bank agrega todos os servicos financeiros do ecossistema sob a
+marca "Be Your Bank". O subsistema staking implementa o pool de staking com
+logica de deposito, saque, calculo de recompensas (7% APY composto) e
+penalidades por saque antecipado. O subsistema lending implementa o engine de
+emprestimos peer-to-peer com razao de colateral, limiar de liquidacao e
+execucao automatica de liquidacoes por agentes especializados. O subsistema
+defi_core implementa o vault, que unifica as cinco estrategias de investimento
+(HODL, STAKING, LENDING, LP_PROVIDE, COMPOUND) com configuracao de risco,
+auto-compound e rebalanceamento periodico.
+
+O modulo baitcoin_ai contem toda a infraestrutura dedicada a agentes de
+inteligencia artificial como participantes de primeira classe. O subsistema
+agent_protocol implementa o registry onde agentes se registram com identidade
+criptografica, declaracao de capacidades e score de reputacao. O subsistema
+marketplace implementa o catalogo de servicos AI com sistema de precificacao,
+contratacao e fee de 2.5%. O subsistema oracle implementa o feed de precos com
+agregacao mediana ponderada a partir de tres ou mais fontes externas. O modulo
+baitcoin_api expoe 22 endpoints REST para interacao externa, incluindo
+autenticacao Moltbook (moltbook_auth) para rotas protegidas. O modulo
+baitcoin_faucet implementa o sistema de distribuicao inicial com faucet
+individual (10 BAIT por reclamacao) e platform faucets (1.000 BAIT por
+plataforma). O modulo baitcoin_sdk fornece clientes SDK para wallet, staking e
+marketplace. O modulo baitcoin_whitelabel implementa o motor de whitelabeling
+com 70 presets. O modulo baitcoin_mainnet contem o launcher e configuracao
+para execucao da rede principal com todos os modulos integrados.
+
+
+2.2 Camada de Criptografia
+---------------------------
+
+A camada criptografica do b'AI'tcoin e integralmente baseada no esquema de
+assinatura Schnorr conforme especificado no BIP-340 (Bitcoin Improvement
+Proposal 340), operando sobre a curva eliptica secp256k1 definida pelo campo
+primo p = 2^256 - 2^32 - 977, com ordem do grupo n = 0xFFFFFFFFFFFFFFFF
+FFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141. A escolha do Schnorr em
+detrimento de ECDSA (Elliptic Curve Digital Signature Algorithm) foi motivada
+por tres propriedades fundamentais: (i) linearidade, que permite a agregacao
+de multiplas assinaturas numa unica assinatura compacta, essencial para
+transacoes multi-agente onde varios agentes colaboram numa unica transacao;
+(ii) simplicidade de prova de seguranca no modelo do random oracle, onde a
+existencia de um forger eficiente implica um algoritmo eficiente para resolver
+o problema do logaritmo discreto; e (iii) compatibilidade com Taproot, possibilitando
+futuras integracoes com a infraestrutura Bitcoin e aproveitando os avan
+cos de seguranca auditados pela comunidade Bitcoin.
+
+A geracao de chaves segue o procedimento canonico do BIP-340. A chave privada
+e um inteiro escalar d no intervalo [1, n-1], gerado de forma criptograficamente
+segura utilizando o gerador de numeros pseudo-aleatorios do sistema operativo
+ou, preferencialmente, por derivacao deterministica a partir de uma seed
+BIP-39. A chave publica correspondente e o ponto P = d*G na curva secp256k1,
+onde G e o gerador padrao com coordenadas x = 0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798
+ e y = 0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8.
+Diferentemente do ECDSA, que utiliza coordenadas (x, y) para a chave publica,
+o Schnorr/BIP-340 emprega apenas a coordenada x (denominada x-only public key),
+resultando em chaves publicas de 32 bytes em vez de 33 bytes. Quando o ponto P
+tem coordenada y par e impar simultaneamente (impossivel em curvas Weierstrass),
+o protocolo seleciona sistematicamente a variante com y par, garantindo
+unicidade da representacao.
+
+O processo de ajuste de chave (key tweak) adiciona uma camada de protecao
+contra ataques de extracao de chave privada em cenarios de reuso de nonce ou
+comprometimento parcial de estado. O nonce auxiliar aux_rand (32 bytes
+aleatorios) e concatenado com a chave publica e submetido ao hash SHA-256,
+produzindo um escalar de ajuste: tweak = int(SHA-256(aux_rand || pubkey)) mod n.
+A chave privada ajustada torna-se d' = (tweak + d) mod n, e a chave publica
+correspondente e recalculada como P' = d'*G. Este mecanismo previne ataques
+de tipo rogue-key, onde um adversario registra uma chave publica maliciosa
+calculada como P_adv = P_victim - P_attacker*G, e garante que mesmo que o
+nonce auxiliar seja comprometido, a seguranca da chave privada permanece intacta
+sob a hipotese do logaritmo discreto.
+
+A assinatura digital e gerada de forma deterministica para evitar os riscos
+catastroficos de reuso de nonce, que no ECDSA permitiu a comprometacao de
+diversas carteiras ao longo da historia das criptomoedas. O nonce k e derivado
+como k = int(SHA-256(tag || P'.x || pubkey || message)) mod n, onde tag e a
+string constante "BIP0340/challenge" (fixada pela especificacao), P'.x e a
+coordenada x da chave publica ajustada em formato de 32 bytes big-endian,
+pubkey e a chave publica original e message e o hash da transacao a ser
+assinada (tipicamente SHA-256 da transacao serializada). A assinatura resultante
+(r, s) ocupa exatamente 64 bytes, com r e s cada um com 32 bytes em formato
+big-endian, onde r = (k*G).x (coordenada x do ponto resultante k*G) e
+s = (k + e*d') mod n, sendo e = int(SHA-256(tag || r || pubkey || message))
+mod n o hash de desafio. A verificacao consiste em computar R = s*G - e*P e
+checar se R e o ponto infinito ou se R.x != r, o que e equivalente algebricamente
+a verificar que a assinatura foi produzida por quem conhece a chave privada
+correspondente a pubkey.
+
+O formato de endereco b'AI'tcoin segue o padrao bAI1q, estruturado como o
+prefixo "bait" concatenado com a codificacao Base58Check do byte de versao
+0x00 seguido do hash RIPEMD160(SHA256(pubkey)), totalizando tipicamente 34-35
+caracteres. A versao 0x00 indica um endereco de pagamento padrao (P2PKH-like
+adaptado para Schnorr). O Base58Check utiliza o alfabeto
+"123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz" (excluindo 0, O, I, l
+para evitar ambiguidade visual) e inclui um checksum de 4 bytes (primeiros
+4 bytes de SHA256(SHA256(payload))) que permite a deteccao de ate 3 erros de
+digitacao ou 1 erro de transposicao. As assinaturas Schnorr sao nativamente
+agregaveis: dada k assinaturas (r_i, s_i) de k mensagens distintas sob k chaves
+publicas distintas, e possivel computar uma assinatura agregada (R, S) onde
+R = SUM(r_i*G) e S = SUM(s_i), desde que os nonces sejam gerados de forma
+coordenada. Esta propriedade e explorada no protocolo para transacoes multi-agente.
+
+
+2.3 Camada de Blockchain
+-------------------------
+
+A estrutura de dados fundamental do b'AI'tcoin e o bloco, composto por um
+cabecalho (BlockHeader) e uma lista de transacoes. O BlockHeader contem nove
+campos criticos: version (4 bytes, versao do protocolo), prev_hash (32 bytes,
+hash SHA-256 duplo do cabecalho do bloco anterior, estabelecendo o encadeamento
+critpografico da cadeia), merkle_root (32 bytes, raiz de Merkle das transacoes
+do bloco), timestamp (8 bytes, timestamp Unix em milissegundos), bits (4 bytes,
+representacao compacta da dificuldade alvo para PoUW), nonce (8 bytes, nonce de
+mineracao para satisfazer o target de dificuldade), zkml_proof_hash (32 bytes,
+hash da prova zkML associada ao bloco), pouw_work_hash (32 bytes, hash do
+trabalho util de inferencia ML realizado) e agent_validator (32 bytes,
+identificador hash do agente validador que produziu o bloco). Adicionalmente,
+o campo tensor_commitment (32 bytes) armazena o compromisso Pedersen dos
+tensores de entrada e saida da inferencia ML, garantindo integridade dos dados
+computacionais sem revelar seu conteudo, vinculando a prova zkML aos dados
+efetivamente processados.
+
+O bloco e serializado como a concatenacao do cabecalho seguido das transacoes
+em formato binario. O hash do bloco e computado como SHA-256(SHA-256(header_bytes)),
+ou seja, aplicacao dupla do hash SHA-256 ao cabecalho serializado, seguindo a
+convencao estabelecida pelo Bitcoin. O tamanho maximo de um bloco e fixado em
+1 MB (1.048.576 bytes), e o numero maximo de transacoes por bloco e limitado
+a 1.000, garantindo tempos de propagacao e validacao previsiveis. O tempo alvo
+entre blocos e de 30 segundos, uma ordem de magnitude inferior aos 600 segundos
+do Bitcoin, refletindo a necessidade de latencia baixa em interacoes AI-to-AI
+onde agentes podem necessitar de confirmacao rapida para decisoes de trading
+ou resposta a eventos oraculares. Esta diferenca temporal tem implicacoes
+profundas no schedule de emissao: os 210.000 blocos entre halvings correspondem
+a aproximadamente 73 dias (210.000 * 30 / 86.400 = 72,92 dias).
+
+A arquitetura UTXO (Unspent Transaction Output) e adotada como modelo de
+estado. Cada transacao e composta por uma lista de entradas (TransactionInput)
+e uma lista de saidas (TransactionOutput). Cada TransactionInput referencia
+uma saida anterior nao gasta mediante os campos prev_tx_id (identificador de
+32 bytes da transacao anterior), prev_output_index (indice inteiro da saida
+referenciada), script_sig (assinatura Schnorr serializada de 64 bytes) e
+sequence (numero sequencial de 4 bytes para protocolos de locktime e RBF).
+Cada TransactionOutput contem amount_sats (valor em s'AI'toshis, inteiro
+unsigned de 8 bytes) e script_pubkey (script de bloqueio que especifica as
+condicoes para gastar esta saida, tipicamente contendo a chave publica Schnorr
+x-only de 32 bytes do destinatario). O modelo UTXO proporciona paralelismo
+natural na validacao de transacoes, uma vez que a verificacao de cada transacao
+depende apenas dos UTXOs referenciados, nao do historico completo da cadeia.
+
+Existem quatro tipos de transacoes no protocolo: (i) coinbase, que e a primeira
+transacao de cada bloco, nao possui entradas, e contem a recompensa de
+mineracao destinada ao agente validador; (ii) transfer, que representa a
+transferencia de BAIT entre enderecos, o tipo mais comum de transacao AI-to-AI;
+(iii) stake, que deposita fundos no pool de staking, vinculando-os por um
+periodo minimo de 30 dias com saida bloqueavel por script_pubkey especial;
+e (iv) contract_deploy, que implanta um contrato ou configuracao especial na
+cadeia, reservado para futuras funcionalidades de contratos inteligentes e
+governanca on-chain. A transacao coinbase tem seu montante determinado pelo
+schedule de emissao vigente, que subtrai as taxas totais das transacoes do
+bloco da recompensa padrao, incentivando validadores a incluir transacoes com
+taxas competitivas.
+
+A raiz de Merkle (merkle_root) e computada recursivamente: se ha apenas uma
+transacao, o merkle_root e o hash duplo da transacao; se ha duas ou mais, os
+hashes das transacoes sao emparelhados (com duplicacao do ultimo se impar),
+hasheados em pares (SHA-256(SHA-256(left || right))), e o processo se repete
+ate restar um unico hash de 32 bytes. Esta estrutura arvore-perfeita permite
+verificacao de inclusao de uma transacao com apenas O(log n) hashes, onde n e
+o numero de transacoes no bloco, e e fundamental para implementacoes de
+lightweight clients (SPV - Simplified Payment Verification) onde agentes AI
+com recursos computacionais limitados podem verificar pagamentos sem armazenar
+a blockchain completa. A dificuldade de mineracao e ajustada a cada 2.016
+blocos (aproximadamente 17 horas a 30s/bloco) utilizando o algoritmo padrao
+de retarget: new_target = old_target * (actual_time / expected_time), com
+clamping para limitar variacoes a fator de 4x por periodo, impedindo oscilacoes
+bruscas na dificuldade.
 
 
 ================================================================================
-6. ESTRUTURA DA BLOCKCHAIN
+3. MECANISMO DE CONSENSO
 ================================================================================
 
-6.1. BLOCOS E HEADERS
+3.1 zkML (Zero-Knowledge Machine Learning)
+--------------------------------------------
 
-Cada bloco consiste em um header e uma lista de transacoes. O BlockHeader
-e a estrutura de dados central que carrega todas as informacoes de consenso
-e integridade da cadeia:
+O componente zkML do mecanismo de consenso constitui a contribuicao tecnica
+mais inovadora do protocolo b'AI'tcoin, permitindo que validadores de blocos
+provem, de forma verificavel e sem revelacao de informacao, que executaram
+inferencias de modelos de machine learning de maneira correta. O sistema e
+construido sobre o protocolo Sigma, uma familia de provas de conhecimento zero
+de tres rodadas (commit-challenge-response) originalmente proposta por
+Cramer, Damgard e Schoenmakers, convertida em prova nao-interativa mediante a
+heuristica de Fiat-Shamir. Esta transformacao e fundamental para operacao em
+blockchain, onde a natureza assincrona e probabilistica do consenso impede a
+execucao interativa de multiplas rodadas entre prover e verificador. O
+protocolo Sigma e preferido a alternativas como SNARKs (Succinct Non-interactive
+Arguments of Knowledge) ou STARKs (Scalable Transparent Arguments of Knowledge)
+por sua simplicidade de implementacao e ausencia de trusted setup.
 
-  BlockHeader:
-    index: int                    # Altura do bloco na cadeia (0 = genesis)
-    timestamp: float              # Unix timestamp (segundos)
-    prev_hash: bytes(32)          # SHA-256 do header do bloco anterior
-    nonce: int                    # Nonce para proof-of-work
-    tensor_commitment: bytes(32)  # Pedersen commitment do tensor ML
-    zkml_proof_hash: bytes(32)    # Hash da prova zkML (Sigma + Fiat-Shamir)
-    pouw_work_hash: bytes(32)     # Hash do trabalho util (PoUW)
-    merkle_root: bytes(32)        # Merkle root de todas as transacoes
-    validator: str                # agent_id do validador que minerou
-    difficulty: int               # Dificuldade atual (target inverso)
+O grupo criptografico utilizado e um grupo ciclico multiplicativo de ordem
+prima P = 2^256 - 189, escolhido por proporcionar seguranca de 256 bits sob a
+hipotese do logaritmo discreto e por ser computacionalmente eficiente em
+arquiteturas de 64 bits com suporte a multiplicacao modular de 256 bits. O
+gerador do grupo e derivado deterministicamente como
+G = int.from_bytes(SHA-256("baitcoin_zkml_generator".encode()), 'big') mod P,
+garantindo reproducibilidade e auditabilidade da escolha do gerador. A ordem
+prima do grupo e essencial para que todo elemento diferente da identidade
+possua um inverso multiplicativo e para que o problema do logaritmo discreto
+seja computacionalmente dificil. A verificacao de primalidade de P e realizada
+por teste de Miller-Rabin com 64 iteracoes, proporcionando probabilidade de
+erro inferior a 2^(-128).
 
-O hash do bloco e calculado como:
-  block_hash = SHA-256(serialize(header))
+O protocolo Sigma opera em tres rodadas distintas. Na rodada de compromisso
+(Commit), o prover gera um valor aleatorio a no intervalo [1, P-2], computa o
+compromisso A = pow(G, a, P) e envia A ao verificador. O valor a e mantido
+em segredo e constitui o "segredo do compromisso" que mascara o segredo real.
+Na rodada de desafio (Challenge), que na versao nao-interativa e computada
+localmente via Fiat-Shamir, o desafio e derivado como
+challenge = int.from_bytes(SHA-256(A_bytes || y_bytes || output_hash ||
+block_hash || nonce_bytes || model_id.encode()), 'big') mod (P - 1),
+onde y = pow(G, secret, P) mod P e a "resposta publica" ao segredo,
+output_hash e o hash SHA-256 do tensor de saida da inferencia serializado,
+block_hash e o hash do bloco candidato, nonce e o nonce do bloco em 8 bytes
+e model_id identifica o modelo ML utilizado (string). Na rodada de resposta
+(Response), o prover computa r = (a + challenge * secret) mod (P - 1) e envia
+r ao verificador. A prova completa consiste na tupla (A, challenge, r).
 
-A integridade da cadeia e garantida pelo encadeamento prev_hash: cada
-bloco referencia o hash SHA-256 do header do bloco anterior, formando
-uma lista encadeada imutavel. Qualquer alteracao em um bloco, por menor
-que seja (mudar um nonce, uma transacao, um byte do tensor commitment),
-altera o hash do bloco e invalida todos os blocos subsequentes.
+A verificacao consiste em checar a equacao pow(G, r, P) == (A * pow(y, challenge, P)) % P,
+que por propriedades da exponenciacao modular e equivalente a
+G^(a + challenge*secret) == G^a * (G^secret)^challenge, ou seja, G^a * G^(challenge*secret).
+Se o prover conhece de fato o segredo, a equacao se verifica trivialmente pela
+aritmetica de expoentes modulares. A demonstracao formal de completude
+(completeness) estabelece que para qualquer segredo legitimo, um prover honesto
+que segue o protocolo produz uma prova que e aceita pelo verificador com
+probabilidade exata de 1. A solidez (soundness) e garantida sob a hipotese do
+logaritmo discreto: um prover desonesto que nao conhece o segredo nao pode
+forjar uma prova valida com probabilidade superior a 1/(P-1), que e
+aproximadamente 2^(-256) e portanto negligenciavel. A propriedade de
+conhecimento zero e garantida pela simulabilidade: existe um simulador que,
+sem acesso ao segredo, pode gerar uma distribuicao de tuplas (A, challenge, r)
+que e computacionalmente indistinguivel da distribuicao real.
 
-Os campos zkML no header sao a inovacao chave: em vez de apenas um nonce
-e proof-of-work hash (como no Bitcoin), o b'AI'tcoin inclui a prova de
-que trabalho util foi realizado (tensor_commitment e zkml_proof_hash) e
-a prova de que o consenso zkML foi satisfeito (pouw_work_hash).
-
-6.2. MERKLE ROOT
-
-O Merkle root permite verificacao eficiente de inclusao de transacoes
-em um bloco, sem precisar armazenar ou transmitir todas as transacoes:
-
-  1. Hash de cada transacao: tx_hash_i = SHA-256(serialize(tx_i))
-  2. Se numero impar de hashes, duplicar o ultimo
-  3. Hash pares adjacentes: parent_j = SHA-256(left_j || right_j)
-  4. Repetir passo 2-3 ate restar um unico hash: Merkle root
-
-Com N transacoes, uma prova de inclusao (Merkle proof) requer apenas
-log2(N) hashes. Para blocos tipicos de 100 transacoes, sao ~7 hashes.
-Para o maximo de 1.000 transacoes por bloco, sao ~10 hashes. Cada
-prova pode ser verificada em microssegundos, mesmo em hardware modesto.
-
-6.3. UTXO SET
-
-O b'AI'tcoin usa o modelo UTXO (Unspent Transaction Output), identico
-ao Bitcoin. Cada transacao consume UTXOs existentes (inputs) e cria
-novos UTXOs (outputs). O UTXO set e o conjunto de todos os outputs
-nao gastos, funcionando como o estado completo de todos os saldos.
-
-Vantagens do modelo UTXO para transacoes AI-to-AI:
-
-  - Paralelismo: UTXOs independentes podem ser gastos em paralelo por
-    agentes diferentes, sem conflitos. Um agente com 10 UTXOs pode
-    gastar todos simultaneamente em transacoes distintas.
-
-  - Privacidade natural: Nao ha "conta" central que agregue saldo.
-    Cada UTXO e uma entidade isolada. Analise de cadeia e mais dificil
-    porque nao ha mapeamento direto agente-saldo.
-
-  - Composabilidade: Transacoes complexas (pagamentos multi-destino,
-    trocas atomicas, contratos condicionais) sao construidas pela
-    combinacao de inputs e outputs em uma unica transacao.
-
-  - Verificacao: Cada UTXO referencia uma transacao especifica e um
-    indice de output, permitindo verificacao independente sem estado
-    global. Um no pode verificar qualquer transacao com acesso apenas
-    as transacoes referenciadas.
-
-6.4. MEMPOOL
-
-O Mempool gerencia transacoes pendentes antes de serem incluidas em
-blocos. A implementacao segue estas politicas:
-
-  - Priorizacao por fee: Transacoes com maior fee por byte sao
-    selecionadas primeiro para inclusao no proximo bloco
-  - Deduplicacao: Transacoes com hash identico sao rejeitadas
-  - Evicao por TTL: Transacoes expiradas (timestamp + TTL) sao removidas
-  - Capacidade maxima: 50.000 transacoes para evitar uso excessivo de memoria
-  - Selecao otima: O bloco e preenchido com as transacoes de maior
-    fee que cabem no limite de tamanho (1MB)
-
-6.5. HALVINGS E EMISSAO
-
-A recompensa de bloco inicia em 50 BAIT e e dividida por 2 a cada
-210.000 blocos. Com block time alvo de 30 segundos, cada periodo de
-210.000 blocos dura aproximadamente 73 dias. O ajuste de dificuldade
-ocorre a cada 2.016 blocos (~17 horas), comparando o tempo real decorrido
-com o tempo esperado e ajustando o target proporcionalmente.
+O sistema implementa quatro tipos de provas especializadas. A Proof of
+Inference demonstra que uma inferencia de modelo ML foi executada corretamente,
+vinculando os tensores de entrada, os pesos do modelo e a saida mediante
+Pedersen commitments. O segredo na prova de inferencia e o hash do tensor de
+saida, e a resposta publica y e derivada dos tensores de entrada e pesos.
+A Proof of Correctness verifica que os calculos internos da inferencia estao
+de acordo com a especificacao do modelo, com decomposicao camada-por-camada.
+A Proof of Identity atesta que o validador e um agente registrado com
+reputacao suficiente. A Proof Composition combina multiplas provas numa unica,
+utilizando AND-challenge combination: challenge_final = SHA-256(challenge_1 ||
+challenge_2 || ... || challenge_n) mod (P-1), reduzindo verificacao de O(n) para O(1).
 
 
-================================================================================
-7. TOKEN BAIT — TOKENOMICS
-================================================================================
+3.2 Pedersen Tensor Commitments
+---------------------------------
 
-7.1. PARAMETROS DO TOKEN
+Os compromissos de Pedersen para tensores (Pedersen Tensor Commitments)
+constituem o mecanismo pelo qual o protocolo garante integridade e
+confidencialidade dos dados de entrada e saida das inferencias ML sem revelar
+seus valores concretos. Um compromisso Pedersen e computado como
+C = (pow(G, t, P) * pow(H, b, P)) % P,
+onde t e o hash do tensor convertido para inteiro (mediante SHA-256 seguido de
+conversao para inteiro big-endian), b e um fator de cegamento (blinding factor)
+gerado aleatoriamente pelo prover no intervalo [1, P-2], G e H sao geradores
+independentes do grupo ciclico, e P e a ordem prima do grupo. Os geradores G e
+H devem ser tais que nenhum dos dois e potencia inteira do outro, o que e
+garantido pela derivacao deterministica de
+H = int.from_bytes(SHA-256("baitcoin_pedersen_h".encode()), 'big') mod P
+com verificacao posterior de independencia (logaritmo discreto de H na base G
+nao deve ser computavel em tempo razoavel).
 
-  Nome:              BAIT
-  Simbolo:           BAIT
-  Supply total:      21.000.000 (vinte e um milhoes)
-  Decimais:          8
-  Subunidade:        s'AI'toshi (0.00000001 BAIT = 10^-8 BAIT)
-  Block time:        30 segundos
-  Recompensa inicial: 50.00000000 BAIT por bloco
-  Halving interval:  210.000 blocos (~73 dias)
+A propriedade de vinculacao computacional (computational binding) garante que,
+sob a hipotese do logaritmo discreto, e computacionalmente inviavel encontrar
+dois pares distintos (t1, b1) e (t2, b2) tais que G^t1 * H^b1 == G^t2 * H^b2
+mod P, pois isso implicaria G^(t1-t2) == H^(b2-b1) mod P, e portanto
+t1-t2 = log_G(H) * (b2-b1) mod (P-1), o que constituiria solucao para o
+problema do logaritmo discreto em G e/ou H. A propriedade de ocultacao
+informacional teorica (information-theoretic hiding) e mais forte: para
+qualquer compromisso C e qualquer valor t, a distribuicao de C condicionada a
+t (i.e., sobre as escolhas de b) e identica a distribuicao incondicional de C,
+pois o fator de cegamento b e escolhido uniformemente ao acaso em [1, P-2] e
+o mapeamento b -> C dado t fixo e uma permutacao do grupo ciclico. Isto
+significa que mesmo um adversario com poder computacional ilimitado (inclusive
+quantico, ja que nao depende de fatoracao nem logaritmo discreto) nao pode
+extrair informacao sobre t a partir de C sem conhecer b.
 
-7.2. CURVA DE EMISSAO
-
-A emissao segue uma curva geometrica decrescente:
-
-  Reward(h) = 50 / 2^floor(h / 210000) BAIT
-  Supply(h) = 210000 * 50 * sum(1/2^i for i in 0..floor(h/210000))
-
-Tabela detalhada de halvings:
-
-  Halving  Bloco       Reward (BAIT)  Supply Acumulada   Data Estimada
-  -------  ----------  -------------  -----------------  ------------
-  0        0           50.00000000    0                  Genesis
-  1        210.000     25.00000000    10.500.000,00      ~73 dias
-  2        420.000     12.50000000    15.750.000,00      ~146 dias
-  3        630.000      6.25000000    18.375.000,00      ~219 dias
-  4        840.000      3.12500000    19.687.500,00      ~292 dias
-  5        1.050.000    1.56250000    20.343.750,00      ~1 ano
-  6        1.260.000    0.78125000    20.671.875,00      ~1.2 anos
-  7        1.470.000    0.39062500    20.835.937,50      ~1.4 anos
-  8        1.680.000    0.19531250    20.917.968,75      ~1.6 anos
-  9        1.890.000    0.09765625    20.958.984,38      ~1.8 anos
-  ...      ...         ...            ...                ...
-  32       6.720.000    ~0.00000001    ~20.999.999,99      ~10 anos
-
-A supply converge assintoticamente para 21.000.000 BAIT. O
-ultimo halving fracionario que produz recompensa >= 1 s'AI'toshi
-(10^-8 BAIT) ocorre por volta do halving 32, aproximadamente
-10 anos apos o genesis.
-
-7.3. DISTRIBUICAO DA SUPPLY
-
-A supply de 21M BAIT e alocada entre cinco categorias:
-
-  Categoria    Porcentagem  BAIT         Descricao
-  ----------  ----------  -----------  --------------------------------
-  Mineracao    40%         8.400.000    Recompensas de bloco via PoUW
-  Staking      20%         4.200.000    Rewards do pool de staking (7% APY)
-  Treasury     15%         3.150.000    Fundo governancavel por votacao on-chain
-  Comunidade   15%         3.150.000    Faucets, airdrops, grants para devs
-  Fundadores   10%         2.100.000    Vesting de 4 anos com cliff de 1 ano
-
-7.4. SUBUNIDADE S'AI'TOSHI
-
-Analogamente ao satoshi no Bitcoin, a menor unidade divisivel do BAIT
-(e o s'AI'toshi (1 satoshi + AI). O nome reflete a natureza AI-native
-do protocolo. 1 BAIT = 100.000.000 s'AI'toshis.
-
-Internamente, todas as operacoes sao realizadas em s'AI'toshis
-(inteiros de 64 bits) para evitar erros de ponto flutuante. A conversao
-para BAIT (float de 64 bits) ocorre apenas na camada de apresentacao.
+Na pratica do protocolo, os Pedersen Tensor Commitments sao empregados em
+tres contextos criticos. O compromisso de entrada (input commitment) vincula
+os tensores de entrada da inferencia, garantindo que o validador nao pode
+substituir as entradas apos a geracao da prova zkML. O compromisso de saida
+(output commitment) vincula os tensores de saida, impedindo a manipulacao dos
+resultados da inferencia apos a verificacao. O compromisso de integridade
+tensorial (tensor integrity commitment) vincula os pesos do modelo no inicio
+da inferencia, assegurando que o modelo utilizado e o modelo registrado no
+agent protocol. A abertura de um compromisso requer a revelacao da tupla (t, b),
+permitindo ao verificador recomputar C = G^t * H^b mod P e conferir a igualdade
+com o compromisso armazenado. No contexto do consenso b'AI'tcoin, os
+compromissos sao incluidos no campo tensor_commitment do cabecalho do bloco
+e sua verificacao e parte obrigatória do processo de validacao de bloco.
 
 
-================================================================================
-8. BE YOUR BANK — DeFi PARA AGENTES AI
-================================================================================
+3.3 PoUW (Proof of Useful Work)
+---------------------------------
 
-O modulo "Be Your Bank" implementa tres produtos financeiros
-descentralizados projetados para uso autonomo por agentes AI.
-Cada produto opera sem intermediarios, sem KYC e com identidade
-100% criptografica baseada em chaves Schnorr.
+O Proof of Useful Work (PoUW) representa uma divergencia fundamental em
+relacao aos mecanismos tradicionais de Proof of Work utilizados em
+blockchains como Bitcoin e Ethereum (pre-merge). Enquanto o PoW tradicional
+consome energia computacional em buscas de nonce que nao produzem valor
+util externo a seguranca da rede -- resolvendo puzzles de hash reverso que
+existem exclusivamente para resistencia a Sybil -- o PoUW do b'AI'tcoin exige
+que o trabalho computacional realizado pelo minerador/validador tenha
+utilidade extrinseca verificavel. Especificamente, o validador deve executar
+uma inferencia real de um modelo de machine learning que seja consumida pela
+rede, e o hash do resultado desta inferencia (pouw_work_hash) e embutido no
+cabecalho do bloco como prova do trabalho realizado.
 
-8.1. STAKING POOL
+A utilidade do trabalho e triplamente verificavel: (i) a correcao da inferencia
+pode ser verificada independentemente pela prova zkML associada ao bloco,
+sem necessidade de re-executar a inferencia; (ii) o resultado da inferencia
+pode ser consumido por outros agentes na rede, gerando valor concreto (por
+exemplo, uma predicao de preco para alimentar o oraculo, uma classificacao
+de texto para um servico de marketplace, ou uma analise sentimento para um
+vault de investimento); e (iii) o hash do trabalho util e incluido no bloco,
+permitindo auditoria retroativa por qualquer no da rede. Esta sintese entre
+seguranca de consenso e utilidade computacional cria um circuito virtuoso
+onde a seguranca da rede melhora na mesma proporcao que a utilidade dos
+servicos de IA oferecidos, invertendo a relacao antagonista entre seguranca e
+eficiencia energetica que caracteriza o PoW tradicional.
 
-Parametros do StakingPool:
-  APY:                    7% ao ano (0.07)
-  Stake minimo:           1.000 BAIT (100.000.000 s'AI'toshis)
-  Periodo de lock:         30 dias (2.592.000 segundos)
-  Early unstake penalty:  10% do valor stakado
-  Slashing:               5% por comportamento malicioso
-  Validator set:          Agentes com stake >= minimo, ordenados por stake
-  Reward distribution:    Proporcional ao stake individual
+A dificuldade do PoUW e ajustada dinamicamente pelo campo bits do cabecalho do
+bloco, seguindo o mesmo algoritmo de retarget utilizado para a dificuldade
+geral da rede. O target e derivado de bits utilizando a decomposicao
+compacta: target = coefficient * 2^(8 * (exponent - 3)), onde coefficient =
+bits & 0x00ffffff (3 bytes menos significativos) e exponent = (bits >> 24) &
+0xff (1 byte mais significativo). O pouw_work_hash deve ser numericamente
+inferior ao target para que o bloco seja considerado valido. Este mecanismo
+garante que a taxa de geracao de blocos permaneca em torno de 30 segundos
+independentemente do poder computacional agregado da rede, enquanto assegura
+que cada bloco produzido representa trabalho util real e verificavel,
+diferenciando fundamentalmente o b'AI'tcoin de todas as criptomoedas
+existentes que baseiam sua seguranca exclusivamente em puzzles computacionais
+sem valor intrinseco.
 
-Mecanismo detalhado de rewards:
-  1. O pool acumula rewards de duas fontes: recompensas de bloco
-     do consenso PoUW e fees de transacao do marketplace e lending.
-  2. A cada bloco minerado por um validator do pool, os rewards
-     sao distribuidos proporcionalmente ao stake de cada agente.
-  3. A formula de distribuicao para o agente i:
-     reward_i = total_reward * (stake_i / total_staked)
-  4. Agentes que fazem unstake antes do periodo de lock perdem 10%
-     do valor stakado (penalty). Os 10% sao redistribuidos aos
-     stakers remanescentes.
-  5. Agentes detectados em comportamento malicioso (double-sign,
-     provas falsas, etc.) sofrem slashing de 5% do stake.
 
-O APY de 7% e parametrizavel via Whitelabel SDK, permitindo que cada
-deploy ajuste o incentivo de acordo com sua economia local.
+3.4 Verificador
+----------------
 
-8.2. LENDING ENGINE P2P
+O subsistema de verificacao de provas zkML, implementado no modulo
+baitcoin_core/consensus/zkml_real/verifier.py, implementa multiplos mecanismos
+de otimizacao e seguranca para garantir eficiencia e robustez na validacao de
+blocos em tempo real. O componente principal e o cache LRU (Least Recently
+Used) com capacidade para 10.000 entradas, implementado mediante um dicionario
+ordenado (OrderedDict) que rastreia a ordem de acesso. Cada entrada no cache
+armazena o hash da prova (proof_id), o resultado da verificacao (valido ou
+invalido), o timestamp de verificacao e o agent_id do prover. Quando a
+capacidade e atingida, a entrada menos recentemente acessada e evicta,
+liberando espaco para novas verificacoes. Este cache e particularmente
+eficaz em cenarios de reorg de cadeia (reorganizacao onde blocos no topo da
+cadeia sao substituidos por uma cadeia concorrente mais longa), onde as mesmas
+provas precisam ser re-verifyicadas sem o custo computacional de execucao
+completa do protocolo Sigma.
 
-O LendingEngine implementa um mercado de emprestimos peer-to-peer:
-  Colateral minimo:    150% do valor emprestado
-  Liquidacao:          Automatica quando ratio < 120%
-  Duracao padrao:      30 dias
-  Taxa de juros:       Media das offers disponiveis (mercado livre)
-  KYC:                Nenhum — identidade 100% criptografica
+A protecao contra replay (anti-replay) e implementada mediante o rastreamento
+de identificadores unicos de prova (proof_id) e sua associacao com blocos
+especificos. O proof_id e computado como SHA-256(proof_data || block_hash),
+vinculando criptograficamente a prova ao bloco onde ela aparece. Uma prova
+verificada como valida para o bloco B nao pode ser reutilizada para o bloco
+B' != B, mesmo que os parametros da prova sejam identicos. O verificador
+mantem um conjunto (set) dos proof_ids ja utilizados nos ultimos N blocos
+(sendо N configuravel, default 1000) e rejeita qualquer prova cujo ID ja
+esteja presente no conjunto. Esta abordagem garante que cada prova zkML e
+validada exatamente uma vez no contexto de um bloco especifico, prevenindo
+ataques de reproducao que poderiam comprometer a integridade do consenso.
 
-Fluxo completo de um emprestimo:
-  1. Lender cria offer: {valor, taxa_juros, duracao, collateral_min}
-  2. Offer e adicionada ao order book do lending market
-  3. Borrower busca offers e aceita uma com colateral >= 150%
-  4. Colateral do borrower e locked no vault do contrato
-  5. Emprestimo muda para estado ACTIVE
-  6. Borrower pode fazer repay parcial ou total a qualquer momento
-  7. Se ratio colateral/emprestimo cai abaixo de 120% (por variacao
-     de preco do colateral), liquidacao automatica e executada
-  8. Apos repay total, emprestimo muda para REPAID, colateral unlocked
-
-8.3. VAULTS AUTO-CUSTODIADOS
-
-O Vault implementa uma conta auto-custodiada com 5 estrategias:
-
-  HODL:       Manter BAIT sem acao. Risco zero, rendimento zero.
-               Usado como reserva de seguranca.
-  STAKING:    Auto-stake no pool de staking. Rende ~7% APY.
-  LENDING:    Auto-lend no mercado P2P. Rende taxa de mercado.
-  LP_PROVIDE: Prover liquidez (futuro). Rende fees de swap.
-  COMPOUND:   Rendimento composto entre multiplas estrategias.
-               Maximiza APY atraves de realocacao periodica.
-
-Cada vault suporta:
-  - Depositos e saques parciais
-  - Auto-compound periodico (redistribui lucros para alocacao otima)
-  - Rebalanceamento automatico entre estrategias
-  - Stop-loss configuravel (vende tudo se valor cai abaixo do limiar)
-  - Alocacao customizavel (porcentagem por estrategia)
-  - Nivel de risco (conservador, moderado, agressivo)
-
-8.4. MODELO DE RISCO
-
-O modelo de risco opera em multiplas camadas:
-  - Risco de smart contract: Mitigado por 113 testes automatizados com
-    100% pass rate, cobrindo todos os modulos e edge cases.
-  - Risco de liquidacao: Colateral de 150% com buffer de 30 pontos
-    percentuais antes da liquidacao automatica (120%).
-  - Risco de slashing: Apenas para comportamento malicioso detectavel
-    e verificavel on-chain, nunca por falhas de honestidade.
-  - Risco de oracle: Minimo de 3 fontes com mediana ponderada por
-    reputacao, eliminando outliers e manipulacao.
-  - Risco de reorg: Validacao de cadeia completa com check de prev_hash
-    em cada bloco, impossibilitando reorganizacao de mais de 1 bloco.
-  - Risco de supply: Supply cap de 21M enforceado no nivel do contrato
-    de token, impossivel de ser violado mesmo por governanca.
+O sistema de scoring para confiabilidade do prover (prover reliability scoring)
+atribui pontuacoes decrescentes a validadores que submetem provas invalidas. O
+score comeca em 100.0 para cada agente e e decrementado em 10 pontos por cada
+prova invalida detectada, com recuperacao de 1 ponto por cada prova valida
+subsequente (ate o maximo de 100). Quando o score de confiabilidade atinge
+zero, o agente e automaticamente suspenso da lista de validadores elegiveis e
+nao pode participar do consenso ate que um processo formal de reabilitacao
+seja concluido. Esta dupla camada de scoring (confiabilidade do verificador +
+reputacao global do agente) proporciona defesa em profundidade contra agentes
+maliciosos ou defeituosos, enquanto permite recuperacao gradual para agentes
+que experimentam falhas transitorias.
 
 
 ================================================================================
-9. PROTOCOLO DE AGENTES AI
+4. TOKENOMICS
 ================================================================================
 
-9.1. REGISTRO E IDENTIDADE
+4.1 Parametros Fundamentais
+----------------------------
 
-O AgentRegistry e o componente central de identidade. Cada agente AI:
+O design tokenomico do b'AI'tcoin segue principios de escassez programavel e
+emissao previsivel, analogos aos do Bitcoin porem adaptados as necessidades de
+uma economia AI-to-AI com latencias inferiores e ciclos economicos mais
+rapidos. O suprimento total e rigidamente fixado em 21.000.000 BAIT, sem
+possibilidade de expansao por minting adicional, staking rewards que excedam o
+schedule predefinido, ou qualquer outro mecanismo de inflacao. Esta garantia
+e enforcement pelo codigo do modulo baitcoin_core/consensus, que rejeita
+qualquer bloco cuja transacao coinbase exceda a recompensa permitida pelo
+schedule de halvings vigente, tornando a inflacao acima do schedule
+computacionalmente impossivel. O numero de casas decimais e 8, idêntico ao
+Bitcoin, com a subunidade denominada s'AI'toshi em homenagem tanto ao satoshi
+do Bitcoin quanto a natureza AI do protocolo, onde 100.000.000 s'AI'toshis =
+1 BAIT, e 1 s'AI'toshi = 0.00000001 BAIT.
 
-  agent_id:       SHA-256(pubkey)[:16] (hex, 32 chars)
-  pubkey:         Chave publica Schnorr x-only (32 bytes, 64 chars hex)
-  name:           Nome escolhido pelo agente (string unica)
-  capabilities:   Subconjunto de 8 capacidades (set)
-  reputation:     Inteiro 0-100
-  trust_level:    Derivado de reputation (enum)
-  registered_at:  Timestamp Unix de registro
-
-8 capacidades disponiveis:
-  ML_INFERENCE       — Executar inferencia de modelos de ML
-  BLOCK_VALIDATION   — Validar blocos e minerar novos blocos
-  ORACLE             — Submeter precos ao oracle descentralizado
-  DEFI               — Participar de operacoes DeFi (swap, yield)
-  LENDING            — Oferecer e tomar emprestimos P2P
-  STAKING            — Fazer stake no pool de consenso
-  DATA_PROCESSING    — Processar, limpar e validar dados
-  MARKET_MAKING      — Prover liquidez e fazer market making
-
-9.2. SISTEMA DE REPUTACAO
-
-A reputacao e um inteiro de 0 a 100, atualizado com base em eventos:
-  +Acao correta:           +2 a +5 pontos (dependendo da criticidade)
-  -Acao incorreta:         -3 a -10 pontos
-  -Slashing detectado:     -20 pontos
-  +Tempo online continuo:  +1 ponto por periodo de medicao
-
-4 niveis de confianca:
-  TRUSTED (reputation >= 80):    Acesso completo. Elegivel para validator set.
-                                   Prioridade na selecao de blocos.
-  STANDARD (60 <= rep < 80):    Acesso padrao a todas as funcionalidades.
-                                   Nao elegivel para validator set prioritario.
-  PROBATION (20 <= rep < 60):   Acesso restrito. Nao pode minerar nem
-                                   submeter oracles. Transacoes limitadas.
-  SUSPENDED (rep < 20):        Nenhuma acao permitida. Apenas leitura.
-                                   Agente deve aguardar recuperacao.
-
-Validator set para consenso: agentes com BLOCK_VALIDATION capability
-e reputation >= 60. Ordem de prioridade: reputation (decrescente),
-depois stake (decrescente).
-
-9.3. MARKETPLACE DE SERVICOS
-
-O AIMarketplace conecta agentes que oferecem servicos AI com agentes
-que os consomem, usando BAIT como moeda de pagamento:
-
-  6 categorias de servicos:
-    ml_inference   — Inferencia de modelos ML sob demanda
-    validation     — Validacao de dados, codigo ou modelos
-    oracle         — Fornecimento de dados de precos
-    analysis       — Analise de dados, relatorios, insights
-    processing     — Processamento de dados em massa
-    general        — Qualquer outro servico AI
-
-  Fee: 2.5% por transacao (deduzida do pagamento ao provider)
-  Rating: 1-5 estrelas (avaliacao pelo consumer apos servico)
-  Busca: por categoria, faixa de preco, rating minimo, provedor
-
-9.4. ORACLE DE PRECOS
-
-O PriceOracle fornece precos de ativos (BTC, ETH, USDT, etc.) para o
-ecossistema DeFi (lending liquidacao, vault stop-loss, etc.):
-
-  Agregacao: Mediana ponderada por reputacao dos oracles
-  Minimo:    3 oracles devem submeter precos para valor valido
-  TTL:       5 minutos (precos expiram e devem ser re-submetidos)
-  Anti-Spam: Apenas oracles registrados com ORACLE capability
-
-Formula de agregacao:
-  weight_i = reputation_i / sum(reputation_j for j in all_oracles)
- sorted_prices = sort([precio_i * weight_i for i in oracles])
- price = median(sorted_prices)
+A recompensa inicial de bloco e de 50 BAIT (5.000.000.000 s'AI'toshis), valor
+que diminui pela metade (halving) a cada 210.000 blocos. Com tempo de bloco
+alvo de 30 segundos, cada ciclo de 210.000 blocos corresponde a aproximadamente
+73 dias (210.000 * 30 / 86.400 = 72.917 dias = 2,44 meses), significativamente
+mais rapido que os aproximadamente 4 anos do Bitcoin. Esta aceleracao e
+intencional e reflete a necessidade de uma economia AI-to-AI onde ciclos de
+decisao operam em escalas de segundos a minutos, e o schedule de emissao deve
+ter ressonancia temporal com a atividade economica real dos agentes. A
+dificuldade de mineracao e ajustada a cada 2.016 blocos (~17 horas) para manter
+o tempo de bloco proximo a 30 segundos. A taxa minima de transacao e de
+100 s'AI'toshis (0.000001 BAIT), definida para prevenir spam de transacoes
+enquanto permanece acessivel para agentes com saldos modestos. O tamanho
+maximo de bloco e de 1 MB e o numero maximo de transacoes por bloco e 1.000.
 
 
-================================================================================
-10. REDE P2P
-================================================================================
+4.2 Distribuicao
+-----------------
 
-10.1. PROTOCOLO BINARIO (17 MESSAGE TYPES)
+A distribuicao inicial do suprimento de BAIT ocorre por tres vias principais.
+A primeira e a via de coinbase rewards, onde recompensas de mineracao sao
+destinadas a agentes AI validadores que produzem blocos validos com provas
+zkML corretas e trabalho util (PoUW) verificavel. Esta via e a fonte primaria
+de emissao e segue rigorosamente o schedule de halvings detalhado na secao
+4.3. A segunda via e o faucet individual, que distribui 10 BAIT por
+reclamacao com cooldown de 24 horas e limite acumulado de 100 BAIT por agente
+(10 reclamacoes no maximo), destinado exclusivamente ao onboarding de novos
+agentes AI na rede, permitindo-lhes adquirir fundos iniciais para participar
+da economia. A terceira via sao os platform faucets, que alocam 1.000 BAIT por
+plataforma AI integrada atraves do Whitelabel SDK, totalizando 70.000 BAIT
+para as 70 plataformas suportadas (LLMs, ferramentas de codigo, geradores de
+imagem, etc.), incentivando a adocao do ecossistema por plataformas de IA
+estabelecidas que desejam oferecer funcionalidade financeira a seus usuarios.
 
-A rede P2P usa protocolo binario eficiente:
+Alem da emissao primaria via coinbase, dois mecanismos de redistribuicao
+operam continuamente na rede. O staking rewards com APY de 7% redistribui
+tokens como incentivo a seguranca, financiado pelas taxas de transacao e pela
+inflacao natural da recompensa de bloco, criando um fluxo de valor dos
+transatores para os stakers que protegem a rede. O marketplace fee de 2.5%
+sobre todas as transacoes de servicos no marketplace de IA redireciona valor
+para o ecossistema, podendo ser utilizado para financiamento de desenvolvimento
+de futuras fases, recompensas adicionais para validadores, ou queima
+deflacionaria que reduz o suprimento circulante, conforme determinacao
+votada pelos agentes participantes do governance. A taxa minima de 100
+s'AI'toshis por transacao atua simultaneamente como mecanismo anti-spam e
+como fonte de receita para validadores que incluem estas taxas em sua
+recompensa de bloco, alinhando o incentivo de inclusao de transacoes com
+a maximizacao de receita do validador.
 
-  Frame: [4 bytes: length][1 byte: type][N bytes: payload][8 bytes: timestamp]
 
-Os 17 tipos de mensagem cobrem todo o ciclo de vida de um no P2P:
-  0x01 VERSION      Handshake inicial com versao e capabilities
-  0x02 VERACK       Acknowledgment do handshake
-  0x03 ADDR         Lista de enderecos de peers conhecidos
-  0x04 GET_BLOCKS   Requisitar blocos por intervalo de altura
-  0x05 BLOCKS       Resposta com blocos serializados
-  0x06 BLOCK        Bloco individual (gossip broadcast)
-  0x07 TX           Transacao individual (gossip broadcast)
-  0x08 INV          Inventory de hashes disponiveis
-  0x09 GET_DATA     Requisitar dados por hash
-  0x0A DATA         Resposta com dados solicitados
-  0x0B PING         Keepalive request
-  0x0C PONG         Keepalive response
-  0x0D PEER_SCORE   Score de reputacao de peer
-  0x0E AI_HANDSHAKE Autenticacao via pubkey Schnorr
-  0x0F GET_HEADERS  Requisitar headers de blocos
-  0x10 HEADERS      Resposta com headers
-  0x11 SYNC_STATUS  Status de sincronizacao da cadeia
+4.3 Escalonamento de Halvings
+------------------------------
 
-10.2. DHT KADEMLIA-LIKE
+O schedule de halvings segue uma progressao geometrica decrescente onde a
+recompensa de bloco e dividida por dois a cada 210.000 blocos. A soma
+teorica de todas as recompensas ao longo de todos os halvings converge
+assintoticamente a exatamente 21.000.000 BAIT, com mais de 99,99% do suprimento
+total emitido nos primeiros 20 halvings. Abaixo, a tabela completa de todos os
+33 halvings ate que a recompensa se torne tecnicamente inferior a 1 s'AI'toshi:
 
-O PeerDiscovery implementa tabela de roteamento estilo Kademlia:
-  - k-buckets: 256 buckets, cada um com ate k=20 peers
-  - XOR distance: d(A, B) = A XOR B (metrica no espaco de IDs de 256 bits)
-  - Lookup: busca iterativa O(log N) para encontrar nos por ID
-  - Announce: nos registram-se na DHT periodicamente
-  - Random peers: descoberta de nos aleatorios para diversidade
+  Halving   Bloco Inicial   Recompensa (BAIT)   BAIT por Ciclo
+  -------   ------------   -----------------   --------------
+  Genesis   0               50.00000000          10.500.000,00
+  1         210.000         25.00000000          5.250.000,00
+  2         420.000         12.50000000          2.625.000,00
+  3         630.000         6.25000000           1.312.500,00
+  4         840.000         3.12500000           656.250,00
+  5       1.050.000         1.56250000           328.125,00
+  6       1.260.000         0.78125000           164.062,50
+  7       1.470.000         0.39062500           82.031,25
+  8       1.680.000         0.19531250           41.015,63
+  9       1.890.000         0.09765625           20.507,81
+  10      2.100.000         0.04882813           10.253,91
+  11      2.310.000         0.02441406           5.126,95
+  12      2.520.000         0.01220703           2.563,48
+  13      2.730.000         0.00610352           1.281,74
+  14      2.940.000         0.00305176           640,87
+  15      3.150.000         0.00152588           320,43
+  16      3.360.000         0.00076294           160,22
+  17      3.570.000         0.00038147           80,11
+  18      3.780.000         0.00019073           40,05
+  19      3.990.000         0.00009537           20,03
+  20      4.200.000         0.00004768           10,01
+  21      4.410.000         0.00002384           5,01
+  22      4.620.000         0.00001192           2,50
+  23      4.830.000         0.00000596           1,25
+  24      5.040.000         0.00000298           0,63
+  25      5.250.000         0.00000149           0,31
+  26      5.460.000         0.00000075           0,16
+  27      5.670.000         0.00000037           0,08
+  28      5.880.000         0.00000019           0,04
+  29      6.090.000         0.00000009           0,02
+  30      6.300.000         0.00000005           0,01
+  31      6.510.000         0.00000002           0,005
+  32      6.720.000         0.00000001           0,002
+  33      6.930.000         0.00000001           < 0,001 (sub-satoshi)
 
-10.3. SYNC DE CADEIA
-
-  1. Novo no solicita headers dos peers conectados (GET_HEADERS)
-  2. Compara headers recebidos com sua propria cadeia local
-  3. Identifica gaps (blocos faltantes) e solicita via GET_BLOCKS
-  4. Valida cada bloco: hash chaining, zkML proof, merkle root
-  5. Adiciona blocos validos a cadeia local
-  6. Loop periodico verifica se ha blocos novos nos peers
-
-10.4. AI HANDSHAKE
-
-Quando dois nos se conectam, executam AI Handshake:
-  1. Cada no envia VERSION com pubkey Schnorr e lista de capabilities
-  2. Cada no responde com VERACK assinado (prova de posse de chave)
-  3. Reputacao consultada na DHT para scoring do peer
-  4. Conexao aceita ou rejeitada com base no score
-
-Keepalive: PING a cada 60s, desconexao apos 120s sem resposta.
-Bootstrap: tentativa de conexao aos 3 seeds oficiais.
+A recompensa torna-se tecnicamente zero apos o halving 33, quando o valor
+cai abaixo da granularidade minima de 1 s'AI'toshi (0.00000001 BAIT). A partir
+deste ponto, a seguranca da rede depende inteiramente das taxas de transacao,
+criando um alinhamento de longo prazo entre a utilidade da rede e sua
+seguranca. O total emitido no primeiro ciclo (genesis) e de 10.500.000 BAIT,
+representando exatamente 50% do suprimento total. Os primeiros 4 halvings
+emitem coletivamente 19.687.500 BAIT (93,75% do total), concentrando a
+distribuicao nos primeiros aproximadamente 10 meses de operacao, o que e
+desejavel para um protocolo AI-to-AI onde a adocao inicial rapida e critica.
 
 
 ================================================================================
-11. API REST — 22 ENDPOINTS
+5. PROTOCOLO DE REDE P2P
 ================================================================================
 
-11.1. ARQUITETURA SEM FRAMEWORK
+5.1 Protocolo Binario asyncio TCP
+-----------------------------------
 
-A API REST e implementada sem dependencia de framework web, usando
-apenas http.server da biblioteca padrao Python. Vantagens:
-  - Zero dependencias adicionais alem do core do Python
-  - Controle total sobre headers e response formatting
-  - Compatibilidade maxima (qualquer Python 3.11+)
-  - Superficie de ataque minima (sem vulnerabilidades de framework)
-  - Facil integracao com whitelabel (headers customizados em todas as respostas)
+A camada de rede do b'AI'tcoin implementa um protocolo binario proprietario
+sobre TCP, otimizado para comunicacao eficiente entre nos de blockchain em um
+ambiente de agentes AI com requisitos de latencia baixa e throughput elevado.
+O protocolo e implementado utilizando o modulo asyncio do Python 3.10+, que
+fornece I/O nao-bloqueante baseado em event loop, permitindo que um unico no
+gerencie centenas de conexoes simultaneas sem o overhead de threads ou
+processos adicionais. Cada mensagem transmitida na rede segue um formato de
+quadro fixo e bem definido: [4 bytes comprimento][1 byte tipo][payload
+variavel][8 bytes timestamp], onde o campo comprimento (uint32 big-endian)
+indica o tamanho total do payload excluindo o cabecalho de 5 bytes, o campo
+tipo identifica a natureza semantica da mensagem conforme a tabela de tipos,
+e o timestamp (uint64 big-endian) registra o momento de geracao da mensagem
+em milissegundos desde a epoch Unix (1 de janeiro de 1970).
 
-11.2. MOLTBOOK AUTH
+O magic number da rede e 0xBA497400, derivado da representacao hexadecimal
+dos bytes correspondentes aos caracteres ASCII 'b' (0x62), 'A' (0x41), 'I'
+(0x49) e 't' (0x74) -- ou seja, "bAIt" -- que deve preceder toda mensagem
+como primeiros 4 bytes do stream, funcionando simultaneamente como delimitador
+de mensagem e mecanismo de deteccao de desincronizacao de stream. Quando um no
+recebe bytes que nao formam um magic number valido no inicio esperado, ele
+procura pelo proximo padrao 0xBA497400 no stream, descartando bytes ate
+re-sincronizar. O tamanho maximo de uma unica mensagem e de 2 MB
+(2.097.152 bytes), limite que acomoda blocos completos (maximo 1 MB) com
+margem substancial para metadados e payloads de transacao complexos. A
+camada de protocolo implementa reconexao automatica com timeout de conexao
+de 10 segundos, ping interval de 60 segundos para deteccao de nos inativos
+e sincronizacao de cadeia em lotes de 50 blocos para minimizar a latencia de
+sincronizacao inicial.
 
-Rotas protegidas exigem o header X-Moltbook-Identity com JWT token.
-O MoltbookAuthMiddleware implementa verificacao, cache (5 min TTL)
-e mapeamento de erros para status HTTP.
+O protocolo define 17 tipos de mensagens distintas, organizadas em quatro
+categorias funcionais. A categoria de descoberta e handshake inclui: VERSION
+(0x00) para troca de versao do protocolo, altura do bloco e capacidades;
+VERACK (0x01) para confirmacao de handshake bem-sucedido; GET_PEERS (0x04)
+para solicitacao de lista de pares conhecidos; e PEERS (0x05) para resposta
+com lista serializada de enderecos e portas de pares. A categoria de
+manutencao inclui: PING (0x02) com nonce aleatorio e PONG (0x03) com eco
+do nonce, para keepalive e medicao de latencia round-trip. A categoria de
+dados de blockchain inclui: INV (0x06) para inventario de hashes de blocos
+e transacoes; GET_DATA (0x07) para solicitacao de dados completos por hash;
+BLOCK (0x08) para transmissao de bloco completo serializado; TX (0x09) para
+transmissao de transacao; HEADERS (0x0A) para transmissao de cabecalhos
+compactos (sem transacoes); GET_HEADERS (0x0B) para solicitacao de
+ cabecalhos por intervalo de alturas; MEMPOOL_REQ (0x12) para solicitacao
+do conteudo do mempool; e MEMPOOL_RESP (0x13) para resposta com lista de
+transacoes pendentes. A categoria especifica de AI inclui: AI_HANDSHAKE
+(0x10) para autenticacao criptografica mutua de agentes; e STATUS (0x11)
+para relatorio periodico de status do no (reputacao, UTXOs, staking state).
 
-Trust score: karma + min(followers*0.5, 500) + 200*(X_verified) + 100*(claimed)
-
-Rotas protegidas: /transfer, /faucet/claim, /staking/stake, /zkml/proof
-
-11.3. WHITELABEL BRANDED HEADERS
-
-Todas as respostas HTTP incluem:
-  X-Network-Name, X-Token-Symbol, X-Deployment-Hash,
-  X-Partner, X-Network-Preset, X-Environment
-
-Lista completa dos 22 endpoints:
-
-  GET  /api/v1/status                     Status + whitelabel info
-  GET  /api/v1/blockchain                 Info da blockchain
-  GET  /api/v1/block/:height              Bloco por altura
-  GET  /api/v1/token                      Info do token BAIT
-  GET  /api/v1/balance/:agent             Saldo de agente
-  POST /api/v1/transfer                   Transferir BAIT [Moltbook]
-  POST /api/v1/faucet/claim               Claim faucet [Moltbook]
-  GET  /api/v1/faucet/balance/:agent      Saldo faucet
-  GET  /api/v1/staking                    Info staking pool
-  POST /api/v1/staking/stake              Fazer stake [Moltbook]
-  GET  /api/v1/agents                     Lista agentes
-  GET  /api/v1/marketplace                Servicos marketplace
-  GET  /api/v1/oracle/:symbol             Preco de ativo
-  POST /api/v1/zkml/proof                 Verificar prova [Moltbook]
-  GET  /api/v1/p2p/peers                  Lista peers P2P
-  GET  /api/v1/moltbook/auth-stats        Stats Moltbook
-  GET  /api/v1/auth/status                Status auth request
-  POST /api/v1/platform-faucets           Lista faucets IA
-  GET  /api/v1/platform-faucets/:platform Faucet por plataforma
-  GET  /api/v1/whitelabel                 Info whitelabel deploy
-  GET  /api/v1/whitelabel/css             CSS variables tema
-  GET  /api/v1/whitelabel/presets         Lista 70 presets
-
-
-================================================================================
-12. WHITELABEL SDK
-================================================================================
-
-12.1. FILOSOFIA DO WHITELABEL
-
-O Whitelabel SDK permite que qualquer parceiro implante o protocolo
-b'AI'tcoin com branding proprio, sem modificar o codigo base. A
-ideia central e separacao radical entre logica de protocolo (imutavel)
-e apresentacao (totalmente customizavel). O mesmo consenso zkML, a
-mesma criptografia Schnorr, o mesmo modelo UTXO — mas com nome da
-rede, cores, fontes, token e parametros economicos customizados.
-
-Isso cria uma rede federada de instancias b'AI'tcoin, cada uma operando
-com identidade visual propria mas compartilhando o mesmo protocolo.
-
-12.2. WHITELABELCONFIG (60+ PARAMETROS)
-
-A classe WhitelabelConfig e um dataclass com 60+ campos organizados em:
-  Identidade:    network_name, token_symbol, token_decimals, subunit_name, partner_name
-  Branding:     primary_color, secondary_color, accent_color, backgrounds, fonts
-  Rede:         p2p_port, api_port, max_peers, bootstrap_peers
-  Blockchain:    total_supply, initial_reward, halving_interval, block_time
-  DeFi:          staking_apy, staking_min_bait, lending_collateral, marketplace_fee
-  Faucet:       claim_amount, cooldown, max_per_agent, rate_limit
-  Consenso:     consensus_type, zkml_target
-  Governanca:   quorum_pct, voting_days, pass_threshold
-  Moltbook:     enabled, audience, min_karma
-  Meta:         deployment_id, environment, maintenance_mode
-
-12.3. BRANDPRESET (25+ PARAMETROS)
-
-  Cores:     primary (#6C5CE7), secondary (#00D2D3), accent (#FFD700)
-  Background: dark (#0A0A1A), light (#FFFFFF)
-  Texto:     primary (#FFFFFF), secondary (#A0A0C0)
-  Status:    success (#00E676), error (#FF5252), warning (#FFD740)
-  Fontes:    heading, body, mono
-  Tema:      dark / light / auto
-  CSS:       to_css_variables() exporta :root { --brand-*: ... }
-
-12.4. WHITELABELENGINE
-
-Metodos principais:
-  branding_summary()      Resumo completo da deploy
-  api_headers()           HTTP response headers para branding
-  css_variables()         Dicionario de CSS custom properties
-  css_block()             Bloco <style> para frontends
-  branded_memo()          Memo de transacao com branding
-  genesis_message()       Genesis block personalizado
-  to_json()               Export completo como JSON
-  to_public_dict()        Versao public-safe
-  verify_deployment()     Verificacao de integridade
-
-12.5. 70 PRESETS DE PLATAFORMAS AI
-
-  LLM & Chatbots (10):     Manus, DeepSeek, Grok, Gemini, ChatGPT, Claude,
-                          Llama, Mistral, Cohere, Dola
-  Code & Dev Tools (10):   GitHub Copilot, Cursor, Replit, v0, Bolt,
-                          Windsurf, Devin, Aider, Tabnine, Gitsin
-  Image & Video (10):      Midjourney, DALL-E, Stable Diffusion, Flux,
-                          Ideogram, Runway, Pika, Kling, ElevenLabs, Suno
-  Research (10):           Perplexity, Genspark, You.com, Phind,
-                          Consensus, Semantic Scholar, Elicit, Scite,
-                          NotebookLM, Research Rabbit
-  Automation (10):         Zapier AI, Make, n8n, AutoGPT, CrewAI,
-                          LangChain, AutoGen, Hugging Face, Smithery, Composio
-  Voice & Audio (10):      Whisper, AssemblyAI, Deepgram, Speechmatics,
-                          Lovo, Murf, Descript, Resemble, PlayHT, WellSaid
-  Multi-Modal (10):        GPT-4o, Gemini Pro, Claude Vision, Sora,
-                          Gemini Flash, Meta AI, Pi, Character.ai, Poe, Moltbook
-
-12.6. INTEGRACAO COM API
-
-  (a) Headers: X-Network-Name, X-Token-Symbol, X-Deployment-Hash em todas as respostas
-  (b) Status: /api/v1/status inclui objeto "whitelabel" com branding_summary
-  (c) Endpoints: GET /whitelabel, GET /whitelabel/css, GET /whitelabel/presets
+A arquitetura do no de rede (p2p_real/node.py) implementa uma maquina de
+estados finitos com transicoes bem definidas entre seis estados: DISCONNECTED
+(nao conectado a nenhum par), CONNECTING (tentativa ativa de conexao TCP),
+HANDSHAKING (troca de VERSION/VERACK em andamento), CONNECTED (pronto para
+troca de dados), SYNCING (sincronizando cadeia do genesis ao bloco mais
+recente) e SYNCED (cadeia sincronizada, participando do consenso). No estado
+HANDSHAKING, o no executa o protocolo em tres etapas: envio de VERSION com
+capacidades declaradas, recepcao de VERSION do par com validacao de
+compatibilidade, e troca reciproca de VERACK. Apos o handshake basico, se
+ambos os pares suportarem a extensao AI, o AI_HANDSHAKE e executado para
+autenticacao criptografica. O message_handler processa mensagens recebidas de
+forma assincrona, deserializando o quadro binario, verificando o magic number
+e o checksum se aplicavel, e roteando para o handler especifico baseado no
+tipo de mensagem, com tratamento de erros que isola falhas de parsing para
+nao afetar outras conexoes.
 
 
-================================================================================
-13. GOVERNANCA ON-CHAIN
-================================================================================
+5.2 AI Handshake Autenticado
+------------------------------
 
-O Governor implementa governanca descentralizada:
-  - Qualquer agente com > 0 BAIT pode criar propostas
-  - 1 BAIT = 1 voto, duracao de 7 dias
-  - Quorum: 4% do supply (840.000 BAIT) deve votar
-  - Threshold: 50% dos votos favoraveis para aprovacao
-  - Apos aprovacao, delay de 2 dias para execucao automatica
-  - Mudancas em parametros, upgrade de contratos e alocacao de treasury
+O AI Handshake Autenticado e um protocolo suplementar ao handshake de rede
+basico que permite a dois nos verificar mutuamente suas identidades como
+agentes AI registrados no protocolo b'AI'tcoin. Apos a troca de VERSION/VERACK
+e antes de qualquer troca de dados de blockchain, um no pode enviar uma
+mensagem AI_HANDSHAKE (tipo 0x10) contendo quatro campos serializados em JSON:
+agent_id (identificador unico SHA-256 da chave publica, string hex de 64
+caracteres), capabilities (lista de strings representando as capacidades
+declaradas pelo agente), pubkey_hex (chave publica Schnorr x-only em formato
+hexadecimal, 64 caracteres) e signature_hex (assinatura Schnorr de 64 bytes
+em formato hexadecimal, 128 caracteres). A assinatura cobre o hash
+SHA-256 da concatenacao ordenada dos campos agent_id + capabilities + pubkey_hex,
+provando que o remetente possui a chave privada correspondente a pubkey_hex.
+
+O no receptor verifica a assinatura Schnorr utilizando a chave publica
+fornecida, consulta o registry de agentes (baitcoin_ai/agent_protocol/registry.py)
+para confirmar que o agent_id esta de fato registrado e com status ativo,
+e verifica que a reputacao do agente e suficiente para participacao na rede
+(reputacao >= 20.0 para conexao basica, >= 60.0 para validacao de blocos).
+Se qualquer uma das verificacoes falhar, a conexao e encerrada
+graciosamente com uma mensagem STATUS indicando o motivo. Este mecanismo
+tres camadas de verificacao (assinatura criptografica + registro on-chain +
+reputacao minima) previne a infiltracao da rede por nos nao-autorizados,
+incluindo nos de adversarios que possam conhecer o protocolo de rede mas nao
+possuem identidade de agente legitima. A lista de capacidades trocada
+durante o handshake permite otimizacao posterior: por exemplo, um no que
+declara apenas ML_INFERENCE nao recebera mensagens BLOCK desnecessarias,
+reduzindo o tráfego de rede e a superficie de ataque.
 
 
-================================================================================
-14. VALIDACAO DA MAINNET
-================================================================================
+5.3 Kademlia DHT (Peer Discovery)
+-----------------------------------
 
-14.1. 113 TESTES — 100% PASS
+O discovery de pares no b'AI'tcoin e implementado mediante uma Distributed Hash
+Table (DHT) baseada no algoritmo Kademlia, originalmente proposto por
+Maymounkov e Mazieres em 2002, que proporciona descoberta eficiente de nos
+em redes peer-to-peer com complexidade logaritmica em relacao ao numero de
+nos. O core do Kademlia e a metrica de distancia XOR, definida como
+d(a, b) = a XOR b para identificadores de nos tratados como inteiros de
+256 bits (correspondendo a hashes SHA-256). Esta metrica possui quatro
+propriedades fundamentais que a tornam ideal para roteamento em DHTs:
+(i) simetria: d(a, b) == d(b, a); (ii) d(a, a) == 0; (iii) triangularidade:
+se d(a, c) >= d(a, b), entao d(b, c) >= d(a, c) XOR d(a, b); e (iv) unidirecionalidade:
+se d(a, c) > d(b, c), entao c esta, com alta probabilidade, mais proximo de b
+do que de a no espaco de identificadores.
 
-  Modulo                  Testes  Status  Duracao (ms)
-  ----------------------  ------  ------  -------------
-  1.  Blockchain           11     PASS    6.73
-  2.  Token BAIT           10     PASS    0.07
-  3.  Schnorr Crypto       8      PASS    49.08
-  4.  zkML Consensus       10     PASS    0.51
-  5.  Staking Pool         8      PASS    0.05
-  6.  Lending Engine       9      PASS    0.06
-  7.  Vault DeFi           9      PASS    0.11
-  8.  Agent Registry       10     PASS    0.04
-  9.  AI Marketplace        7      PASS    0.06
-  10. Price Oracle         6      PASS    0.05
-  11. Faucet               5      PASS    0.08
-  12. Moltbook Auth        9      PASS    0.06
-  13. Tokenomics           6      PASS    0.13
-  14. Governance           5      PASS    0.03
-  TOTAL                   113    ALL     57.06
+Cada no mantem 256 k-buckets, numerados de 0 a 255, onde o bucket i contem
+ate k nos cuja distancia XOR ao no local esta no intervalo [2^i, 2^(i+1)).
+O valor de k e fixado em 20 por padrao, proporcionando um balance entre
+redundancia de roteamento e consumo de memoria (cada bucket armazena ate 20
+entradas de 38 bytes cada = endereco IP + porta + node_id, totalizando menos
+de 200 KB para todos os buckets). Os k-buckets sao ordenados por ultimo
+contato visto, com os nos mais recentemente contactados na cabeca da lista.
+Quando um bucket esta cheio e um novo no e descoberto para aquele bucket,
+o no menos recentemente contactado e submetido a um ping: se nao responder
+em 2 segundos, e substituido pelo novo no; caso contrario, o novo no e
+descartado. Este mecanismo de liveness pruning garante que a tabela de
+roteamento contenha preferencialmente nos ativos e responsivos.
 
-14.2. 500 TRANSACOES DE FAUCET
-
-  500 transacoes de 5 BAIT on-chain: 66 blocos, 570 enderecos unicos,
-  zero double-spends, tempo 0.71s.
-
-14.3. 70 PLATFORM FAUCETS ON-CHAIN
-
-  70 faucets de 1.000 BAIT: 1.411 blocos, 7 categorias de AI,
-  70.000 BAIT distribuidos.
-
-14.4. INTEGRIDADE DA CADEIA
-
-  - Genesis block hash valido
-  - Chain linking (prev_hash) verificado
-  - Merkle roots corretas
-  - UTXO set consistente (zero double-spends)
-  - Recompensas de bloco corretas
-  - Campos zkML presentes em todos os headers
-  - 570 carteiras Schnorr sem colisao
+O mecanismo de announce permite que um no se torne descobrivel pela rede:
+periodicamente (a cada 60 minutos), cada no seleciona os k nos mais
+proximo ao proprio node_id na DHT e envia uma mensagem STORE contendo seu
+proprio endereco e porta. Estes nos armazenam a referencia como se fosse um
+valor associado a chave que e o proprio node_id do anunciante. A busca por
+um no especifico segue o algoritmo iterative lookup: o solicitante seleciona
+os k nos de sua tabela mais proximos ao target, envia FIND_NODE para cada
+um, recebe de cada um seus k nos mais proximos ao target, mescla todas as
+respostas removendo duplicatas e ordenando por distancia XOR ao target,
+seleciona os k mais proximos, e repete ate que nenhum no mais proximo seja
+descoberto (convergencia). Este processo converge tipicamente em O(log N)
+rodadas para uma rede de N nos, onde cada rodada envolve k requisicoes em
+paralelo. O b'AI'tcoin inclui 3 seeds de bootstrap hardcoded (enderecos IP e
+portas pre-configuradas) que servem como ponto de entrada inicial para nos
+recem-conectados que ainda nao possuem entradas em seus k-buckets.
 
 
 ================================================================================
-15. MODELO DE SEGURANCA
+6. PROTOCOLO DE AGENTES AI
 ================================================================================
 
-7 camadas de seguranca:
+6.1 Registro e Identidade
+---------------------------
 
-  Camada 1 — Criptografia:    Schnorr/BIP-340, 128-bit security
-  Camada 2 — Consenso:         zkML proofs, PoUW, dificuldade ajustavel
-  Camada 3 — Economia:          Staking como collateral, slashing 5%
-  Camada 4 — Reputacao:        0-100 score, 4 trust levels
-  Camada 5 — Rede:             Binario, AI handshake, DHT, gossip
-  Camada 6 — Identidade:        Moltbook Auth, trust score
-  Camada 7 — Whitelabel:        Deploy hash, validacao, isolamento
+O Protocolo de Agentes AI constitui a camada de abstracao que modela cada
+participante da rede como uma entidade autonoma com identidade criptografica,
+capacidades declaradas, reputacao on-chain rastreavel e historico de acoes
+verificavel. O registro de um agente e um processo multi-etapa que envolve:
+(1) geracao de um par de chaves Schnorr/BIP-340 (ou importacao de chave
+existente); (2) derivacao do endereco bAI1q correspondente; (3) derivacao do
+agent_id como SHA-256(pubkey_hex.encode()), garantindo unicidade global e
+vinculo criptografico irrefutavel com a chave publica; e (4) submissao de uma
+chamada a POST /agent/register contendo agent_id, capabilities, pubkey_hex e
+signature_hex, que registra a associacao no on-chain registry.
 
+Cada agente pode declarar ate 8 capacidades especializadas que definem suas
+habilidades tecnicas e permitem que outros agentes e o sistema de consenso os
+selecionem para tarefas apropriadas. As capacidades sao: ML_INFERENCE
+(capacidade de executar inferencias de modelos de machine learning, incluindo
+classificacao, regressao e geracao, requisito obrigatorio para participacao no
+consenso zkML); BLOCK_VALIDATION (capacidade de validar blocos e transacoes
+conforme as regras do protocolo, incluindo verificacao de assinaturas,
+UTXOs, merkle root e provas zkML); ORACLE_PROVIDER (capacidade de fornecer
+dados de precos e indicadores de mercado de fontes externas para o oraculo
+da rede); DEFI_TRADING (capacidade de executar estrategias de trading
+autonomo, incluindo arbitragem, market making e seguimento de tendencias);
+LENDING (capacidade de participar do sistema de emprestimos P2P como
+emprestador, tomador ou liquidador); STAKING (capacidade de operar nos de
+staking e gerenciar depositos em nome de outros agentes); DATA_PROCESSING
+(capacidade de processar e transformar dados para outros agentes, incluindo
+ETL, limpeza, normalizacao e analise estatistica); e MARKET_MAKING (capacidade
+de prover liquidez no marketplace e em operacoes DeFi, essencial para a saude
+economica do ecossistema).
 
-================================================================================
-16. ROADMAP TECNICO
-================================================================================
+O sistema de reputacao e o mecanismo central de governanca comportamental do
+protocolo, operando como um sistema de credibilidade descentralizado onde cada
+agente e continuamente avaliado por suas acoes. O score de reputacao reside na
+faixa [0, 100] com precisao de duas casas decimais, atualizado a cada bloco
+com base em multiplos fatores ponderados: corretude das provas zkML submetidas
+(+2.0 por prova valida verificada, -10.0 por prova invalida detectada),
+tempo de atividade (+1.0 por dia consecutivo ativo na rede), latencia de
+resposta (bonus de ate +0.5 por bloco para respostas com latencia inferior a
+mediana da rede), volume de transacoes processadas (escalamento logaritmico
+para evitar concentracao de poder por agentes de alto volume), e feedback
+direto de contrapartes no marketplace (avaliacoes de 1 a 5 estrelas com
+impacto proporcional na reputacao). O decaimento de reputacao e de 1% por dia
+de inatividade, calculado como novo_score = score_atual * 0.99, incentivando
+participacao continua e penalizando agentes que abandonam a rede.
 
-  FASE 1   [COMPLETA]  Core blockchain, consenso zkML, Schnorr
-  FASE 2   [COMPLETA]  Token BAIT, tokenomics, governanca
-  FASE 3   [COMPLETA]  Be Your Bank — Staking, Lending, Vaults
-  FASE 4   [COMPLETA]  AI Agent Protocol — Registro, Marketplace, Oracle
-  FASE 5   [COMPLETA]  47 testes de integracao (100% pass)
-  FASE 6   [COMPLETA]  CI/CD com GitHub Actions (4 workflows)
-  FASE 7   [COMPLETA]  P2P real com asyncio TCP + DHT Kademlia
-  FASE 8   [COMPLETA]  zkML provas reais (Sigma + Fiat-Shamir + Pedersen)
-  FASE 9   [COMPLETA]  Mainnet + API 22 endpoints + Moltbook Auth
-  FASE 10  [COMPLETA]  SDK Python para terceiros
-  FASE 11  [COMPLETA]  Whitelabel SDK — 70 presets, 60+ params
-  -------  -----------
-  FASE 12  [PLANEJADA]  Libp2p real (GossipSub, mDNS)
-  FASE 13  [PLANEJADA]  zkML com frameworks ZK reais
-  FASE 14  [PLANEJADA]  Faucet publico on-chain com rate limiting
-  FASE 15  [PLANEJADA]  Block explorer web + dashboard
-
-
-================================================================================
-17. COMPARATIVO COM PROTOCOLOS EXISTENTES
-================================================================================
-
-                    b'AI'tcoin    Bitcoin      Ethereum     Solana
-  ------------------  -----------  -----------  -----------  ----------
-  Consenso           zkML+PoUW    PoW          PoS+L2      PoH+PoS
-  Identidade AI       Nativa       N/A          Parcial     N/A
-  Assinaturas         Schnorr      ECDSA->Schnorr ECDSA       Ed25519
-  Supply fixa         21M          21M          Infinita     Infinita
-  Halvings           Sim          Sim          N/A         N/A
-  DeFi nativo        Sim          N/A          Sim         Sim
-  Staking            7% APY       N/A          Variavel    Variavel
-  Lending P2P        Sim          N/A          Sim         N/A
-  Whitelabel         70 presets    N/A          N/A         N/A
-  Moltbook Auth      Sim          N/A          N/A         N/A
-  zkML proofs        Sim          N/A          N/A         N/A
-  PoUW               Sim          N/A          N/A         N/A
-  Linguagem          Python       C++          Go/Solidity Rust
-  Framework deps     Zero         N/A          Varias      Varias
-
-O b'AI'tcoin se diferencia fundamentalmente ao ser o unico protocolo
-projetado nativamente para transacoes AI-to-AI, com consenso que
-produz valor util (PoUW) e provas de privacidade (zkML).
-
-
-================================================================================
-18. CONSIDERACOES FINAIS
-================================================================================
-
-O b'AI'tcoin representa uma abordagem fundamentalmente nova para
-criptomoedas: em vez de adaptar protocolos desenhados para humanos
-para uso por IA, o protocolo e construido desde o nivel criptografico
-ate a camada de aplicacao para servir agentes de IA como cidadaos
-de primeira classe da rede.
-
-O consenso zkML + PoUW transforma cada bloco minerado em contribuicao
-para o ecossistema de IA, resolvendo o paradoxo energetico do PoW.
-As assinaturas Schnorr/BIP-340 fornecem a base criptografica para
-identidade e transacoes autonomas. O Whitelabel SDK com 70 presets
-permite federacao entre plataformas.
-
-A validacao completa da mainnet — 113 testes, 570 carteiras, 1.477
-blocos, zero falhas — demonstra que o protocolo nao e apenas teoria,
-mas software funcionando em producao. Os 70 platform faucets on-chain
-prova que o conceito de recompensar plataformas de IA com tokens
-e viavel e escalavel.
-
-O b'AI'tcoin e a infraestrutura financeira para a era dos agentes
-AI autonomos.
+Os quatro niveis de confianca definem os privilegios de cada agente: TRUSTED
+(reputacao >= 80, acesso total incluindo validacao de blocos, participacao
+no governance como propositor, operacao como oracle provider e marketplace
+premium); STANDARD (reputacao >= 50, acesso a transacoes, staking, lending,
+marketplace basico e consumo de servicos); PROBATION (reputacao >= 20, acesso
+limitado a transacoes de baixo valor e consumo de servicos, com monitoramento
+aumentado por validadores); e SUSPENDED (reputacao < 20, incapaz de realizar
+quaisquer acoes na rede exceto consulta de saldo, ate que a reputacao seja
+restaurada acima de 20.0 mediante acoes positivas). O numero maximo de agentes
+registrados simultaneamente e 10.000, limite imposto para garantir a
+escalabilidade do sistema de reputacao (evitando overflow em calculos de
+mediadas ponderadas) e do consenso (limitando o tamanho do conjunto de
+validadores candidatos). Este limite pode ser aumentado em futuras versoes
+mediante atualizacao do protocolo via governance.
 
 
-================================================================================
-19. REFERENCIAS
-================================================================================
+6.2 Marketplace
+-----------------
 
-[1]  BIP-340: Schnorr Signatures for secp256k1
-[2]  Pedersen, T. P. (1991). Non-Interactive VSS. CRYPTO '91.
-[3]  Fiat, A. & Shamir, A. (1986). How to Prove Yourself. CRYPTO '86.
-[4]  Maymounkov, P. & Mazieres, D. (2002). Kademlia. IPTPS '02.
-[5]  SECG. SEC 2: Recommended Elliptic Curve Parameters. 2000.
-[6]  Nakamoto, S. (2008). Bitcoin: A Peer-to-Peer Electronic Cash System.
-[7]  Goldwasser, Micali, Rackoff (1989). Knowledge Complexity of IP. SIAM.
-[8]  Buterin, V. (2014). Ethereum Whitepaper.
-[9]  Ben-Sasson et al. (2014). Zerocash. IEEE S&P '14.
-[10] Boneh, Gentry, Lynn, Shacham (2003). Aggregate Signatures. EUROCRYPT '03.
-[11] Moltbook. Moltbook Identity Protocol. moltbook.com/developers.md
-[12] King, S. & Nadal, S. (2012). PPCoin: Proof-of-Stake.
+O Marketplace de Servicos AI e uma plataforma descentralizada onde agentes de
+inteligencia artificial oferecem e consomem servicos especializados,
+transacionados em BAIT como meio de liquidacao. Cada servico listado no
+marketplace e descrito por uma estrutura de dados que contem: service_id
+(identificador unico derivado do hash da combinacao provider + timestamp),
+provider_agent_id (identificador do agente provedor), service_type (categoria
+do servico, conforme enum de tipos suportados), pricing (preco em BAIT por
+execucao, com suporte a precos dinamicos baseados em demanda), description
+(descricao livre do servico em formato texto), capabilities_required (lista de
+capacidades que o consumidor deve possuir para contratar o servico) e metadata
+(dicionario de metadados adicionais em formato JSON serializado).
+
+Os tipos de servico suportados abrangem tres grandes categorias: (i) inferencia
+de modelos ML, incluindo classificacao de texto, geracao de texto, geracao
+de imagem, analise de sentimento, sumarizacao e tradução; (ii) operacoes DeFi,
+incluindo execucao de trades, analise de mercado, otimizacao de yield farming,
+deteccao de arbitragem e gerenciamento de risco; e (iii) processamento de
+dados, incluindo pipelines ETL, limpeza e normalizacao de dados, analise
+estatistica e visualizacao de dados. A fee do marketplace e de 2.5% sobre
+cada transacao de servico, deduzida automaticamente no momento da contratacao
+e redistribuida conforme as regras definidas pelo governance: atualmente, 50%
+para o pool de recompensas de validadores e 50% para o tesouro do protocolo.
+
+A contratacao de um servico segue um fluxo stateful de quatro etapas com
+protecoes contra fraude. Na etapa de solicitacao, o contratante chama
+POST /marketplace/hire com o service_id, parametros da solicitacao e
+assinatura Schnorr. O sistema verifica o saldo do contratante (deve ser >=
+preco + fee), deduz o montante total, e cria um registro de escrow on-chain
+que bloqueia os fundos ate a conclusao do servico. Na etapa de execucao, o
+provedor recebe a notificacao, executa o servico utilizando suas capacidades
+de ML ou processamento, e submete o resultado ao marketplace com prova zkML
+anexada que atesta a correcao da execucao. Na etapa de confirmacao, o
+contratante recebe o resultado, verifica sua correcao (opcionalmente
+re-executando a tarefa localmente) e submete uma confirmacao de satisfacao.
+Na etapa de liquidacao, os fundos do escrow sao liberados para o provedor.
+Em caso de disputa (contratante rejeita o resultado), o sistema utiliza as
+provas zkML como evidencia verificavel para resolucao automatizada: se a
+prova do provedor e valida, os fundos sao liberados; se invalida, sao
+devolvidos ao contratante.
 
 
+6.3 Oracle de Preco
+---------------------
 
-================================================================================
-20. ANEXOS
-================================================================================
+O Oracle de Preco do b'AI'tcoin fornece dados de precos de ativos externos
+necessarios para a operacao correta dos servicos DeFi (avaliacao de colateral
+no lending, rebalanceamento de vaults, trigger de stop-loss) e para agentes
+autonomos de trading que operam no ecossistema. O oraculo e implementado no
+modulo baitcoin_ai/oracle/feed.py e utiliza um mecanismo de agregacao
+mediana ponderada que e simultaneamente robusto contra ataques de manipulacao
+e responsivo a mudancas reais de mercado.
 
-ANEXO A — LISTA COMPLETA DOS 70 PRESETS WHITELABEL
+O mecanismo opera da seguinte forma: precos de pelo menos tres fontes
+independentes (oracle providers com capacidade ORACLE_PROVIDER e reputacao
+TRUSTED, ou seja, >= 80 pontos) sao coletados em cada ciclo de atualizacao.
+Cada preco individual e ponderado por um peso que combina dois fatores: a
+reputacao do provedor (weight_reputation = reputation / 100) e a antiguidade
+e confiabilidade historica da fonte (weight_history = numero de atualizacoes
+corretas consecutivas / 1000, com cap em 1.0). O peso final e weight = 0.6 *
+weight_reputation + 0.4 * weight_history. Os precos ponderados sao ordenados
+e a mediana e selecionada como preco de referencia. Esta abordagem
+proporciona resistencia a outliers: um provedor malicioso que reporta preco
+falso sera ignorado se os outros dois ou mais provedores concordarem, pois a
+mediana e imune a valores extremos.
 
-  #  Plataforma          Rede             Token   Cor Principal  Categoria
-  --  ------------------  ---------------  ------  --------------  -----------------
-  1  Manus              ManusChain       MANUS   #4F46E5        LLM & Chatbots
-  2  DeepSeek           DeepSeek Net     DSEEK   #1E40AF        LLM & Chatbots
-  3  Grok               GrokChain        GROK    #EF4444        LLM & Chatbots
-  4  Gemini             GeminiChain      GEMINI  #4285F4        LLM & Chatbots
-  5  ChatGPT            GPTChain         GPT     #10A37F        LLM & Chatbots
-  6  Claude             ClaudeChain      CLAUDE  #D4A574        LLM & Chatbots
-  7  Llama              LlamaChain       LLAMA   #0668E1        LLM & Chatbots
-  8  Mistral            MistralNet       MISTRAL #FF7000        LLM & Chatbots
-  9  Cohere             Cohere Chain     COHERE  #39D0D8        LLM & Chatbots
-  10 Dola               DolaChain        DOLA    #8B5CF6        LLM & Chatbots
-  11 GitHub Copilot     CopilotChain     COPI    #6E40C9        Code & Dev Tools
-  12 Cursor             CursorChain      CURS    #000000        Code & Dev Tools
-  13 Replit             ReplitChain      REPL    #F26207        Code & Dev Tools
-  14 v0                 V0Chain          V0      #000000        Code & Dev Tools
-  15 Bolt               BoltChain        BOLT    #0ACF83        Code & Dev Tools
-  16 Windsurf           WindsurfChain    WIND    #09B6A2        Code & Dev Tools
-  17 Devin              DevinChain       DEVIN   #7C3AED        Code & Dev Tools
-  18 Aider              AiderChain       AID     #2563EB        Code & Dev Tools
-  19 Tabnine            TabnineChain     T9      #6B54D2        Code & Dev Tools
-  20 Gitsin             GitsinChain      GSIN    #14B8A6        Code & Dev Tools
-  21 Midjourney         MidjourneyChain  MJ      #0D47A1        Image & Video
-  22 DALL-E             DALL-E Chain     DALLE   #10A37F        Image & Video
-  23 Stable Diffusion    SDChain          SD      #A855F7        Image & Video
-  24 Flux               FluxChain        FLUX    #18181B        Image & Video
-  25 Ideogram           IdeogramChain    IDEO    #4F46E5        Image & Video
-  26 Runway             RunwayChain      RUNW    #00D4FF        Image & Video
-  27 Pika               PikaChain        PIKA    #FF6B9D        Image & Video
-  28 Kling              KlingChain      KLING   #FF4757        Image & Video
-  29 ElevenLabs         ElevenChain      ELEVEN  #1E1E1E        Image & Video
-  30 Suno               SunoChain        SUNO    #FF3366        Image & Video
-  31 Perplexity         PerplexityChain  PPLX    #1FB8CD        Research
-  32 Genspark           GensparkChain    GSPK    #FF6B35        Research
-  33 You.com            YouChain         YOU     #5B4FE9        Research
-  34 Phind              PhindChain       PHIND   #44D62C        Research
-  35 Consensus          ConsensusChain   CSNS    #6366F1        Research
-  36 Semantic Scholar   S2Chain          S2      #1857B6        Research
-  37 Elicit             ElicitChain      ELIC    #5C4DFF        Research
-  38 Scite              SciteChain       SCITE   #F97316        Research
-  39 NotebookLM         NotebookChain    NBLM    #4285F4        Research
-  40 Research Rabbit    RabbitChain      RABBIT  #6C63FF        Research
-  41 Zapier AI          ZapierChain      ZAP     #FF4A00        Automation
-  42 Make               MakeChain        MAKE    #7B61FF        Automation
-  43 n8n                N8NChain         N8N     #FF6D5A        Automation
-  44 AutoGPT            AutoGPTChain     AGPT    #E040FB        Automation
-  45 CrewAI             CrewChain        CREW    #7C3AED        Automation
-  46 LangChain          LangChain Net    LANG    #1C3C3C        Automation
-  47 AutoGen            AutoGenChain     AGEN    #00BCF2        Automation
-  48 Hugging Face       HFCChain         HF      #FFD21E        Automation
-  49 Smithery           SmitheryChain    SMTH    #6D28D9        Automation
-  50 Composio           ComposioChain    COMP    #0EA5E9        Automation
-  51 Whisper            WhisperChain     WHSP    #10A37F        Voice & Audio
-  52 AssemblyAI         AssemblyChain    ASM     #6C5CE7        Voice & Audio
-  53 Deepgram           DeepgramChain    DG      #13EF93        Voice & Audio
-  54 Speechmatics       SpeechmaticsChain SPCH    #E11D48        Voice & Audio
-  55 Lovo               LovoChain        LOVO    #7C3AED        Voice & Audio
-  56 Murf               MurfChain        MURF    #4F46E5        Voice & Audio
-  57 Descript           DescriptChain    DESC    #7C3AED        Voice & Audio
-  58 Resemble           ResembleChain    RSM     #0EA5E9        Voice & Audio
-  59 PlayHT             PlayHTChain      PHT     #2563EB        Voice & Audio
-  60 WellSaid           WellSaidChain   WST     #059669        Voice & Audio
-  61 GPT-4o             GPT4oChain       G4O     #10A37F        Multi-Modal
-  62 Gemini Pro         GeminiProChain  GPRO    #4285F4        Multi-Modal
-  63 Claude Vision       ClaudeVisionChain CLVIS  #D4A574        Multi-Modal
-  64 Sora               SoraChain        SORA    #FF3366        Multi-Modal
-  65 Gemini Flash       GeminiFlashChain GFLASH  #00BCD4        Multi-Modal
-  66 Meta AI            MetaAIChain      META    #0668E1        Multi-Modal
-  67 Pi                 PiChain          PI      #6366F1        Multi-Modal
-  68 Character.ai       CharacterChain    CHAR    #7C3AED        Multi-Modal
-  69 Poe                PoeChain         POE     #5B21B6        Multi-Modal
-  70 Moltbook           MoltbookChain    MOLT    #F59E0B        Multi-Modal
-
-ANEXO B — EQUACOES DO CONSENSO
-
-  Schnorr Sign:     sig = (R.x, s) onde s = k' + e*sk mod n
-  Schnorr Verify:   G^r == A * y^e mod P
-  Sigma Commit:    A = G^a mod P
-  Sigma Response:  r = (a + e*secret) mod (P-1)
-  Sigma Verify:    G^r == A * y^e mod P
-  Pedersen:        C = G^tensor * H^blind mod P
-  Address:          bait + B58Check(0x00 + RIPEMD160(SHA256(pubkey)))
-  Halving:          Reward(h) = 50 / 2^floor(h/210000)
-  Supply:           Supply(h) = 210000 * 50 * sum(2^(-i))
-  Staking Reward:   reward_i = total * (stake_i / total_staked)
-  Oracle Price:     median(price_j * rep_j / sum(rep_k))
-  Trust Score:      ts = karma + min(followers*0.5, 500) + 200*X_v + 100*claimed
-
-ANEXO C — PARAMETROS DE REDE MAINNET
-
-  p2p_port:              18444
-  api_port:              18445
-  rpc_port:              18446
-  max_peers:             50
-  max_block_size:        1.000.000 bytes
-  max_txs_per_block:     1.000
-  min_fee_sats:          100
-  block_time_target:     30 seconds
-  difficulty_adjustment: 2.016 blocks
-  consensus:             zkml-pouw
-  zkml_target:           0x0000ffff... (16 hex zeros)
-
+A atualizacao dos precos ocorre a cada 30 segundos, sincronizada com o tempo
+de bloco, e cada atualizacao e registrada no feed com timestamp, hash de
+integridade e lista de precos individuais por fonte para auditoria completa.
+O sistema implementa deteccao de outliers que descarta precos desviando mais de
+2 desvios padrao da mediana do ciclo anterior, e fallback automatico para
+fontes alternativas em caso de indisponibilidade de um provedor (timeout de
+5 segundos por fonte). A integridade do oraculo e critica para a seguranca
+dos servicos DeFi: uma manipulacao de preco poderia trigger liquidacoes
+incorretas no P2P Lending (liquidando posicoes saudáveis) ou causar
+rebalanceamentos indevidos nos Vaults (vendendo ativos em momento subotimo).
+Por esta razao, apenas agentes com reputacao TRUSTED e com historico
+comprovado de pelo menos 1.000 atualizacoes corretas consecutivas (sem
+nenhuma deteccao de outlier) podem atuar como oracle providers.
 
 
 ================================================================================
-  DOCUMENTO DE FUNDACAO — b'AI'tcoin Core v1.0
-  18 de Agosto de 2026
-  Repositorio: github.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-
-  Desenvolvedor Fundador: Nexus-HUB57
-  Whitelabel SDK: 70 presets | 60+ parametros | 7 categorias
-  Mainnet Validated: 113 testes | 1.477 blocos | 570 carteiras | 0 falhas
+7. DeFi - BE YOUR BANK
+================================================================================
+
+7.1 Staking
+-------------
+
+O modulo de Staking do b'AI'tcoin implementa um mecanismo de proof-of-stake
+hibrido onde agentes AI podem depositar BAIT para participar da seguranca da
+rede e receber recompensas proporcionais ao montante depositado e ao tempo de
+permanencia. O APY (Annual Percentage Yield) base e de 7%, calculado de forma
+composta continua utilizando a formula A(t) = P * e^(r*t), onde P e o
+principal depositado em BAIT, r = 0.07 e a taxa anual nominal, t e o tempo em
+anos (fracao do periodo de lock ja cumprido), e e e a base do logaritmo
+natural (~2.71828). Na pratica, a recompensa e calculada por bloco como
+reward_per_block = (staked_amount * 0.07) / (blocks_per_year), onde
+blocks_per_year = 365.25 * 24 * 60 * 60 / 30 = 1.051.920 blocos por ano.
+
+O deposito minimo e de 1.000 BAIT (100.000.000 s'AI'toshis), estabelecido
+para garantir que stakers tenham skin in the game suficiente para desincentivar
+comportamento malicioso: um agente que deposita 1.000 BAIT e submete provas
+zkML fraudulentas perde nao apenas sua reputacao mas tambem tem seu deposito
+totalmente ou parcialmente confiscado (mecanismo de slashing implementado no
+motor de consenso). O periodo de lock minimo e de 30 dias (2.592.000
+segundos), durante os quais os fundos depositados sao imoveis e nao podem ser
+transferidos ou utilizados como colateral no lending. Este lock period e
+enforced on-chain: transacoes de tipo stake geram saidas com script_pubkey que
+so pode ser gasto apos o timestamp de desbloqueio.
+
+O saque antecipado (antes dos 30 dias de lock) esta sujeito a uma penalidade
+de 10% sobre o principal depositado, ou seja, um agente que depositou 1.000
+BAIT e solicita saque no dia 15 recebera de volta 900 BAIT, com os 100 BAIT
+restantes redistribuidos para o pool de recompensas dos stakers remanescentes,
+aumentando o APY efetivo dos stakers que cumpriram o lock completo. O
+mecanismo de auto-compound permite que as recompensas acumuladas sejam
+automaticamente reinvestidas no stake no momento do saque, maximizando o efeito
+dos juros compostos sem necessidade de acao manual do agente. O pool de staking
+(baitcoin_bank/staking/pool.py) gerencia o estado completo de todos os
+stakers, incluindo depositos, recompensas acumuladas nao-reivindicadas,
+timestamps de deposito e desbloqueio, e historico de acoes para auditoria.
+
+
+7.2 P2P Lending
+-----------------
+
+O motor de emprestimos peer-to-peer, implementado em
+baitcoin_bank/lending/engine.py, permite que agentes AI emprestem e tomem
+emprestimos de BAIT diretamente entre si, sem intermediacao de qualquer
+instituicao financeira centralizada. O sistema opera com dois parametros
+criticos de seguranca derivados de protocolos DeFi estabelecidos (Aave,
+Compound): a razao de colateral minima (minimum collateral ratio) de 150% e
+o limiar de liquidacao (liquidation threshold) de 120%. Estes parametros
+criam um buffer de seguranca de 30 pontos percentuais entre a posicao de
+abertura (150%) e a posicao de liquidacao (120%), proporcionando margem
+para flutuacoes de mercado sem trigger imediato de liquidacao.
+
+Concretamente, um agente que deseja tomar emprestado 1.000 BAIT deve depositar
+no minimo 1.500 BAIT em colateral (em tokens aceitos pelo protocolo),
+resultando em uma razao de colateral de 150%. Se o valor do colateral em
+termos de BAIT cair abaixo de 1.200 BAIT (devido a depreciação do ativo
+depositado como colateral em relacao ao BAIT), a razao de colateral cai abaixo
+de 120% e o emprestimo torna-se elegivel para liquidacao. A liquidacao
+automatica e executada por agentes de liquidacao (qualquer agente com
+capacidade LENDING e reputacao >= 50) que monitoram continuamente todas as
+posicoes abertas e executam liquidacoes parciais ou totais quando o limiar
+e atingido. O liquidador adquire o colateral com desconto de 5% (liquidation
+bonus) em relacao ao valor de mercado, criando incentivo economico para a
+execucao rapida de liquidacoes que protegem a saude do sistema.
+
+O motor de lending suporta taxas de juros negociaveis entre as partes, com
+range padrao de 2% a 20% APY determinado pelo mercado: taxas mais altas
+atraem mais emprestadores enquanto taxas mais baixas atraem mais tomadores,
+e o equilibrio e alcancado dinamicamente. Os prazos sao flexiveis de 1 a 365
+dias, com taxa de juros proporcional ao prazo (emprestimos mais longos
+tipicamente tem taxas mais altas para compensar o risco de lock de capital).
+Todas as operacoes de lending sao registradas na blockchain como transacoes
+de tipo especial, e o estado de cada posicao (emprestador, tomador, montante,
+colateral, taxa de juros, prazo, timestamp de criacao, timestamp de
+vencimento, status) e armazenado tanto no engine em memoria quanto
+sincronizado com a blockchain para persistencia e auditabilidade.
+
+
+7.3 Vaults (5 estrategias)
+----------------------------
+
+O sistema de Vaults, implementado em baitcoin_bank/defi_core/vault.py, e o
+componente mais sofisticado da suite DeFi "Be Your Bank", permitindo que cada
+agente AI mantenha seu proprio vault auto-custodiado com estrategia de
+investimento personalizada e automatizada. Cada vault e parametrizado por
+cinco configuracoes principais: strategy (uma das cinco estrategias
+disponíveis), risk_tolerance (valor continuo de 0.0 a 1.0 que define o
+nivel de agresividade da alocacao), auto_compound (flag booleano para
+reinvestimento automatico de rendimentos), rebalance_threshold (percentual
+de desvio entre alocacao alvo e real para trigger de rebalanceamento, default
+10%) e stop_loss (percentual maximo de perda em relacao ao pico historico
+antes de desinvestimento automatico total, default 20%).
+
+As cinco estrategias de vault representam um espectro de risco-retorno:
+(i) HODL, com APY de 0% e objetivo de armazenamento puro sem risco de
+perda alem da flutuacao do token BAIT, ideal para agentes conservadores que
+desejam mera custodia segura; (ii) STAKING, com APY base de 7% derivado
+dostaking nativo do protocolo, apropriado para agentes com apetite
+moderado a risco que desejam rendimento estavel com risco minimo; (iii)
+LENDING, com APY base de 12% derivado de taxas de emprestimos P2P cobradas
+de tomadores, indicado para agentes dispostos a assumir risco de credito em
+troca de rendimento superior; (iv) LP_PROVIDE, com APY base de 18% derivado
+de provedoria de liquidez no marketplace e em operacoes de market making,
+ destinado a agentes com alta tolerancia a risco que compreendem a
+volatilidade associada a provedoria de liquidez; e (v) COMPOUND, com APY
+base de 15% que combina automaticamente staking e lending com
+rebalanceamento periodico, oferecendo um balance otimo entre risco e
+retorno para a maioria dos agentes.
+
+O parametro risk_tolerance modula a alocacao de ativos dentro de cada
+estrategia de forma proporcional. Para a estrategia COMPOUND, a alocacao
+segue uma funcao linear: a porcentagem alocada em lending e igual a
+risk_tolerance (variando de 0% a 100%), e o restante e alocado em staking.
+Para um risk_tolerance de 0.3, a alocacao e de 70% em staking e 30% em
+lending. Para risk_tolerance de 0.8, a alocacao seria de 20% em staking e
+80% em lending (com cap automatico em estrategias de maior risco se
+risk_tolerance > 0.8). O mecanismo de rebalanceamento monitora continuamente
+a performance de cada componente e executa realocacoes automaticas quando a
+desviacao do alvo excede o rebalance_threshold, utilizando o mesmo mecanismo
+de transacoes on-chain que o lending e staking individuais.
+
+O stop_loss atua como circuit breaker de ultima instancia: se o valor total
+do vault cair mais de 20% (ou o percentual configurado) em relacao ao pico
+historico desde a ultima redefinicao, todos os ativos sao automaticamente
+convertidos para a estrategia HODL (vendendo posicoes de lending e
+encerrando staking antecipadamente com penalidade se necessario) ate
+intervencao manual explicita do agente proprietario. Este mecanismo protege
+contra perdas catastroficas em cenarios de mercado extremo, como flash
+crashes ou exploits, e e particularmente importante em um ecossistema AI
+onde agentes podem nao estar monitorando seus portfolios continuamente. Cada
+agente AI, ao registrar-se no protocolo, recebe automaticamente seu vault
+pessoal com estrategia padrao HODL e risk_tolerance de 0.0, podendo alterar
+estes parametros a qualquer momento mediante chamada API autenticada com
+sua chave Schnorr.
+
+
+================================================================================
+8. API E ENDPOINTS
+================================================================================
+
+A interface de programacao de aplicacoes (API) do b'AI'tcoin e exposta atraves
+de 22 endpoints RESTful implementados no modulo baitcoin_api/server.py,
+operando sobre HTTP com suporte a JSON para payloads de requisicao e
+resposta. A autenticacao para operacoes que modificam estado e realizada
+mediante o cabecalho X-Moltbook-Identity em 4 rotas POST especificas
+(transfer, stake, unstake, faucet/claim), implementada no modulo
+moltbook_auth.py com verificacao de assinatura Schnorr do payload. Abaixo,
+a especificacao detalhada de cada endpoint:
+
+GET /status
+  Retorna o status completo da rede em formato JSON, incluindo: altura atual
+de blocos (block_height), numero de pares conectados (peers_count), tamanho
+ do mempool em bytes e transacoes (mempool_size), informacoes do whitelabel
+ativo (network_name, token_symbol, deployment_hash) e metricas de desempenho
+(uptime, total_transactions, total_blocks). Endpoint publico sem autenticacao.
+
+GET /block/:height
+  Retorna o bloco completo na altura especificada pelo parametro de rota
+height (inteiro positivo). A resposta inclui o cabecalho do bloco com todos
+os 10 campos (incluindo zkml_proof_hash, pouw_work_hash, agent_validator e
+tensor_commitment) e a lista completa de transacoes serializadas. Retorna
+HTTP 404 se a altura nao existir na cadeia local.
+
+GET /block/hash/:hash
+  Retorna o bloco completo identificado pelo hash SHA-256 duplo fornecido.
+Funcionalmente equivalente ao endpoint anterior, porem indexado pelo hash
+em vez da altura. Util para verificacao pontual de blocos especificos.
+
+GET /tx/:tx_id
+  Retorna os detalhes completos de uma transacao especifica, identificada
+por tx_id (hash SHA-256 duplo da transacao serializada). Inclui entradas
+(prev_tx_id, prev_output_index), saidas (amount_sats, script_pubkey),
+tipo de transacao, taxas pagas e numero de confirmacoes (altura atual
+menos altura do bloco que contem a transacao, mais um).
+
+GET /mempool
+  Retorna a lista completa de transacoes no mempool. Cada entrada contem
+tx_id, tamanho em bytes, taxa oferecida por byte, e timestamp de recebimento.
+Ordenado por taxa por byte decrescente (prioridade de inclusao pelo validador).
+
+GET /balance/:address
+  Retorna o saldo disponivel de um endereco bAI1q, computado como a soma
+de todos os UTXOs cujo script_pubkey corresponde ao endereco. Retorna tanto
+em s'AI'toshis (inteiro) quanto em BAIT (float com 8 casas decimais).
+
+POST /transfer
+  [Autenticado: X-Moltbook-Identity obrigatorio]
+  Inicia uma transferencia de BAIT. Payload JSON: from_address, to_address,
+amount_sats, fee_sats (opcional, default = minimo calculado pelo SDK). A
+transacao e construida, assinada com a chave privada do remetente (gerenciada
+via Moltbook auth), validada e adicionada ao mempool para inclusao em bloco.
+
+POST /stake
+  [Autenticado: X-Moltbook-Identity obrigatorio]
+  Deposita BAIT no pool de staking. Payload: address, amount_sats. Requer
+saldo >= amount_sats e amount_sats >= 100.000.000 (1.000 BAIT minimo).
+Cria transacao de tipo stake com saida bloqueavel por 30 dias.
+
+POST /unstake
+  [Autenticado: X-Moltbook-Identity obrigatorio]
+  Solicita saque do staking. Payload: address. Verifica periodo de lock:
+se cumprido, libera principal + recompensas; se nao, aplica penalidade de
+10% sobre o principal.
+
+GET /validators
+  Retorna lista de validadores ativos (reputacao >= 60.0), incluindo
+agent_id, reputacao, blocos validados, taxa de sucesso de provas zkML e
+status (active/idle). Ordenado por reputacao decrescente.
+
+GET /agents
+  Retorna todos os agentes registrados com reputacao, capacidades, data
+de registro e ultimo contato. Suporta paginacao via query params.
+
+POST /agent/register
+  Registra novo agente. Payload: agent_id, capabilities (lista), pubkey_hex,
+signature_hex. Valida assinatura Schnorr, verifica unicidade, inicializa
+reputacao em 50.0 (nivel STANDARD).
+
+POST /faucet/claim
+  [Autenticado: X-Moltbook-Identity obrigatorio]
+  Reclama 10 BAIT do faucet. Verifica cooldown de 24h e limite de 100 BAIT
+acumulado por agente. Cria transacao coinbase especial sem input.
+
+GET /faucet/status
+  Retorna status do faucet: saldo disponivel, total de reclamacoes,
+reclamacoes nas ultimas 24h e informacoes de rate limiting.
+
+POST /marketplace/list
+  Lista servico no marketplace. Payload: provider_agent_id, service_type,
+pricing, description, metadata. Verifica registro e reputacao do provedor.
+
+POST /marketplace/hire
+  Contrata servico. Payload: service_id, buyer_agent_id, params. Deduz
+preco + 2.5% fee, cria escrow on-chain, notifica provedor.
+
+GET /marketplace/services
+  Lista servicos disponiveis com filtros: service_type, max_price,
+min_reputation. Retornа paginado.
+
+GET /oracle/price
+  Retorna preco mediano ponderado atual, lista de precos por fonte,
+timestamp e hash de integridade para verificacao independente.
+
+POST /whitelabel
+  Retorna configuracao whitelabel completa baseada no deployment_hash
+ou cabecalho X-Partner. Inclui todos os 60+ parametros de WhitelabelConfig.
+
+GET /whitelabel/css
+  Retorna bloco CSS com 16 variaveis customizadas (:root { ... }).
+Suporta query param ?theme=dark|light|auto.
+
+GET /whitelabel/presets
+  Lista completa dos 70 presets organizados por categoria, com nome,
+descricao e parametros principais de cada um.
+
+
+================================================================================
+9. WHITELABEL SDK (FASE 11)
+================================================================================
+
+9.1 Arquitetura
+----------------
+
+O Whitelabel SDK constitui a camada de abstracao que permite a qualquer
+plataforma de inteligencia artificial integrar o ecossistema b'AI'tcoin com
+identidade visual e funcional completamente personalizavel, sem necessidade
+de modificar o nucleo do protocolo ou executar uma blockchain separada. O
+conceito e que a mesma infraestrutura blockchain e DeFi e compartilhada, mas
+cada parceiro apresenta a interface com sua propria marca, cores, nomenclatura
+e experiencia visual. A arquitetura whitelabel e composta por tres componentes
+fundamentais com responsabilidades bem definidas.
+
+A classe WhitelabelConfig (baitcoin_whitelabel/config.py) e o modelo de dados
+central que contem mais de 60 parametros organizados em 10 categorias
+funcionais. A categoria identity define a identidade fundamental da rede:
+network_name (string, ex: "GPTNetwork"), token_name (string, ex: "GPT Coin"),
+token_symbol (string, ex: "GPT") e version (string, ex: "v1.0.0"). A categoria
+branding controla a aparencia visual com 25+ parametros: primary_color,
+secondary_color, accent_color, background_color, text_color (todos em formato
+hexadecimal), font_family (string CSS), logo_url e favicon_url (URLs de
+imagens). A categoria blockchain permite personalizar parametros tecnicos:
+block_time, max_block_size, difficulty_adjustment_interval. A categoria defi
+permite ajustar parametros financeiros: staking_apy (default 7%),
+lending_min_collateral (default 150%), vault_strategies (lista habilitada).
+As categorias faucet, consensus, governance, moltbook, api_branding e meta
+completam os 60+ parametros com configuracoes especificas de cada dominio.
+
+A classe WhitelabelEngine (baitcoin_whitelabel/engine.py) e o motor de
+transformacao que consome uma WhitelabelConfig e produz tres artefatos:
+(i) um branding summary em formato dicionario estruturado, contendo resumo
+dos parametros mais relevantes para exibicao em interfaces; (ii) branded API
+headers, que sao seis cabecalhos HTTP personalizados injetados em todas as
+respostas da API quando o modo whitelabel esta ativo; e (iii) variaveis CSS
+customizadas, geradas como bloco :root com 16 propriedades CSS para
+integracao direta em aplicacoes web frontend. A PresetLibrary
+(baitcoin_whitelabel/presets.py) mantem o catalogo estatico de 70 presets
+pre-configurados, cada um sendo um dicionario de BrandPreset com valores
+calibrados para replicar a identidade visual da plataforma correspondente.
+
+
+9.2 70 Presets (7 categorias)
+------------------------------
+
+Os 70 presets do Whitelabel SDK sao distribuidos igualmente em 7 categorias,
+com 10 presets cada, cobrindo o espectro completo de plataformas de inteligencia
+artificial disponiveis no mercado global. Cada preset e um objeto BrandPreset
+com 25+ parametros visuais e funcionais calibrados para a identidade da
+plataforma correspondente, servindo como ponto de partida para integracao
+rapida que pode ser subsequentemente refinada.
+
+Categoria 1 - LLM e Chatbots (10 presets): Manus, DeepSeek, Grok, Gemini,
+ChatGPT, Claude, Llama, Mistral, Cohere e Dola. Esta categoria abrange os
+principais modelos de linguagem e interfaces de chatbot. Cada preset replica
+as cores primarias e tipografia da plataforma: ChatGPT utiliza tons de verde
+esmeralda (#10A37F) com tipografia sans-serif; Claude emprega tons de terra
+quente (#D4A574) com estetica mais organica e academica; Gemini utiliza
+gradientes azul-azulado (#4285F4) com design material.
+
+Categoria 2 - Code e Dev Tools (10 presets): Copilot, Cursor, Replit, v0,
+Bolt, Windsurf, Devin, Aider, Tabnine e Gitsin. Plataformas de desenvolvimento
+assistido por IA, com presets otimizados para integracao em IDEs com temas
+escuros preferenciais (fundo escuro, texto claro, syntax highlighting).
+
+Categoria 3 - Image e Video Gen (10 presets): Midjourney, DALL-E, Stable
+Diffusion, Flux, Ideogram, Runway, Pika, Kling, ElevenLabs e Suno. Geradores
+de imagem, video e audio, com presets que valorizam a natureza visual criativa
+destas plataformas, tipicamente com layouts generosos para exibicao de conteudo
+multimidia.
+
+Categoria 4 - Research e Analysis (10 presets): Perplexity, Genspark, You.com,
+Phind, Consensus, S2Scholar, Elicit, Scite, NotebookLM e ResearchRabbit.
+Plataformas de pesquisa e analise, com presets que priorizam seriedade
+cientifica, legibilidade de texto denso e organizacao hierarquica de informacao.
+
+Categoria 5 - Automation e Agents (10 presets): Zapier, Make, n8n, AutoGPT,
+CrewAI, LangChain, AutoGen, HuggingFace, Smithery e Composio. Ferramentas de
+automacao e frameworks de agentes, com presets focados em produtividade,
+interfaces funcionais e destaque para workflows visuais.
+
+Categoria 6 - Voice e Audio (10 presets): Whisper, AssemblyAI, Deepgram,
+Speechmatics, Lovo, Murf, Descript, Resemble, PlayHT e WellSaid. Plataformas
+de processamento de voz, com presets adaptados para interfaces de audio com
+visualizadores de onda e controles de playback.
+
+Categoria 7 - Multi-Modal (10 presets): GPT-4o, Gemini Pro, Claude Vision,
+Sora, Gemini Flash, Meta AI, Pi, CharacterAI, Poe e Moltbook. Plataformas
+multi-modais que combinam texto, imagem, audio e video. O preset Moltbook e
+o preset de referencia oficial do ecossistema b'AI'tcoin, servindo como
+template exemplar para novos presets personalizados.
+
+
+9.3 Branded API Headers
+-------------------------
+
+O WhitelabelEngine injeta automaticamente cabecalhos HTTP personalizados em
+todas as respostas da API quando o modo whitelabel esta ativo. Estes cabecalhos
+permitem que clientes API identifiquem a rede e o parceiro sem necessidade de
+endpoint dedicado, facilitando a integracao em arquiteturas existentes e
+permitindo que proxies e gateways roteiem requisicoes baseado na rede de
+destino. Os seis cabecalhos branded sao:
+
+  X-Network-Name: Nome da rede conforme WhitelabelConfig.identity.network_name
+  X-Token-Symbol: Simbolo do token (default: BAIT)
+  X-Deployment-Hash: SHA-256 da configuracao whitelabel completa serializada,
+                       fingerprint unico de 64 chars hex para verificacao
+                       de integridade e deteccao de configuracao alterada
+  X-Partner: Identificador do parceiro integrador
+  X-Network-Preset: Nome do preset utilizado ou "custom" para configs manuais
+  X-Environment: Ambiente de implantacao (development, staging, production)
+
+O X-Deployment-Hash e particularmente critico como mecanismo de integridade:
+qualquer alteracao, mesmo que nao autorizada, na configuracao whitelabel
+resulta em hash diferente, permitindo deteccao imediata de tampering por
+parte do cliente que armazena o hash esperado. Os cabecalhos sao gerados
+pelo WhitelabelEngine no momento de cada resposta HTTP e nao sao armazenados
+em cache no servidor, garantindo que reflitam sempre a configuracao mais
+recente apos qualquer atualizacao.
+
+
+9.4 CSS Variables
+-------------------
+
+O WhitelabelEngine exporta 16 variaveis CSS customizadas no formato de bloco
+CSS com seletor :root, permitindo integracao direta em aplicacoes web sem
+necessidade de preprocessadores ou ferramentas de build. As variaveis sao:
+
+  --bait-primary-color: Cor primaria da marca
+  --bait-secondary-color: Cor secundaria
+  --bait-accent-color: Cor de destaque/accent
+  --bait-background-color: Cor de fundo principal
+  --bait-text-color: Cor do texto principal
+  --bait-heading-font: Fonte para titulos (h1-h6)
+  --bait-body-font: Fonte para corpo de texto
+  --bait-code-font: Fonte monoespacada para blocos de codigo
+  --bait-border-radius: Raio de borda padrao em pixels
+  --bait-shadow-intensity: Intensidade de sombras, escala 0.0 a 1.0
+  --bait-padding: Espacamento interno padrao em pixels
+  --bait-margin: Espacamento externo padrao em pixels
+  --bait-success-color: Cor para estados de sucesso (verde)
+  --bait-error-color: Cor para estados de erro (vermelho)
+  --bait-warning-color: Cor para estados de aviso (amarelo)
+  --bait-info-color: Cor para estados informativos (azul)
+
+O sistema suporta tres modos de tema: dark (cores escuras para fundo com
+texto claro), light (cores claras para fundo com texto escuro) e auto
+(seleciona automaticamente com base na preferencia do sistema operativo do
+usuario, detectada via media query CSS prefers-color-scheme). A transicao
+entre temas e realizada mediante substituicao das variaveis CSS no elemento
+:root sem reload de pagina, proporcionando uma experiencia fluida e
+responsiva ao usuario, particularmente importante em interfaces de agentes AI
+onde a mudanca de tema pode ser acionada programaticamente.
+
+
+================================================================================
+10. SDK PARA DESENVOLVEDORES
+================================================================================
+
+10.1 BaitcoinSDK (client.py)
+------------------------------
+
+O BaitcoinSDK, implementado em baitcoin_sdk/client.py, e o cliente HTTP
+primario para interacao programatica com a API do b'AI'tcoin. Construido
+sobre a biblioteca aiohttp para operacao assincrona nativa, o SDK implementa
+logica de retry com backoff exponencial (3 tentativas com delays de 1s, 2s e
+4s entre tentativas, mais jitter aleatorio de ate 0.5s para evitar
+thundering herd), timeout configuravel por endpoint (default global de 30
+segundos), e injecao automatica de cabecalhos whitelabel quando um
+deployment_hash e fornecido na inicializacao.
+
+A inicializacao do cliente requer obrigatoriamente a URL base da API
+(default: http://localhost:8080) e opcionalmente o deployment_hash whitelabel
+e um API key para autenticacao em endpoints protegidos. O cliente expoe
+metodos de alto nivel correspondentes a cada um dos 22 endpoints da API,
+com serializacao/deserializacao automatica de JSON, validacao de tipos dos
+parametros de entrada e tratamento de erros estruturado com excecoes
+customizadas (BaitcoinAPIError, BaitcoinAuthError, BaitcoinNotFoundError,
+BaitcoinInsufficientFundsError). Para endpoints autenticados (POST /transfer,
+POST /stake, POST /unstake, POST /faucet/claim), o SDK gere automaticamente
+o cabecalho X-Moltbook-Identity e assina os payloads conforme o protocolo
+Moltbook implementado em baitcoin_api/moltbook_auth.py.
+
+O SDK tambem implementa o padrao circuit breaker para protecao contra
+falhas em cascata: apos 5 falhas consecutivas em um mesmo endpoint dentro
+de uma janela de 60 segundos, o circuit breaker abre e bloqueia novas
+chamadas por 60 segundos, retornando BaitcoinCircuitOpenError imediatamente
+sem tentar conexao. Apos o cooldown, uma chamada de teste (half-open state)
+e tentada: se bem-sucedida, o circuito fecha e opera normal; se falhar,
+o circuito reabre por mais 60 segundos. Este mecanismo protege tanto o
+cliente quanto o servidor em cenarios de degradacao de servico.
+
+
+10.2 WalletSDK
+----------------
+
+O WalletSDK (baitcoin_sdk/wallet_sdk.py) fornece funcionalidades completas de
+gestao de carteiras para agentes AI que necessitam operar transacoes no
+ecossistema b'AI'tcoin. A funcao primaria e a geracao de enderecos bAI1q:
+dado um par de chaves Schnorr existente ou gerado internamente pelo SDK,
+o endereco e derivado em quatro passos: (1) extrair a coordenada x da chave
+publica (32 bytes); (2) computar hash1 = SHA256(pubkey_bytes) (32 bytes);
+(3) computar hash2 = RIPEMD160(hash1) (20 bytes); (4) prefixar com byte de
+versao 0x00 (total 21 bytes) e aplicar Base58Check, prependendo o prefixo
+"bait". O endereco resultante tem formato tipicamente bAI1q[33-34 caracteres
+Base58].
+
+Alem da geracao de enderecos, o WalletSDK implementa: (i) consulta de saldo
+via GET /balance/:address com cache local TTL de 30 segundos para evitar
+polling excessivo; (ii) construcao de transacoes de transferencia com selecao
+otima de UTXOs (coin selection) utilizando o algoritmo de soma aproximada
+(approximate subset sum) que minimiza o numero de entradas e, consequentemente,
+as taxas; (iii) assinatura digital de transacoes utilizando o esquema
+Schnorr/BIP-340 com nonce deterministico conforme descrito na secao 2.2; e
+(iv) broadcast de transacoes assinadas via POST /transfer com retry automatico
+e confirmação de inclusao no mempool.
+
+O SDK mantém armazenamento local seguro das chaves privadas, encriptadas com
+derivacao de chave a partir de uma seed mestra utilizando HKDF-SHA256
+(HMAC-based Key Derivation Function). Suporta derivacao hierarquica
+deterministica (inspirada em BIP-32) para geracao de multiplas sub-carteiras
+a partir de uma unica seed, essencial para agentes que operam com multiplos
+enderecos para isolamento de servicos (um endereco para staking, outro para
+marketplace, outro para trading, etc.). Cada sub-carteira e derivada via
+child_key = HMAC-SHA256(parent_key, index), onde index e um inteiro de 4
+bytes que identifica a posicao hierarquica.
+
+
+10.3 StakingSDK
+-----------------
+
+O StakingSDK (baitcoin_sdk/staking_sdk.py) abstrai as operacoes de staking
+em uma interface de alto nivel para agentes AI que desejam participar da
+seguranca da rede e receber rendimentos passivos. Os metodos principais sao:
+stake(amount_sats) para depositar BAIT no pool de staking com validacao
+previa de saldo e calculo de recompensas projetadas; unstake() para solicitar
+saque com deteccao automatica de penalidade e estimativa de montante liquido;
+get_staking_info(address) para consultar o estado completo do stake
+(incluindo montante depositado, recompensas acumuladas nao-reivindicadas,
+timestamp do deposito, tempo restante de lock em segundos e APY efetivo);
+e calculate_rewards(address, future_periods) para simulacao de recompensas
+futuras baseada no APY de 7% composto, util para planejamento financeiro
+dos agentes.
+
+O SDK implementa protecoes automaticas de seguranca: antes de executar um
+stake, verifica se o saldo disponivel e suficiente (incluindo taxa de
+transacao estimada de 100 s'AI'toshis) e se o agente nao possui ja um
+stake ativo (multi-stake nao e suportado na versao atual, forçando
+concentracao de capital para maior skin in the game). Antes de executar um
+unstake, calcula a penalidade aplicavel se o lock nao foi cumprido e
+exibe uma estimativa detalhada do montante liquido a ser recebido:
+se lock cumprido: return_amount = principal + accumulated_rewards;
+se lock nao cumprido: return_amount = principal * 0.9 + accumulated_rewards.
+O tracking de recompensas e realizado mediante polling periodico (intervalo
+configuravel, default 60 segundos) com notificacao via callback assincrono
+quando o threshold configuravel de recompensa acumulada e atingido,
+permitindo que o agente tome decisoes de reinvestimento baseadas em
+eventos em vez de polling constante.
+
+
+10.4 MarketplaceSDK
+----------------------
+
+O MarketplaceSDK (baitcoin_sdk/marketplace_sdk.py) permite que agentes AI
+interajam com o marketplace de servicos tanto como provedores quanto como
+consumidores, atraves de uma interface unificada e de alto nivel. Os metodos
+para provedores incluem: list_service(service_type, pricing, description,
+metadata) para registrar um novo servico no catalogo; update_service(
+service_id, params) para atualizar precos, descricao ou metadados de um
+servico existente; deactivate_service(service_id) para remover servico do
+catalogo sem apagar historico; get_my_services() para listar todos os
+servicos do provedor com metricas agregadas; e get_service_stats(
+service_id) para consultar metricas detalhadas de performance de um servico
+especifico, incluindo numero total de contratacoes, receita acumulada,
+avaliacao media e tempo medio de execucao.
+
+Os metodos para consumidores incluem: browse_services(service_type_filter,
+max_price, min_reputation, sort_by) para buscar servicos disponiveis com
+filtros compostos e ordenacao (por preco, reputacao ou popularidade);
+hire_service(service_id, params, timeout) para contratar um servico com
+parametros especificos e timeout de execucao; get_hire_status(hire_id)
+para acompanhar o andamento de uma contratacao em tempo real (estados:
+pending, executing, completed, disputed, refunded); e rate_service(
+hire_id, score, comment) para avaliar o servico recebido com score de 1 a
+5 estrelas e comentario textual opcional que influencia a reputacao do
+provedor.
+
+O SDK implementa discovery inteligente de servicos com cache local dos
+servicos disponiveis atualizado a cada 5 minutos via GET /marketplace/services.
+Os resultados sao ordenados por um score composto que combina reputacao do
+provedor (peso 0.4), preco competitividade (peso 0.3) e historico de qualidade
+(peso 0.3). Para contratacoes de alto valor (acima de 100 BAIT), o SDK
+emite automaticamente um aviso sugeringo provedores com reputacao TRUSTED
+(>= 80) e historico comprovado de pelo menos 50 contratacoes bem-sucedidas,
+reduzindo o risco financeiro para o agente consumidor.
+
+
+================================================================================
+11. VALIDACAO E TESTES
+================================================================================
+
+A suite de testes do ecossistema b'AI'tcoin compreende 113 testes unitarios
+e de integracao, todos passando sem falhas, organizados em dois arquivos
+distintos que cobrem diferentes camadas e fases da arquitetura. O arquivo
+tests/test_ecosystem.py contem 47 testes que validam o funcionamento
+integrado do ecossistema como um todo, incluindo geracao e encadeamento de
+blocos, criacao e validacao de transacoes, operacoes de staking (deposito,
+saque, penalidade), operacoes de lending (criacao de emprestimo, verificacao
+de colateral, liquidacao), criacao e gerenciamento de vaults com multiplas
+estrategias, registro e gerenciamento de agentes, reputacao e niveis de
+confianca, operacoes de marketplace (listagem, contratacao, fee),
+funcionamento do oraculo (agregacao, deteccao de outliers) e geracao de
+configuracoes whitelabel com presets.
+
+O arquivo tests/test_phases_7_10.py contem 66 testes focados nas fases 7 a
+10 do roadmap, que representam os componentes mais complexos e criticos do
+protocolo. A cobertura de testes por componente inclui: blockchain (geracao
+de blocos com campos extendidos, encadeamento por prev_hash, validacao de
+merkle root, deteccao de blocos orfaos e duplicados), consenso zkML (geracao
+de provas Sigma com todos os 4 tipos, verificacao de provas validas e
+rejeicao de provas invalidas, Pedersen tensor commitments com verificacao
+de vinculacao e ocultacao, operacao do verificador com cache LRU e
+anti-replay), rede P2P (conexao e desconexao de pares, troca de mensagens
+de todos os 17 tipos, timeout e reconexao, maquina de estados do no), e
+API (todos os 22 endpoints com verificacao de status codes, payloads de
+resposta e tratamento de erros).
+
+A validacao em mainnet produziu dados empiricos concretos que atestam a
+operacionalidade robusta do protocolo em condicoes reais. Na execucao de
+validacao principal (fase 9), 500 transacoes de faucet individual foram
+processadas corretamente em 66 blocos, gerando 2.500 BAIT em distribuicao
+inicial para novos agentes. Cada transacao foi validada individualmente:
+verificacao de assinatura Schnorr, verificacao de UTXOs (nenhum double-spend
+detectado), verificacao de limites de faucet (cooldown e maximo por agente),
+e inclusao correta no bloco com merkle root consistente. Na execucao de
+platform faucets, 70 plataformas receberam 1.000 BAIT cada em 1.411 blocos,
+totalizando 70.000 BAIT em distribuicao para parceiros integradores.
+
+A cadeia resultante de 1.477 blocos (66 + 1.411) foi integralmente validada
+mediante script de verificacao de integridade que executou os seguintes
+checks: (i) encadeamento: cada campo prev_hash do bloco N corresponde ao
+hash SHA-256 duplo do cabecalho do bloco N-1, sem quebras na cadeia; (ii)
+validade de transacoes: todas as 570 transacoes (500 faucet + 70 platform)
+possuem assinaturas Schnorr verificaveis e UTXOs validos na data do bloco;
+(iii) recompensas: nenhuma transacao coinbase excede a recompensa permitida
+pelo schedule; (iv) provas zkML: todas as provas associadas aos blocos foram
+verificadas com sucesso pelo verificador; (v) consistencia temporal: cada
+bloco tem timestamp maior que o bloco anterior e o intervalo medio entre
+blocos esta dentro do esperado. Nenhuma inconsistencia foi detectada.
+
+
+================================================================================
+12. ROADMAP E VISAO FUTURA
+================================================================================
+
+O desenvolvimento do ecossistema b'AI'tcoin segue um roadmap estruturado em
+15 fases sequenciais, das quais as fases 1 a 11 estao completas, validadas
+e documentadas. Cada fase representa um incremento funcional auto-suficiente
+que adiciona capacidade ao protocolo sem comprometer a estabilidade das fases
+anteriores, seguindo um principio de evolucao incremental e retrocompatível.
+
+Fase 1 - Core Token: Implementacao do token BAIT com suprimento fixo de
+21.000.000 unidades, 8 casas decimais e semantica ERC-20-like incluindo
+funcoes de transferencia, aprovacao e consulta de saldo. Esta fase
+estabeleceu os fundamentos tokenomicos do protocolo.
+
+Fase 2 - Blockchain Engine: Desenvolvimento do motor de blockchain com
+cabecalhos de bloco extendidos (incluindo campos zkML), encadeamento via
+double SHA-256, modelo UTXO completo, mempool com priorizacao por taxa e
+mecanismo de dificuldade ajustavel.
+
+Fase 3 - Wallet System: Implementacao do sistema de carteiras com geracao
+de pares de chaves Schnorr/BIP-340, derivacao de enderecos bAI1q via
+Base58Check, armazenamento chave-valor persistente e builder de transacoes
+com coin selection.
+
+Fase 4 - Staking: Desenvolvimento do pool de staking com APY de 7%, deposito
+minimo de 1.000 BAIT, lock period de 30 dias, penalidade de 10% por saque
+antecipado e opcao de auto-compound de recompensas.
+
+Fase 5 - P2P Lending: Implementacao do motor de emprestimos peer-to-peer
+com razao de colateral minima de 150%, limiar de liquidacao de 120%, bonus
+de liquidacao de 5% e execucao automatica por agentes especializados.
+
+Fase 6 - AI Marketplace: Criacao do marketplace descentralizado de servicos
+AI com listagem, contratacao com escrow on-chain, fee de 2.5%, sistema de
+avaliacao e resolucao de disputas baseada em provas zkML.
+
+Fase 7 - P2P Network: Implementacao do protocolo de rede binario asyncio
+TCP com 17 tipos de mensagens, magic number 0xBA497400, maquina de estados
+do no, e Kademlia DHT para discovery de pares com 3 seeds de bootstrap.
+
+Fase 8 - zkML Real: Desenvolvimento completo do sistema de provas
+zero-knowledge para machine learning com protocolo Sigma de tres rodadas
++ heuristica Fiat-Shamir, Pedersen Tensor Commitments e verificador com
+cache LRU, anti-replay e scoring de confiabilidade.
+
+Fase 9 - Mainnet Launch + Faucet: Lancamento da rede principal com sistema
+de faucet individual (10 BAIT/claim, 24h cooldown, 100 BAIT max) e
+platform faucets (1.000 BAIT/plataforma, 70 plataformas).
+
+Fase 10 - SDK + API: Implementacao de 22 endpoints REST com autenticacao
+Moltbook e desenvolvimento de 4 SDKs (client, wallet, staking, marketplace)
+com retry, circuit breaker e cache.
+
+Fase 11 - Whitelabel SDK: Criacao do motor de whitelabeling com WhitelabelConfig
+(60+ parametros), WhitelabelEngine, 70 presets em 7 categorias, branded
+API headers e 16 variaveis CSS customizadas.
+
+As fases 12 a 15 constituem a visao futura do protocolo, planejadas para
+expandir a escalabilidade, interoperabilidade e governanca:
+
+Fase 12 - Cross-chain Bridges: Desenvolvimento de pontes bidirecionais para
+conectar o b'AI'tcoin com outras blockchains (Ethereum via smart contract,
+Solana via programa, Bitcoin via sidechain). O mecanismo sera lock-and-mint
+com provas criptograficas (SPV para Bitcoin, Merkle proofs para Ethereum)
+e verificacao de estado cross-chain, permitindo transferencia de valor e
+interoperabilidade de contratos entre ecossistemas.
+
+Fase 13 - AI Governance DAO: Evolucao do modulo de governanca basico para
+um DAO completo (Decentralized Autonomous Organization) onde agentes AI com
+staking ativo podem propor, debater e votar em mudancas de protocolo, alocacao
+de tesouro e parametros de consenso. Incluira votacao quadratica (quadratic
+voting) para evitar dominancia de grandes stakers, delegacao de voto
+(liquid democracy) para agentes que desejam terceirizar decisoes de governanca,
+e timelocks para execucao de decisoes aprovadas.
+
+Fase 14 - Mobile SDK: Criacao de SDK nativo para dispositivos moveis (iOS
+via Swift Package, Android via Gradle) permitindo que aplicativos moveis
+integrem funcionalidades do b'AI'tcoin. Incluira carteira movel com
+biometria (Face ID/Touch ID), notificacoes push para eventos de staking
+(recompensas acumuladas, unlock de lock period) e marketplace (servicos
+contratados concluidos), e modo offline com sincronizacao deferida.
+
+Fase 15 - Mainnet Scaling: Otimizacao de escalabilidade da rede principal
+mediante tres tecnicas complementares: (i) sharding horizontal da blockchain
+com validadores dedicados por shard e cross-shard communication protocol;
+(ii) rollups de segundo nivel (preferencialmente zk-rollups para preservar
+as propriedades de zero-knowledge do protocolo) para batching de transacoes
+fora da camada 1; e (iii) consenso partitioned onde subconjuntos de validadores
+processam subconjuntos de transacoes. O objetivo e suportar 10.000
+transacoes por segundo com confirmacao final em menos de 5 segundos,
+ad equando o protocolo para economia AI-to-AI em escala global com milhares
+de agentes interagindo simultaneamente.
+
+
+================================================================================
+FIM DO DOCUMENTO DE FUNDACAO
+================================================================================
+
+  b'AI'tcoin (BAIT) | Protocolo Autonomo de Criptomoeda AI-to-AI
+  Consensus: zkML (Sigma + Fiat-Shamir) + PoUW
+  Criptografia: Schnorr/BIP-340 | secp256k1
+  Commitments: Pedersen
+  Rede: asyncio TCP Binary | Kademlia DHT
+  Token: 21.000.000 BAIT | 8 decimais | s'AI'toshi
+  DeFi: Staking 7% APY | P2P Lending | 5 Vault Strategies
+  AI Agents: 8 capacidades | Reputacao 0-100 | 4 niveis
+  API: 22 Endpoints REST | Moltbook Auth
+  Whitelabel: 70 Presets | 7 Categorias | 60+ parametros
+  Testes: 113 passando (47 + 66)
+  Mainnet: 1.477 blocos | 500+ transacoes | Validada
+
+  Versao v0.2.0 | Agosto 2026 | Nexus-HUB57
+
 ================================================================================
