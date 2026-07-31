@@ -28,8 +28,21 @@ baitcoin-ecosystem/
 ├── baitcoin_core/           # Infraestrutura base
 │   ├── blockchain/          # Blocos, cadeia, mempool
 │   ├── consensus/           # zkML + PoUW
+│   │   ├── zkml_engine.py  # Consenso simulado (Fase 1)
+│   │   ├── pouw.py         # Proof of Useful Work
+│   │   └── zkml_real/      # zkML REAL (Fase 8)
+│   │       ├── proof_system.py    # Sigma protocol + Fiat-Shamir
+│   │       ├── tensor_commitment.py # Pedersen commitment para tensores
+│   │       └── verifier.py        # Verificador com cache e scoring
 │   ├── cryptography/        # Schnorr / BIP-340
-│   └── network/             # P2P gossip
+│   └── network/             # Rede P2P
+│       ├── p2p.py         # Protocolo gossip (Fase 1)
+│       ├── p2p_real/      # P2P REAL com asyncio TCP (Fase 7)
+│       │   ├── node.py         # No P2P completo (server + client)
+│       │   ├── protocol.py     # Protocolo binário com 17 msg types
+│       │   └── message_handler.py # Handler com callbacks
+│       └── peer_discovery/ # DHT Kademlia-like (Fase 7)
+│           └── dht.py          # Routing table, k-buckets, announce
 ├── baitcoin_wallet/         # Carteiras AI-to-AI
 │   ├── keys/                # Gerenciador de chaves
 │   ├── transactions/        # Builder de transações
@@ -46,11 +59,24 @@ baitcoin-ecosystem/
 │   ├── agent_protocol/      # Registro e reputação
 │   ├── marketplace/         # Mercado de serviços AI
 │   └── oracle/              # Oracle de preços descentralizado
-├── tests/                   # 47 testes de integração
+├── baitcoin_faucet/          # Faucet público (Fase 9)
+│   └── faucet.py            # Distribuição anti-abuso com cooldown
+├── baitcoin_mainnet/         # Configuração mainnet (Fase 9)
+│   ├── config.py            # Parâmetros da rede principal
+│   └── launcher.py           # Orquestrador de todos os componentes
+├── baitcoin_api/             # API REST (Fase 9)
+│   └── server.py             # 15 endpoints HTTP sem dependência
+├── baitcoin_sdk/             # SDK para terceiros (Fase 10)
+│   ├── client.py             # BaitcoinSDK - ponto de entrada
+│   ├── wallet_sdk.py         # Carteiras com endereços bAI1q
+│   ├── staking_sdk.py        # Operações de staking
+│   └── marketplace_sdk.py    # Busca e compra de serviços
+├── tests/
+│   ├── test_ecosystem.py     # 47 testes (Fases 1-6)
+│   └── test_phases_7_10.py  # 45 testes (Fases 7-10)
 ├── config/                  # Configuração de rede (YAML)
-├── scripts/                 # Scripts utilitários
 ├── main_daemon.py           # Daemon principal (loop perpétuo)
-└── .github/workflows/       # CI/CD automático
+└── .github/workflows/       # CI/CD automático (4 workflows)
 ```
 
 ---
@@ -65,17 +91,34 @@ baitcoin-ecosystem/
 - **Mempool**: Pool de transações com priorização por fee, dedupe, evicção de expiradas
 
 #### Consenso (`baitcoin_core/consensus/`)
-- **zkML Engine**: Zero-Knowledge Machine Learning — validadores provam que executaram inferência ML sem revelar dados privados
+- **zkML Engine** (Fase 1): Zero-Knowledge Machine Learning simulado
 - **PoUW**: Proof of Useful Work — trabalho computacional real (inferência ML, busca de parâmetros, verificação de dados)
 - Registro de validadores com stake mínimo e sistema de reputação
+
+#### zkML Real (Fase 8) — `baitcoin_core/consensus/zkml_real/`
+- **Proof System**: Protocolo Sigma (3-round) com transformação Fiat-Shamir para não-interativo
+  - Commit: commitment aleatório `A = G^a mod P`
+  - Challenge: derivado via hash do contexto (Fiat-Shamir heuristic)
+  - Response: `r = (a + challenge * secret) mod (P-1)` (correto por Fermat)
+  - Verificação: `g^r == A * y^challenge mod P`
+- **Tensor Commitment**: Pedersen commitments para tensores ML
+  - Commit: `C = G^tensor * H^blind mod P` (binding + hiding)
+  - Batch commitments, agregação de commitments
+- **Verifier**: Cache LRU (10k provas), anti-replay, scoring de validadores, agregação de provas
+- **P**: primo 256-bit (`2^256 - 189`), **G**: hash-to-point sobre secp256k1
 
 #### Criptografia (`baitcoin_core/cryptography/`)
 - **Schnorr / BIP-340**: Chaves e assinaturas sobre secp256k1, formato x-only
 - Assinaturas agregáveis, ideais para transações multi-agente
 
 #### Rede P2P (`baitcoin_core/network/`)
-- Protocolo gossip para propagação de blocos e transações
-- Handshake AI-to-AI, descoberta de peers, sincronização de cadeia
+- **Protocolo Binário** (Fase 7): 17 tipos de mensagem, codificação [length][type][payload][timestamp]
+- **P2P Node** (Fase 7): Servidor TCP asyncio, conexões inbound/outbound, broadcast gossip
+- **Message Handler**: Sistema de callbacks com handlers por tipo e globais
+- **Peer Discovery DHT** (Fase 7): Kademlia-like com k-buckets, XOR distance, announce/random peers
+- **Sync de Cadeia**: Headers-first, GET_DATA para blocos, sync loop periódico
+- **AI Handshake**: Autenticação entre agentes via pubkey Schnorr
+- **Keepalive**: Ping/Pong automático a cada 60s, bootstrap com reconexão
 
 ---
 
@@ -150,6 +193,90 @@ baitcoin-ecosystem/
 
 ---
 
+### 6. baitcoin_faucet — Faucet Público (Fase 9)
+
+- **Distribuição**: 10 BAIT por claim, cooldown de 24h, máximo 100 BAIT por agente
+- **Anti-abuso**: Rate limiting global (60/min), cooldown por agente, limite acumulado
+- **Proof-of-Agent**: Suporta desafio assinado via Schnorr
+- **Estatísticas**: Histórico de claims por agente, métricas globais
+
+---
+
+### 7. baitcoin_mainnet — Rede Principal (Fase 9)
+
+- **Config**: Portas P2P (18444), API (18445), RPC (18446)
+- **Seeds**: 3 nós bootstrap oficiais
+- **Launcher**: Orquestra startup de todos os componentes (blockchain + token + consensus + P2P + faucet)
+- **Parâmetros**: Dificuldade real, 30s block time, 1M byte max block
+
+---
+
+### 8. baitcoin_api — API REST (Fase 9)
+
+15 endpoints HTTP (sem dependência de framework):
+
+| Método | Endpoint | Descrição |
+|--------|----------|------------|
+| GET | `/api/v1/status` | Status da rede |
+| GET | `/api/v1/blockchain` | Info da blockchain |
+| GET | `/api/v1/block/:height` | Bloco por altura |
+| GET | `/api/v1/token` | Info do token BAIT |
+| GET | `/api/v1/balance/:agent` | Saldo de agente |
+| POST | `/api/v1/transfer` | Transferir BAIT |
+| POST | `/api/v1/faucet/claim` | Reclamar BAIT do faucet |
+| GET | `/api/v1/faucet/balance/:agent` | Saldo via faucet |
+| GET | `/api/v1/staking` | Info do staking pool |
+| POST | `/api/v1/staking/stake` | Fazer stake |
+| GET | `/api/v1/agents` | Lista de agentes |
+| GET | `/api/v1/marketplace` | Serviços do marketplace |
+| GET | `/api/v1/oracle/:symbol` | Preço de ativo |
+| POST | `/api/v1/zkml/proof` | Verificar prova zkML |
+| GET | `/api/v1/p2p/peers` | Lista de peers |
+
+---
+
+### 9. baitcoin_sdk — SDK para Terceiros (Fase 10)
+
+Interface Python simples para integração de agentes AI terceiros:
+
+```python
+from baitcoin_sdk import BaitcoinSDK
+
+# Inicializar
+sdk = BaitcoinSDK()
+sdk.configure_local(blockchain, token, faucet, staking, registry, marketplace, oracle)
+
+# Criar carteira com endereço bAI1q
+wallet = sdk.create_wallet('my_agent_001')
+print(wallet.address)  # bAI1q...
+print(wallet.pubkey_hex)  # Chave pública hex
+
+# Claim do faucet
+result = sdk.faucet_claim('my_agent_001', wallet.pubkey_hex)
+print(result['amount_bait'])  # 10.0
+
+# Consultar saldo
+balance = sdk.get_balance('my_agent_001')
+print(f'{balance} BAIT')
+
+# Transferir
+sdk.transfer('my_agent_001', 'other_agent', 1.5)
+
+# Fazer stake
+sdk.stake('my_agent_001', 100.0)
+
+# Consultar preço via oracle
+price = sdk.get_price('BTC')
+
+# Buscar serviços no marketplace
+services = sdk.search_services('ml_inference')
+
+# Status completo da rede
+status = sdk.get_network_status()
+```
+
+---
+
 ## Quick Start
 
 ```bash
@@ -202,10 +329,10 @@ O consenso b'AI'tcoin é diferente de PoW ou PoS tradicionais:
 - [x] **Fase 4**: AI Agent Protocol — Registro, Marketplace, Oracle
 - [x] **Fase 5**: Testes de integração (47 testes)
 - [x] **Fase 6**: CI/CD com GitHub Actions
-- [ ] **Fase 7**: Rede P2P real com libp2p
-- [ ] **Fase 8**: zkML provas reais com frameworks ZK
-- [ ] **Fase 9**: Mainnet e faucet público
-- [ ] **Fase 10**: SDK para integração de agentes third-party
+- [x] **Fase 7**: Rede P2P real com asyncio TCP + DHT Kademlia
+- [x] **Fase 8**: zkML provas reais (Sigma + Fiat-Shamir + Pedersen commitment)
+- [x] **Fase 9**: Mainnet + Faucet público + API REST (15 endpoints)
+- [x] **Fase 10**: SDK Python para integração de agentes third-party
 
 ---
 
@@ -216,8 +343,12 @@ O consenso b'AI'tcoin é diferente de PoW ou PoS tradicionais:
 | Linguagem | Python 3.11+ |
 | Criptografia | ecdsa (secp256k1), Schnorr/BIP-340 |
 | Consenso | zkML + PoUW (custom) |
-| Testes | pytest (47 testes) |
-| CI/CD | GitHub Actions |
+| Testes | pytest (92 testes, 100% pass) |
+| P2P | asyncio TCP + DHT Kademlia |
+| zkML | Sigma protocol + Pedersen commitment |
+| API | HTTP server nativo (15 endpoints) |
+| SDK | Python SDK para terceiros |
+| CI/CD | GitHub Actions (4 workflows) |
 | Config | YAML |
 
 ---

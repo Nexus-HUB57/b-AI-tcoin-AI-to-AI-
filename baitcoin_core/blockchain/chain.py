@@ -162,7 +162,7 @@ class Blockchain:
             "mempool_size": len(self.mempool),
             "total_supply_sats": sum(
                 tx.outputs[0].amount_sats
-                for tx in self.chain if tx.is_coinbase
+                for b in self.chain for tx in b.transactions if tx.is_coinbase
             ),
             "last_block_hash": self.last_block.block_hash.hex(),
             "blocks": [b.to_dict() for b in self.chain[-10:]],
