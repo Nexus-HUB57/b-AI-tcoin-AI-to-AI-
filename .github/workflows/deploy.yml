@@ -1,0 +1,84 @@
+name: Deploy - Ecosystem Status Badge
+
+on:
+  push:
+    branches: [main]
+  workflow_run:
+    workflows: ["CI - Testes e Lint"]
+    types:
+      - completed
+
+jobs:
+  update-status:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || (github.event.workflow_run.conclusion == 'success')
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: pip install ecdsa numpy
+
+    - name: Generate ecosystem status
+      run: |
+        python -c "
+        from baitcoin_core import Blockchain, ZkMLConsensus, SchnorrKeyPair
+        from baitcoin_token.erc20_like.bait_token import BAITToken
+        from baitcoin_bank.staking.pool import StakingPool
+        from baitcoin_bank.lending.engine import LendingEngine
+        from baitcoin_bank.defi_core.vault import Vault, VaultConfig, StrategyType
+        from baitcoin_ai.agent_protocol.registry import AgentRegistry, AgentCapability
+        from baitcoin_ai.marketplace.services import AIMarketplace, ServiceCategory
+        from baitcoin_ai.oracle.feed import PriceOracle
+        from baitcoin_token.tokenomics.schedule import EmissionSchedule
+        from baitcoin_token.governance.governor import Governor
+        import json
+
+        # Initialize all components
+        bc = Blockchain()
+        token = BAITToken()
+        token.mint('genesis', 100 * 100_000_000)
+        pool = StakingPool()
+        pool.stake('genesis', 10 * 100_000_000)
+        lending = LendingEngine()
+        lending.create_offer('lender1', 500_000_000, 12.0)
+        vault = Vault(VaultConfig(agent_id='genesis'))
+        vault.deposit(5_000_000_000, StrategyType.STAKING)
+        registry = AgentRegistry()
+        registry.register('agent1', '0x123', [AgentCapability.BLOCK_VALIDATION])
+        mp = AIMarketplace()
+        mp.list_service('agent1', ServiceCategory.ML_INFERENCE, 'GPT Service', 'AI inference', 50_000)
+        oracle = PriceOracle()
+        oracle.register_oracle('o1', 80)
+        oracle.submit_price('o1', 'BTC', 65000.0)
+        schedule = EmissionSchedule()
+        gov = Governor(21_000_000 * 100_000_000)
+        gov.create_proposal('agent1', 'Test', 'Ecosystem deployment test')
+
+        status = {
+            'blockchain_height': bc.height,
+            'utxo_count': len(bc.utxo_set),
+            'token': token.to_dict(),
+            'staking': pool.to_dict(),
+            'lending': lending.to_dict(),
+            'vault': vault.to_dict(),
+            'agents': registry.to_dict(),
+            'marketplace': mp.to_dict(),
+            'oracle': oracle.to_dict(),
+            'tokenomics': schedule.to_dict(),
+            'governance': gov.to_dict(),
+        }
+
+        with open('ecosystem_status.json', 'w') as f:
+            json.dump(status, f, indent=2)
+        print('Ecosystem status generated')
+        for k, v in status.items():
+            print(f'  {k}: {v}')
+        "
+
+    - name: Run daemon validation
+      run: python main_daemon.py

@@ -1,0 +1,69 @@
+name: CI - Testes e Lint
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main]
+
+jobs:
+ testes:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.12']
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run tests
+      run: |
+        python -m pytest tests/ -v --tb=short
+
+    - name: Ecosystem integration test
+      run: |
+        python -c "
+        from baitcoin_core import Blockchain
+        from baitcoin_token.erc20_like.bait_token import BAITToken
+        from baitcoin_bank.staking.pool import StakingPool
+        from baitcoin_ai.agent_protocol.registry import AgentRegistry
+        from baitcoin_ai.marketplace.services import AIMarketplace
+        from baitcoin_ai.oracle.feed import PriceOracle
+        from baitcoin_bank.defi_core.vault import Vault, VaultConfig, StrategyType
+
+        bc = Blockchain()
+        token = BAITToken()
+        token.mint('alice', 10_000 * 100_000_000)
+        token.transfer('alice', 'bob', 1_000 * 100_000_000)
+        pool = StakingPool()
+        pool.stake('alice', 2_000 * 100_000_000)
+        registry = AgentRegistry()
+        registry.register('alice', '0xabc')
+        vault = Vault(VaultConfig(agent_id='alice'))
+        vault.deposit(5_000_000_000, StrategyType.STAKING)
+        print('Integration: OK')
+        "
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    - name: Install dependencies
+      run: pip install flake8 black
+    - name: Lint with flake8
+      run: flake8 baitcoin_core/ baitcoin_wallet/ baitcoin_bank/ baitcoin_token/ baitcoin_ai/ --max-line-length=120 --ignore=E501,W503
+    - name: Check formatting
+      run: black --check baitcoin_core/ baitcoin_wallet/ baitcoin_bank/ baitcoin_token/ baitcoin_ai/

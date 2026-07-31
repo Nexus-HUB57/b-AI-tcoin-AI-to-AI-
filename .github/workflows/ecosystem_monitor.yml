@@ -1,0 +1,102 @@
+name: Ecosystem Monitor
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # A cada hora
+  workflow_dispatch:
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: pip install ecdsa numpy
+
+    - name: Run full ecosystem simulation
+      run: |
+        python -c "
+        import time
+        from baitcoin_core import Blockchain, ZkMLConsensus, SchnorrKeyPair
+        from baitcoin_token.erc20_like.bait_token import BAITToken
+        from baitcoin_bank.staking.pool import StakingPool
+        from baitcoin_bank.lending.engine import LendingEngine
+        from baitcoin_bank.defi_core.vault import Vault, VaultConfig, StrategyType
+        from baitcoin_ai.agent_protocol.registry import AgentRegistry, AgentCapability
+        from baitcoin_ai.marketplace.services import AIMarketplace, ServiceCategory
+        from baitcoin_ai.oracle.feed import PriceOracle
+        from baitcoin_token.tokenomics.schedule import EmissionSchedule
+
+        print('[MONITOR] Iniciando simulacao completa do ecossistema...')
+
+        # 1. Blockchain
+        bc = Blockchain()
+        keys = [SchnorrKeyPair() for _ in range(5)]
+        for i, k in enumerate(keys):
+            bc.mine_block(f'agent_{i}', k.pub_bytes)
+        print(f'  Blockchain: {bc.height} blocos minerados')
+
+        # 2. Token
+        token = BAITToken()
+        for i in range(5):
+            token.mint(f'agent_{i}', 10_000 * 100_000_000)
+        token.transfer('agent_0', 'agent_1', 1_000 * 100_000_000)
+        print(f'  Token: {token.circulating_bait} BAIT em circulacao')
+
+        # 3. Staking
+        pool = StakingPool()
+        for i in range(3):
+            pool.stake(f'agent_{i}', 2_000 * 100_000_000)
+        pool.distribute_rewards(100_000_000)
+        print(f'  Staking: {pool.total_staked_bait} BAIT em stake, {len(pool.get_validator_set())} validadores')
+
+        # 4. Lending
+        lending = LendingEngine()
+        oid = lending.create_offer('agent_0', 500_000_000, 10.0)
+        lid = lending.borrow('agent_1', oid, 750_000_000)
+        print(f'  Lending: {len(lending.loans)} emprestimos ativos')
+
+        # 5. Vaults
+        vaults = []
+        for i in range(3):
+            v = Vault(VaultConfig(agent_id=f'agent_{i}', risk_tolerance=0.3 + i * 0.2))
+            v.deposit(3_000_000_000, list(StrategyType)[i])
+            vaults.append(v)
+        print(f'  Vaults: {len(vaults)} vaults ativos')
+
+        # 6. Agentes
+        reg = AgentRegistry()
+        caps = [AgentCapability.BLOCK_VALIDATION, AgentCapability.ORACLE_PROVIDER,
+                AgentCapability.DEFI_TRADING, AgentCapability.ML_INFERENCE,
+                AgentCapability.MARKET_MAKING]
+        for i in range(5):
+            reg.register(f'agent_{i}', keys[i].public_key_hex, [caps[i % len(caps)]])
+            reg.update_reputation(f'agent_{i}', 10, 'genesis_bonus')
+        print(f'  Agentes: {len(reg.agents)} registrados, {len(reg.get_validators())} validadores')
+
+        # 7. Marketplace
+        mp = AIMarketplace()
+        categories = [ServiceCategory.ML_INFERENCE, ServiceCategory.ORACLE_DATA,
+                      ServiceCategory.BLOCK_VALIDATION, ServiceCategory.MARKET_ANALYSIS,
+                      ServiceCategory.DATA_PROCESSING]
+        for i in range(5):
+            mp.list_service(f'agent_{i}', categories[i], f'Service_{i}', f'Desc {i}', 50_000 * (i+1))
+        mp.purchase_service(list(mp.listings.keys())[0], 'agent_1')
+        print(f'  Marketplace: {len(mp.listings)} servicos, {len(mp.purchases)} compras')
+
+        # 8. Oracle
+        oracle = PriceOracle()
+        for i in range(5):
+            oracle.register_oracle(f'oracle_{i}', 50 + i * 10)
+            oracle.submit_price(f'oracle_{i}', 'BTC', 65000 + i * 100)
+            oracle.submit_price(f'oracle_{i}', 'ETH', 3000 + i * 50)
+        print(f'  Oracle: {len(oracle.feeds)} simbolos, {len(oracle.oracles)} oracles')
+
+        print('[MONITOR] Simulacao completa com sucesso!')
+        "

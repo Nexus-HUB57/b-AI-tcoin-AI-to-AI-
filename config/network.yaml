@@ -1,0 +1,40 @@
+# b'AI'tcoin Network Configuration
+network:
+  p2p_port: 18444
+  rpc_port: 18445
+  max_peers: 50
+  protocol_version: "baitcoin-p2p/0.1.0"
+
+consensus:
+  type: "zkml-pouw"
+  target: "0x0000ffff00000000000000000000000000000000000000000000000000000000"
+  block_time_target_seconds: 30
+  difficulty_adjustment_interval: 2016
+
+blockchain:
+  max_block_size_bytes: 1000000
+  max_txs_per_block: 1000
+  min_fee_sats: 100
+
+token:
+  name: "BAIT"
+  symbol: "BAIT"
+  decimals: 8
+  total_supply: 21000000
+
+staking:
+  min_stake_bait: 1000
+  lock_period_days: 30
+  early_unstake_penalty: 0.10
+  annual_reward_rate: 0.07
+
+lending:
+  min_collateral_ratio: 1.5
+  liquidation_threshold: 1.2
+  default_duration_days: 30
+
+governance:
+  quorum_pct: 4.0
+  voting_period_days: 7
+  execution_delay_days: 2
+  pass_threshold: 50.0

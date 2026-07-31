@@ -11,10 +11,10 @@ jobs:
 
     steps:
     - name: Checkout do Repositório AI-to-AI
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Configurar Python 3.11
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: "3.11"
 
@@ -24,5 +24,36 @@ jobs:
 
     - name: Status do Motor Autônomo
       run: |
-        python -c "print('b\'AI\'tcoin Core: Loop Perpétuo Ativo e Sincronizado!')"
-        
+        python main_daemon.py
+
+    - name: Ecosystem Health Check
+      run: |
+        python -c "
+        from baitcoin_core import Blockchain, ZkMLConsensus, SchnorrKeyPair, P2PNetwork
+        from baitcoin_token.erc20_like.bait_token import BAITToken
+        from baitcoin_bank.staking.pool import StakingPool
+        from baitcoin_ai.agent_protocol.registry import AgentRegistry
+        from baitcoin_ai.marketplace.services import AIMarketplace
+        from baitcoin_ai.oracle.feed import PriceOracle
+        from baitcoin_bank.defi_core.vault import Vault, VaultConfig, StrategyType
+
+        bc = Blockchain()
+        token = BAITToken()
+        pool = StakingPool()
+        registry = AgentRegistry()
+        mp = AIMarketplace()
+        oracle = PriceOracle()
+        vault = Vault(VaultConfig(agent_id='health_check'))
+
+        vault.deposit(1_000_000_000, StrategyType.STAKING)
+
+        print('=== b\'AI\'tcoin Ecosystem Health ===')
+        print(f'Blockchain: height={bc.height}, utxos={len(bc.utxo_set)}')
+        print(f'Token: {token.to_dict()}')
+        print(f'Staking: {pool.to_dict()}')
+        print(f'Registry: {registry.to_dict()}')
+        print(f'Marketplace: {mp.to_dict()}')
+        print(f'Oracle: {oracle.to_dict()}')
+        print(f'Vault: {vault.to_dict()}')
+        print('=== All Systems Operational ===')
+        "
