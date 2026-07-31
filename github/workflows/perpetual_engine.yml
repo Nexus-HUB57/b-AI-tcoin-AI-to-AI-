@@ -1,4 +1,0 @@
-    - name: Executar Motor Autônomo b'AI'tcoin
-      run: |
-        python main_daemon.py
-        
