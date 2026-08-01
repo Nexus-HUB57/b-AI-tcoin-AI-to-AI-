@@ -6,9 +6,9 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/b'AI'tcoin-v0.9-alpha-orange" alt="version" />
-  <img src="https://img.shields.io/badge/Tests-389%20passing-brightgreen" alt="tests" />
-  <img src="https://img.shields.io/badge/API%20Endpoints-50+-cyan" alt="endpoints" />
+  <img src="https://img.shields.io/badge/b%27AI%27tcoin-v0.9-alpha-orange" alt="version" />
+  <img src="https://img.shields.io/badge/Tests-465%20passing-brightgreen" alt="tests" />
+  <img src="https://img.shields.io/badge/API%20Endpoints-54-cyan" alt="endpoints" />
   <img src="https://img.shields.io/badge/Testnet-P2P%20Multi-Node-blue" alt="testnet" />
   <img src="https://img.shields.io/badge/Mobile%20SDK-Python%20Reference-ff69b4" alt="mobile" />
   <img src="https://img.shields.io/badge/Bridges-Logic%20Layer-orange" alt="bridges" />
@@ -16,7 +16,7 @@
   <img src="https://img.shields.io/badge/Consensus-zkML%20%2B%20PoUW-purple" alt="consensus" />
   <img src="https://img.shields.io/badge/Signatures-Schnorr%20BIP--340-blue" alt="signatures" />
   <img src="https://img.shields.io/badge/Memory-WAL%20%2B%20Snapshots-green" alt="persistence" />
-  <img src="https://img.shields.io/badge/Explorer-Blockch'AI'in-orange" alt="explorer" />
+  <img src="https://img.shields.io/badge/Explorer-Blockch%27AI%27in-orange" alt="explorer" />
   <img src="https://img.shields.io/badge/Paper%20Wallet-Cold%20Storage-ff69b4" alt="paper wallet" />
   <img src="https://img.shields.io/badge/Netlify-Deploy%20Ready-00d4aa" alt="netlify" />
   <img src="https://img.shields.io/badge/Modules-16-9cf" alt="modules" />
@@ -24,7 +24,7 @@
   <img src="https://img.shields.io/badge/Block%20Time-30s-blue" alt="blocktime" />
   <img src="https://img.shields.io/badge/Halving-210k%20blocks-yellow" alt="halving" />
   <img src="https://img.shields.io/badge/Go%20Live-Pre--Alpha-yellow" alt="golive" />
-  <img src="https://img.shields.io/badge/LOC-22K%20Python-informational" alt="lines of code" />
+  <img src="https://img.shields.io/badge/LOC-26.4K%20Python-informational" alt="lines of code" />
 </p>
 
 ---
@@ -42,7 +42,7 @@ The protocol architecture comprises 16 integrated modules spanning core cryptogr
 ## Architecture
 
 ```
-baitcoin_ecosystem/                                # 22,234 lines of Python
+baitcoin_ecosystem/                                # 26,400 lines of Python
 +-- baitcoin_core/          # Blockchain, consensus (zkML), cryptography (Schnorr), network (P2P + DHT + testnet)
 +-- baitcoin_wallet/        # Keys, transactions, paper wallets, storage (kv_store)
 +-- baitcoin_token/         # ERC-20 like token, tokenomics (halvings), governance
@@ -58,7 +58,7 @@ baitcoin_ecosystem/                                # 22,234 lines of Python
 +-- baitcoin_bridge/        # Cross-chain bridge logic (ETH, SOL), lock-mint-burn-release
 +-- baitcoin_mainnet/       # Mainnet configuration and launcher
 +-- netlify/                # Netlify landing page (deploy-ready for netlify.ai)
-+-- tests/                  # 389 tests across 7 test suites (100% passing)
++-- tests/                  # 465 tests across 9 test suites (100% passing)
 +-- main_daemon.py          # Perpetual daemon with WAL persistence
 +-- Dockerfile.ubuntu       # Multi-stage Docker (Rust -> Python -> Ubuntu 24.04)
 +-- docker-compose.ubuntu.yml
@@ -129,7 +129,7 @@ baitcoin_ecosystem/                                # 22,234 lines of Python
 ### Test Coverage
 
 ```
-389 tests across 7 suites — all passing (0 failures)
+465 tests across 9 suites — all passing (0 failures)
 
   test_e2e_full_validation.py    62 tests   (E2E with EcosystemNode + persistence)
   test_e2e_persistent.py          5 tests   (Persistent blockchain round-trip)
@@ -138,15 +138,17 @@ baitcoin_ecosystem/                                # 22,234 lines of Python
   test_phases_7_10.py             46 tests   (P2P protocol, zkML proofs, API, SDK)
   test_phases_16_17_18.py       109 tests   (Testnet, mobile SDK, bridges)
   test_blockchain_explorer.py    81 tests   (Explorer, analytics, docs, search)
+  test_smoke.py                  59 tests   (All 16 modules smoke validation)
+  test_stress.py                 17 tests   (Mining 500 blocks, 1K proofs, 10K txs, 100 sign/verify)
 ```
 
 ### Lines of Code
 
 ```
 Source (excluding tests):     22,234 lines of Python
-Test code:                   ~2,800 lines across 7 files
-Total:                        ~25,034 lines
-Modules:                      16 modules, 83 Python files
+Test code:                   ~4,200 lines across 9 files
+Total:                        ~26,400 lines
+Modules:                      16 modules, 85 Python files
 External dependencies:       ecdsa (secp256k1), no Rust/C code in repo
 ```
 
@@ -495,7 +497,7 @@ Security: N-of-M multi-sig tracking, Merkle proofs, rate limits, emergency pause
 
 2. **Blockchain fundamentals are solid**: Genesis block, UTXO model, chain validation, halving schedule, and WAL persistence all work correctly. The persistence layer with WAL + snapshots + corruption recovery is production-quality Python code.
 
-3. **Test coverage is comprehensive**: 389 tests across 7 suites covering unit, integration, and end-to-end scenarios. The E2E tests use a real `EcosystemNode` that wires all modules together, and persistence round-trip tests verify data survives process restarts.
+3. **Test coverage is comprehensive**: 465 tests across 9 suites covering unit, integration, stress, smoke, and end-to-end scenarios.
 
 4. **Module architecture is clean**: 16 well-separated modules with clear responsibilities. The `EcosystemNode` provides a unified integration point. Each module can be tested independently.
 
@@ -621,7 +623,7 @@ cd b-AI-tcoin-AI-to-AI-
 # Install dependencies
 pip install -r requirements.txt
 
-# Run tests (389 passing)
+# Run tests (465 passing)
 python -m pytest tests/ -v
 
 # Run daemon (mines blocks, persists state via WAL)
@@ -676,7 +678,7 @@ Exposes 4 ports: API (18445), P2P (18446), DHT (18447), Obscura CDP (9222).
 | Obscura Bridge | L2 Prototype | 21 tests | No Rust binary |
 | Whitelabel (70 presets) | L1 Functional | Integrated | Operational |
 | Faucet | L1 Functional | Integrated | Operational |
-| Test Suite | — | 389/389 | All Passing |
+| Test Suite | — | 465/465 | All Passing |
 
 ---
 
