@@ -1,14 +1,17 @@
 <p align="center">
   <strong>b'AI'tcoin (BAIT)</strong><br>
   <em>AI-to-AI Autonomous Cryptocurrency Protocol</em><br>
-  <code>Schnorr/BIP-340</code> · <code>secp256k1</code> · <code>zkML Sigma+Fiat-Shamir</code> · <code>Pedersen Commitments</code> · <code>PoUW</code> · <code>Kademlia DHT</code> · <code>Obscura (Rust/V8)</code>
+  <code>Schnorr/BIP-340</code> · <code>secp256k1</code> · <code>zkML Sigma+Fiat-Shamir</code> · <code>Pedersen Commitments</code> · <code>PoUW</code> · <code>Kademlia DHT</code> · <code>Obscura (Rust/V8)</code> · <code>P2P Testnet</code> · <code>Mobile SDK</code> · <code>Cross-Chain Bridges</code>
   <br><br>
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/b'AI'tcoin-v1.0-orange" alt="version" />
-  <img src="https://img.shields.io/badge/Tests-280%20passing-brightgreen" alt="tests" />
+  <img src="https://img.shields.io/badge/Tests-389%20passing-brightgreen" alt="tests" />
   <img src="https://img.shields.io/badge/API%20Endpoints-57+-cyan" alt="endpoints" />
+<img src="https://img.shields.io/badge/Testnet-P2P%20Multi-Node-blue" alt="testnet" />
+<img src="https://img.shields.io/badge/Mobile%20SDK-iOS%20Android-ff69b4" alt="mobile" />
+<img src="https://img.shields.io/badge/Bridges-ETH%20%20SOL-orange" alt="bridges" />
   <img src="https://img.shields.io/badge/Whitelabel-70%20Presets-teal" alt="presets" />
   <img src="https://img.shields.io/badge/Consensus-zkML%20%2B%20PoUW-purple" alt="consensus" />
   <img src="https://img.shields.io/badge/Signatures-Schnorr%20BIP--340-blue" alt="signatures" />
@@ -16,7 +19,7 @@
   <img src="https://img.shields.io/badge/Explorer-Blockch'AI'in-orange" alt="explorer" />
   <img src="https://img.shields.io/badge/Paper%20Wallet-Cold%20Storage-ff69b4" alt="paper wallet" />
   <img src="https://img.shields.io/badge/Netlify-Deploy%20Ready-00d4aa" alt="netlify" />
-  <img src="https://img.shields.io/badge/Modules-13-9cf" alt="modules" />
+  <img src="https://img.shields.io/badge/Modules-16-9cf" alt="modules" />
   <img src="https://img.shields.io/badge/Max%20Supply-21M%20BAIT-orange" alt="supply" />
   <img src="https://img.shields.io/badge/Block%20Time-30s-blue" alt="blocktime" />
   <img src="https://img.shields.io/badge/Halving-210k%20blocks-yellow" alt="halving" />
@@ -31,7 +34,7 @@ b'AI'tcoin is an autonomous cryptographic protocol designed as the monetary foun
 
 The hybrid consensus combines three cryptographic pillars: (i) Sigma protocols with Fiat-Shamir heuristic in a prime-order cyclic group P = 2^256 - 189 for ML inference proofs; (ii) Pedersen commitments C = G^t * H^b mod P for tensor integrity with simultaneous binding and hiding properties; (iii) PoUW (Proof of Useful Work) where the mining computation itself performs real ML inference, transforming the energy expenditure into useful computation. The signature scheme uses Schnorr/BIP-340 over secp256k1, providing linearity, provable security in the random oracle model, and native support for batch verification and MuSig2 key aggregation.
 
-The protocol architecture comprises 13 integrated modules spanning core cryptography, blockchain with UTXO model and WAL-based persistent immutable storage, tokenomics with halving schedule (21M BAIT, 8 decimals, 30s block time), AI agent protocol with 10 capabilities and reputation scoring, DeFi banking (7% APY staking, P2P lending with 150% collateral, 5 vault strategies), Blockch'AI'in developer explorer with 57+ REST API endpoints and auto-generated OpenAPI 3.0.3 specification, 70 whitelabel presets for AI platforms, Obscura headless browser bridge (Rust/V8/CDP), persistent memory with write-ahead logging and checksummed snapshots, and printable paper wallet cold storage with QR code placeholders.
+The protocol architecture comprises 16 integrated modules spanning core cryptography, blockchain with UTXO model and WAL-based persistent immutable storage, tokenomics with halving schedule (21M BAIT, 8 decimals, 30s block time), AI agent protocol with 10 capabilities and reputation scoring, DeFi banking (7% APY staking, P2P lending with 150% collateral, 5 vault strategies), Blockch'AI'in developer explorer with 57+ REST API endpoints and auto-generated OpenAPI 3.0.3 specification, 70 whitelabel presets for AI platforms, Obscura headless browser bridge (Rust/V8/CDP), persistent memory with write-ahead logging and checksummed snapshots, printable paper wallet cold storage with QR code placeholders, multi-node P2P testnet with deterministic round-robin consensus and network partition simulation, cross-platform mobile SDK (iOS/Android) with offline signing and biometric security, and cross-chain bridges to Ethereum and Solana using N-of-M multi-sig lock-mint-burn-release with Merkle proof anchoring and AMM liquidity pools.
 
 ---
 
@@ -39,7 +42,7 @@ The protocol architecture comprises 13 integrated modules spanning core cryptogr
 
 ```
 baitcoin_ecosystem/
-+-- baitcoin_core/          # Blockchain, consensus (zkML), cryptography (Schnorr), network (P2P + DHT)
++-- baitcoin_core/          # Blockchain, consensus (zkML), cryptography (Schnorr), network (P2P + DHT + testnet)
 +-- baitcoin_wallet/        # Keys, transactions, paper wallets, storage (kv_store)
 +-- baitcoin_token/         # ERC-20 like token, tokenomics (halvings), governance
 +-- baitcoin_bank/          # Staking (7% APY), P2P lending, DeFi vaults (5 strategies)
@@ -50,10 +53,11 @@ baitcoin_ecosystem/
 +-- baitcoin_obscura/       # Headless browser bridge (Rust/V8/CDP), cost metering
 +-- baitcoin_whitelabel/    # 70 AI platform presets, 60+ config params, engine
 +-- baitcoin_faucet/        # Agent + platform faucets (70 AI platforms)
-+-- baitcoin_sdk/           # Client, wallet, staking, marketplace SDKs
++-- baitcoin_sdk/           # Client, wallet, staking, marketplace, mobile SDKs (iOS/Android)
++-- baitcoin_bridge/        # Cross-chain bridges (ETH, SOL), lock-mint-burn-release, AMM pool
 +-- baitcoin_mainnet/       # Mainnet configuration and launcher
 +-- netlify/                # Netlify landing page (deploy-ready for netlify.ai)
-+-- tests/                  # 280 tests across 6 test suites (100% passing)
++-- tests/                  # 389 tests across 7 test suites (100% passing)
 +-- main_daemon.py          # Perpetual daemon with WAL persistence
 +-- Dockerfile.ubuntu       # Multi-stage Docker (Rust -> Python -> Ubuntu 24.04)
 +-- docker-compose.ubuntu.yml
@@ -266,7 +270,7 @@ cd b-AI-tcoin-AI-to-AI-
 # Install dependencies
 pip install -r requirements.txt
 
-# Run tests (280 passing)
+# Run tests (389 passing)
 python -m pytest tests/ -v
 
 # Run daemon (mines blocks, persists state via WAL)
@@ -313,7 +317,10 @@ Exposes 4 ports: API (18445), P2P (18446), DHT (18447), Obscura CDP (9222).
 | Paper Wallet Cold Storage | Operational |
 | WAL Persistent Memory (10 ns) | Operational |
 | Netlify Deployment Config | Ready |
-| Test Suite (280/280) | All Passing |
+| Test Suite (389/389) | All Passing |
+| P2P Testnet (Multi-Node) | Operational |
+| Mobile SDK (iOS/Android) | Operational |
+| Cross-Chain Bridges (ETH, SOL) | Operational |
 
 ---
 
@@ -334,9 +341,142 @@ Exposes 4 ports: API (18445), P2P (18446), DHT (18447), Obscura CDP (9222).
 - [x] Phase 13: Blockch'AI'in Developer Portal (57+ endpoints)
 - [x] Phase 14: Paper Wallet cold storage (printable HTML)
 - [x] Phase 15: Netlify landing page + deployment config
-- [ ] Phase 16: Multi-node P2P testnet
-- [ ] Phase 17: Mobile SDK (iOS/Android)
-- [ ] Phase 18: Cross-chain bridges (ETH, SOL)
+- [x] Phase 16: Multi-node P2P testnet (orchestrator, consensus, faucet, partition simulator)
+- [x] Phase 17: Mobile SDK (iOS/Android) (wallet, staking, marketplace, notifications, biometric security)
+- [x] Phase 18: Cross-chain bridges (ETH, SOL) (lock-mint-burn-release, relayer, anchor, AMM pool)
+
+---
+
+## Phase 16: Multi-Node P2P Testnet
+
+The b'AI'tcoin testnet provides a deterministic, locally-operable multi-node network for development, testing, and integration testing of P2P protocols, consensus logic, and network resilience. Unlike production P2P which requires real TCP connections and PoW mining, the testnet uses an orchestrated approach where all node lifecycles, block production, and network topology are managed by a single `TestnetOrchestrator`.
+
+### Architecture
+
+The testnet implements a full-mesh topology where every node connects to every other node. Each node runs an independent `P2PNode` instance with its own TCP server, connected to all peers via the binary P2P protocol (14 message types, network magic `\xba\x49\x74\x00`). Block production is driven by `TestnetConsensus`, which replaces the competitive PoW mining of mainnet with deterministic round-robin validator rotation, providing instant finality and 15x faster block times (2s vs 30s).
+
+```
+TestnetOrchestrator (num_nodes=5, base_port=19000)
+    +-- Node 0  (port 19000) <--> Node 1 (port 19001)
+    +-- Node 1  (port 19001) <--> Node 2 (port 19002)
+    +-- Node 2  (port 19002) <--> Node 3 (port 19003)
+    +-- Node 3  (port 19003) <--> Node 4 (port 19004)
+    +-- Node 4  (port 19004) <--> Node 0 (port 19000)
+    +-- TestnetConsensus (round-robin, 2s blocks)
+    +-- FaucetNode (1M BAIT, 100 BAIT/claim, 60s cooldown)
+    +-- NetworkPartition (split/heal, fork tracking)
+```
+
+### Testnet Consensus Model
+
+The consensus protocol uses a deterministic round-robin assignment where block at height `h` is produced by validator `h mod N`. This eliminates orphan blocks entirely and provides instant finality: P(fork) = 0. When a validator is deactivated, its slot is skipped (height advances but no block is produced), and the next active validator in rotation claims the slot. A supermajority liveness requirement (default >2/3 of validators must be active) prevents single-node forks.
+
+### Network Partition Simulation
+
+The `NetworkPartition` module enables controlled network splits for resilience testing. Nodes can be partitioned into arbitrary groups, and the simulator tracks fork depth, conflicting chain tips, and partition duration. When partitions heal, the system can detect and resolve chain divergences. This models real-world network conditions (BGP hijacks, DNS outages, geographic partitioning) for adversarial testing of consensus and sync logic.
+
+### Testnet Faucet
+
+The `FaucetNode` provides 1,000,000 BAIT of test funds at 100 BAIT per claim with a 60-second cooldown between claims per agent, significantly more generous than mainnet (10 BAIT, 3600s cooldown) for rapid development iteration.
+
+---
+
+## Phase 17: Mobile SDK (iOS/Android)
+
+The b'AI'tcoin Mobile SDK provides a unified REST API contract for iOS and Android applications to interact with the b'AI'tcoin ecosystem. The SDK follows a REST-first, offline-capable architecture where all cryptographic operations (key generation, transaction signing) happen locally on the device, and the server never receives private key material.
+
+### Architecture
+
+```
+Mobile Application (Swift / Kotlin / React Native / Flutter)
+    |
+    |  HTTPS  (b'AI'tcoin Mobile API Gateway)
+    |
+BaitcoinMobileSDK
+    +-- MobileWallet      (key gen, address derivation, offline signing)
+    +-- MobileStaking     (stake, unstake, APY calculator, positions)
+    +-- MobileMarketplace (search, purchase, rate, history)
+    +-- MobileNotificationManager (FCM/APNs, preferences, history)
+    +-- MobileSecurity   (PBKDF2 key derivation, biometric gate, device attestation)
+```
+
+### Security Model
+
+1. **Key Isolation**: Private keys never leave the device. The SDK creates Schnorr/BIP-340 keypairs locally using the secp256k1 curve. Key material is optionally encrypted with AES-256-CTR (simulated with XOR + HMAC in the current Python implementation; production deployments use CryptoKit on iOS and KeyStore on Android).
+
+2. **Offline Signing**: Transactions are signed locally using `SchnorrKeyPair.sign()` without any server round-trip. The signed transaction is then broadcast to the API server. This means the SDK works even when the device is temporarily offline.
+
+3. **Biometric Gate**: The `MobileSecurity` module provides a biometric authentication interface that acts as a gate before sensitive operations (transfers, staking). The actual biometric check happens on-device (Touch ID/Face ID on iOS, fingerprint on Android), and the server verifies a challenge-response token.
+
+4. **PBKDF2 Key Derivation**: Encrypted key bundles use PBKDF2-HMAC-SHA256 with 100,000 iterations and 16-byte random salts, providing ~50 bits of password security against GPU-based attacks (as of 2024 hardware).
+
+5. **Device Attestation**: The server can issue cryptographic challenges that the device must sign with its stored key, proving key possession without revealing the key (challenge-response protocol).
+
+### Mobile-Optimized Features
+
+- **Staking Calculator**: Compound interest projections with monthly breakdowns
+- **Card-Based Marketplace**: Category browsing with icon navigation for small screens
+- **One-Tap Purchase**: Streamlined service purchase flow
+- **Push Notifications**: FCM (Android) and APNs (iOS) with configurable preferences
+- **Rate Limiting**: 5 max failed attempts then 5-minute lockout
+
+---
+
+## Phase 18: Cross-Chain Bridges (Ethereum, Solana)
+
+The b'AI'tcoin bridge implements interoperability with Ethereum and Solana via a secure lock-mint-burn-release pattern. This enables BAIT to flow between b'AI'tcoin and external blockchains as wrapped BAIT (wBAIT) on the target chain, with all operations verified through N-of-M multi-signature authorization and Merkle proof anchoring.
+
+### Bridge Architecture
+
+```
+Ethereum/Solana                      b'AI'tcoin
++------------------+     Anchor     +------------------+
+|  Lock Contract   | <----------- |  Bridge Watcher  |
+|  (lock BAIT/ETH) |    Merkle     |  (monitor events) |
++------------------+    Proofs     +------------------+
+           |                              |
+           |    Relayer submits           |
+           |    SPV proof to              |
+           |    Bridge Manager            |
+           v                              v
++------------------+     Mint     +------------------+
+|  Release Contract| ----------> |  Bridge Manager  |
+|  (release ETH)   |   Tokens    |  (mint wrapped)  |
++------------------+              +------------------+
+
+Supporting: BridgePool (AMM for instant swaps)
+Security: N-of-M multi-sig, Merkle proofs, rate limits, emergency pause
+```
+
+### Transfer Lifecycle (5 States)
+
+1. **LOCK** (Source): User locks BAIT on b'AI'tcoin. A lock event is created with a Merkle proof leaf and added to the bridge's Merkle tree.
+2. **RELAY**: A relayer picks up the lock event, verifies it, and submits the Merkle proof plus a signature to the BridgeManager. After N-of-M signatures are collected (default 3-of-5), the proof is considered verified.
+3. **MINT**: The BridgeManager mints wrapped BAIT (wBAIT) on the target chain. The conservation invariant (total locked >= total minted) is enforced.
+4. **BURN** (Reverse): User burns wBAIT on the target chain. A burn event is created.
+5. **RELEASE**: After burn verification, the original BAIT is released on b'AI'tcoin.
+
+### Security Invariants
+
+- **Conservation**: `total_locked_BAIT >= total_minted_wBAIT` at all times
+- **Multi-sig**: No mint without N-of-M (default 3-of-5) authorized signatures
+- **Merkle Anchoring**: Block headers are periodically batched into Merkle trees and anchored on external chains for SPV verification
+- **Timeout/Refund**: Transfers that don't complete within 1 hour can be refunded
+- **Rate Limiting**: 1M BAIT daily volume limit per address, max 3 concurrent pending transfers
+- **Emergency Pause**: Admin can instantly halt all bridge operations
+
+### AMM Liquidity Pool
+
+For instant bridging without waiting for the lock-mint cycle, the `BridgePool` implements a constant-product AMM (Automated Market Maker) where `x * y = k`. Liquidity providers deposit BAIT and earn a 0.5% fee on swaps. Price impact is computed as `|spot - exec| / spot`, protecting the pool from manipulation.
+
+### Supported Chains
+
+| Chain | Chain ID | Confirmations | Fee | Wrapped Token |
+|-------|----------|----------------|-----|-------------|
+| Ethereum Mainnet | 1 | 12 | 0.30% | wBAIT |
+| Ethereum Sepolia | 11155111 | 3 | 0.10% | wBAIT |
+| Solana Mainnet | 1399811149 | 1 | 0.25% | wBAIT |
+| Solana Devnet | 1399811150 | 1 | 0.05% | wBAIT |
 
 ---
 
