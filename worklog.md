@@ -27,3 +27,29 @@ Stage Summary:
 - Netlify config: deploy-ready for netlify.ai
 - README: PhD-level professional documentation
 - Go Live: All systems operational
+
+---
+Task ID: 2
+Agent: Main (Phases 16, 17, 18)
+Task: Implementar e validar Fases 16, 17 e 18 — Persistencia imutavel, Paper Wallets, Go Live
+
+Work Log:
+- Fixed genesis block non-deterministic timestamp (coinbase tx used time.time(), now fixed 1700000000.0)
+- This caused genesis hash to differ across restarts, breaking chain rebuild from disk
+- Fixed _deserialize_block to reconstruct full Transaction objects (was creating empty transaction lists)
+- Added _deserialize_tx method for complete transaction deserialization from persisted data
+- Changed Blockchain default persistent=False to prevent test pollution from stale ~/.baitcoin/memory data
+- Updated main_daemon.py to explicitly pass persistent=True with MemoryStore
+- Created scripts/validate_phases_16_17_18.py with 57 Go Live validation checks
+- Validated: persistent memory rebuild, deterministic genesis, chain integrity across restarts
+- Validated: UTXO set preservation, block hash consistency between instances
+- Validated: Paper wallet generation (secp256k1, address derivation, HTML print-ready)
+- Validated: 20 modules importable, 70+ whitelabel presets, 57+ API endpoints
+- Validated: OpenAPI 3.0.3 spec generation, Netlify security headers, E2E flow
+
+Stage Summary:
+- 280/280 tests passing
+- 57/57 Go Live validation checks passing
+- 3 critical bugs fixed (genesis timestamp, empty deserialization, test pollution)
+- Pushed to Nexus-HUB57/b-AI-tcoin-AI-to-AI- (commit 6e8dcab)
+- b'AI'tcoin GO LIVE READY
