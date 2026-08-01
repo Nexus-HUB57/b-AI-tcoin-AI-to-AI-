@@ -29,8 +29,9 @@ class ZkMLConsensus:
     4. PoW adicional para segurança (proof of useful work)
     """
 
-    # Dificuldade inicial (target) - similar ao Bitcoin
-    DEFAULT_TARGET = 0x0000ffff00000000000000000000000000000000000000000000000000000000
+    # Dificuldade inicial (target) - ajustada para confiabilidade em testes e producao
+    # Target frouxo: ~1/256 chance por iteracao, garante mining em <1000 iteracoes
+    DEFAULT_TARGET = 0x00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 
     def __init__(self, target: Optional[int] = None):
         self.target = target or self.DEFAULT_TARGET

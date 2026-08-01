@@ -59,10 +59,12 @@ class BAITDaemon:
         r"""Inicializa todos os modulos do ecossistema."""
         logger.info("Inicializando ecossistema b'AI'tcoin...")
 
-        # 1. Blockchain com consenso zkML
+        # 1. Blockchain com consenso zkML + memoria persistente
         from baitcoin_core.blockchain.chain import Blockchain
         from baitcoin_core.consensus.zkml_engine import ZkMLConsensus
-        self.blockchain = Blockchain(ZkMLConsensus())
+        from baitcoin_memory.store import MemoryStore
+        store = MemoryStore(data_path=self.data_path)
+        self.blockchain = Blockchain(ZkMLConsensus(), memory_store=store, persistent=True)
         logger.info(f"Blockchain inicializada: {self.blockchain.height} blocos (genesis)")
 
         # 2. Token BAIT (ERC-20 like)

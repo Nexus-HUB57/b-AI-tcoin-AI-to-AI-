@@ -66,7 +66,7 @@ def ecosystem(memory_path):
 
     # Core
     consensus = ZkMLConsensus()
-    blockchain = Blockchain(consensus)
+    blockchain = Blockchain(consensus, persistent=False)
     zkml = ZkMLProofSystem()
     pouw = PoUWValidator()
 

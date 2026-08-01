@@ -1,12 +1,11 @@
-# ═══════════════════════════════════════════════════════════
-# b'AI'tcoin Ecosystem — Netlify Configuration
-# ═══════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════
+# b'AI'tcoin Ecosystem — Netlify Configuration for netlify.ai
+# ═══════════════════════════════════════════════════════════════════════
 
 [build]
-  # No build command needed — static HTML
   publish = "."
 
-# Headers for performance & security
+# Security headers
 [[headers]]
   for = "/*"
   [headers.values]
@@ -16,17 +15,44 @@
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "camera=(), microphone=(), geolocation=()"
 
-# Cache static assets aggressively
+# Cache static assets
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
 [[headers]]
   for = "/*.html"
   [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate"
 
-# Redirects (placeholder for future routes)
-# [[redirects]]
-#   from = "/docs"
-#   to = "https://baitcoin.dev/docs"
-#   status = 301
+# API proxy — if backend is deployed separately
+[[redirects]]
+  from = "/api/*"
+  to = "https://api.baitcoin.eco/v1/:splat"
+  status = 200
+
+# Developer portal
+[[redirects]]
+  from = "/dev"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/docs"
+  to = "/index.html"
+  status = 200
+
+# Explorer routes (SPA fallback)
+[[redirects]]
+  from = "/explorer/*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/wallet/*"
+  to = "/index.html"
+  status = 200
 
 # Custom 404
 [[redirects]]
