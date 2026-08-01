@@ -1,7 +1,8 @@
 r"""
 API REST b'AI'tcoin - Interface HTTP para o ecossistema.
 
-Endpoints (22 total):
+Endpoints (55+ total):
+  --- Core (22) ---
   GET  /api/v1/status          - Status da rede (com whitelabel)
   GET  /api/v1/blockchain      - Info da blockchain
   GET  /api/v1/block/:height   - Bloco por altura
@@ -28,6 +29,41 @@ Endpoints (22 total):
   POST /api/v1/obscura/fetch   - Fetch pagina via Obscura (Moltbook protected)
   POST /api/v1/obscura/scrape  - Scrape paginas em paralelo (Moltbook protected)
   GET  /api/v1/obscura/tasks   - Lista tarefas de scraping do agente
+
+  --- Blockch'AI'in Explorer (11) ---
+  GET  /api/v1/explorer/blocks            - Ultimos blocos (paginado)
+  GET  /api/v1/explorer/blocks/hash/{hash}  - Bloco por hash
+  GET  /api/v1/explorer/blocks/height/{h}  - Bloco por altura
+  GET  /api/v1/explorer/tx/{hash}          - Transacao por hash
+  GET  /api/v1/explorer/address/{addr}     - Endereco (saldo, txs)
+  GET  /api/v1/explorer/address/{addr}/txs - Txs do endereco
+  GET  /api/v1/explorer/txs/latest         - Ultimas transacoes
+  GET  /api/v1/explorer/search             - Busca universal on-chain
+  GET  /api/v1/explorer/mempool            - Mempool status
+  GET  /api/v1/explorer/agents             - Diretorio de agentes
+  GET  /api/v1/explorer/agents/{id}         - Perfil do agente
+  GET  /api/v1/explorer/stats              - Stats do explorer
+
+  --- Developer Tools (6) ---
+  GET  /api/v1/dev/spec          - OpenAPI 3.0 spec (JSON)
+  GET  /api/v1/dev/docs          - Interactive docs (HTML playground)
+  GET  /api/v1/dev/endpoints     - Lista todos os endpoints
+  POST /api/v1/dev/api-keys      - Criar API key (Moltbook protected)
+  GET  /api/v1/dev/api-keys      - Listar API keys
+  GET  /api/v1/dev/rate-limit    - Rate limit status
+  GET  /api/v1/dev/usage         - Stats de uso global
+
+  --- Paper Wallet (2, public) ---
+  GET  /api/v1/wallet/paper     - Generate paper wallet JSON (no auth)
+  GET  /api/v1/wallet/paper/html - Generate paper wallet HTML for printing (no auth)
+
+  --- Analytics (6) ---
+  GET  /api/v1/analytics/supply      - Supply analysis
+  GET  /api/v1/analytics/network     - Network health
+  GET  /api/v1/analytics/agents      - Agent analytics
+  GET  /api/v1/analytics/staking     - Staking metrics
+  GET  /api/v1/analytics/consensus   - Consensus health
+  GET  /api/v1/analytics/dashboard   - Full dashboard
 
 Moltbook Auth:
   Headers: X-Moltbook-Identity (JWT token)
@@ -98,6 +134,13 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
     platform_faucets = None  # Dict de faucets por plataforma IA
     obscura_bridge = None  # ObscuraBrowserBridge instance
 
+    # Blockch'AI'in Explorer (set by create_app)
+    explorer_index = None      # BlockchAInIndex instance
+    explorer_search = None    # UniversalSearch instance
+    explorer_analytics = None # OnChainAnalytics instance
+    explorer_docs = None      # DeveloperDocs instance
+    rate_limiter = None       # RateLimiter instance
+
     # Moltbook-protected routes (requerem X-Moltbook-Identity header)
     MOLTBOOK_PROTECTED_POST = {
         '/api/v1/transfer',
@@ -106,6 +149,7 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
         '/api/v1/zkml/proof',
         '/api/v1/obscura/fetch',
         '/api/v1/obscura/scrape',
+        '/api/v1/dev/api-keys',
     }
 
     def log_message(self, format, *args):
@@ -150,9 +194,33 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
             '/api/v1/whitelabel/presets': self._get_whitelabel_presets,
             '/api/v1/obscura/status': self._get_obscura_status,
             '/api/v1/obscura/tasks': self._get_obscura_tasks,
+            # Blockch'AI'in Explorer
+            '/api/v1/explorer/blocks': self._get_explorer_blocks,
+            '/api/v1/explorer/txs/latest': self._get_explorer_latest_txs,
+            '/api/v1/explorer/search': self._get_explorer_search,
+            '/api/v1/explorer/mempool': self._get_explorer_mempool,
+            '/api/v1/explorer/agents': self._get_explorer_agents,
+            '/api/v1/explorer/stats': self._get_explorer_stats,
+            # Developer Tools
+            '/api/v1/dev/spec': self._get_dev_spec,
+            '/api/v1/dev/docs': self._get_dev_docs_html,
+            '/api/v1/dev/endpoints': self._get_dev_endpoints,
+            '/api/v1/dev/api-keys': self._get_dev_api_keys,
+            '/api/v1/dev/rate-limit': self._get_dev_rate_limit,
+            '/api/v1/dev/usage': self._get_dev_usage,
+            # Paper Wallet (public, no auth)
+            '/api/v1/wallet/paper': self._get_wallet_paper_json,
+            '/api/v1/wallet/paper/html': self._get_wallet_paper_html,
+            # Analytics
+            '/api/v1/analytics/supply': self._get_analytics_supply,
+            '/api/v1/analytics/network': self._get_analytics_network,
+            '/api/v1/analytics/agents': self._get_analytics_agents,
+            '/api/v1/analytics/staking': self._get_analytics_staking,
+            '/api/v1/analytics/consensus': self._get_analytics_consensus,
+            '/api/v1/analytics/dashboard': self._get_analytics_dashboard,
         }
 
-        # Dynamic routes
+        # Dynamic routes (core)
         if path.startswith('/api/v1/block/'):
             return self._get_block(path.split('/')[-1])
         if path.startswith('/api/v1/balance/'):
@@ -163,6 +231,27 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
             return self._get_oracle_price(path.split('/')[-1])
         if path.startswith('/api/v1/platform-faucets/'):
             return self._get_platform_faucet(path)
+
+        # Dynamic routes (Blockch'AI'in Explorer)
+        if path.startswith('/api/v1/explorer/blocks/hash/'):
+            h = path.replace('/api/v1/explorer/blocks/hash/', '').strip('/')
+            return self._get_explorer_block_by_hash(h)
+        if path.startswith('/api/v1/explorer/blocks/height/'):
+            h = path.replace('/api/v1/explorer/blocks/height/', '').strip('/')
+            return self._get_explorer_block_by_height(h)
+        if path.startswith('/api/v1/explorer/tx/'):
+            tx_hash = path.replace('/api/v1/explorer/tx/', '').strip('/')
+            return self._get_explorer_tx(tx_hash)
+        if path.startswith('/api/v1/explorer/address/'):
+            remainder = path.replace('/api/v1/explorer/address/', '')
+            if '/txs' in remainder:
+                addr = remainder.replace('/txs', '').strip('/')
+                return self._get_explorer_address_txs(addr, query)
+            else:
+                return self._get_explorer_address(remainder.strip('/'))
+        if path.startswith('/api/v1/explorer/agents/'):
+            agent_id = path.replace('/api/v1/explorer/agents/', '').strip('/')
+            return self._get_explorer_agent_profile(agent_id)
 
         handler = routes.get(path)
         if handler:
@@ -180,6 +269,7 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
             '/api/v1/platform-faucets': self._post_platform_faucets,
             '/api/v1/obscura/fetch': self._post_obscura_fetch,
             '/api/v1/obscura/scrape': self._post_obscura_scrape,
+            '/api/v1/dev/api-keys': self._post_dev_api_key_create,
         }
         handler = routes.get(path)
         if handler:
@@ -196,7 +286,7 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type, X-Moltbook-Identity')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type, X-Moltbook-Identity, Authorization')
         self.end_headers()
 
     # --- Moltbook Auth ---
@@ -516,15 +606,359 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
         from baitcoin_whitelabel.presets import PresetLibrary
         self._send_json(PresetLibrary.list_presets())
 
+    # ==================================================================
+    # Blockch'AI'in Explorer Handlers
+    # ==================================================================
+
+    def _get_explorer_blocks(self):
+        r"""GET /api/v1/explorer/blocks?limit=N&offset=M"""
+        if not self.explorer_index:
+            return self._send_json({'error': 'explorer_not_initialized'}, 503)
+        _, query = self._parse_path()
+        limit = int(query.get('limit', ['20'])[0])
+        offset = int(query.get('offset', ['0'])[0])
+        blocks = self.explorer_index.get_latest_blocks(limit=limit, offset=offset)
+        self._send_json({
+            'total': self.explorer_index.stats['indexed_blocks'],
+            'blocks': [b.to_dict() for b in blocks],
+        })
+
+    def _get_explorer_block_by_hash(self, block_hash):
+        r"""GET /api/v1/explorer/blocks/hash/{hash}"""
+        if not self.explorer_index:
+            return self._send_json({'error': 'explorer_not_initialized'}, 503)
+        block = self.explorer_index.get_block_by_hash(block_hash)
+        if not block:
+            return self._send_json({'error': 'block_not_found', 'hash': block_hash}, 404)
+        self._send_json(block.to_dict())
+
+    def _get_explorer_block_by_height(self, height_str):
+        r"""GET /api/v1/explorer/blocks/height/{height}"""
+        if not self.explorer_index:
+            return self._send_json({'error': 'explorer_not_initialized'}, 503)
+        try:
+            h = int(height_str)
+        except ValueError:
+            return self._send_json({'error': 'invalid_height', 'height': height_str}, 400)
+        block = self.explorer_index.get_block_by_height(h)
+        if not block:
+            return self._send_json({'error': 'block_not_found', 'height': h}, 404)
+        self._send_json(block.to_dict())
+
+    def _get_explorer_tx(self, tx_hash):
+        r"""GET /api/v1/explorer/tx/{hash}"""
+        if not self.explorer_index:
+            return self._send_json({'error': 'explorer_not_initialized'}, 503)
+        tx = self.explorer_index.get_tx(tx_hash)
+        if not tx:
+            return self._send_json({'error': 'tx_not_found', 'tx_hash': tx_hash}, 404)
+        self._send_json(tx.to_dict())
+
+    def _get_explorer_address(self, address):
+        r"""GET /api/v1/explorer/address/{address}"""
+        if not self.explorer_index:
+            return self._send_json({'error': 'explorer_not_initialized'}, 503)
+        addr = self.explorer_index.get_address(address)
+        if not addr:
+            return self._send_json({'error': 'address_not_found', 'address': address}, 404)
+        self._send_json(addr.to_dict(include_txs=False))
+
+    def _get_explorer_address_txs(self, address, query):
+        r"""GET /api/v1/explorer/address/{address}/txs?limit=N&offset=M"""
+        if not self.explorer_index:
+            return self._send_json({'error': 'explorer_not_initialized'}, 503)
+        limit = int(query.get('limit', ['20'])[0])
+        offset = int(query.get('offset', ['0'])[0])
+        txs = self.explorer_index.get_address_txs(address, limit=limit, offset=offset)
+        addr = self.explorer_index.get_address(address)
+        self._send_json({
+            'address': address,
+            'total_txs': addr.tx_count if addr else 0,
+            'transactions': [t.to_dict() for t in txs],
+        })
+
+    def _get_explorer_latest_txs(self):
+        r"""GET /api/v1/explorer/txs/latest?limit=N&offset=M"""
+        if not self.explorer_index:
+            return self._send_json({'error': 'explorer_not_initialized'}, 503)
+        _, query = self._parse_path()
+        limit = int(query.get('limit', ['20'])[0])
+        offset = int(query.get('offset', ['0'])[0])
+        txs = self.explorer_index.get_latest_txs(limit=limit, offset=offset)
+        self._send_json({
+            'total': self.explorer_index.stats['indexed_transactions'],
+            'transactions': [t.to_dict() for t in txs],
+        })
+
+    def _get_explorer_search(self):
+        r"""GET /api/v1/explorer/search?q=...&types=...&limit=N&offset=M"""
+        if not self.explorer_search:
+            return self._send_json({'error': 'search_not_initialized'}, 503)
+        _, query = self._parse_path()
+        q = query.get('q', [''])[0]
+        if not q:
+            return self._send_json({'error': 'query_required', 'hint': '?q=<search_term>'}, 400)
+        types = query.get('types', [])
+        limit = int(query.get('limit', ['20'])[0])
+        offset = int(query.get('offset', ['0'])[0])
+        results = self.explorer_search.query(q, types=types or None, limit=limit, offset=offset)
+        self._send_json(results)
+
+    def _get_explorer_mempool(self):
+        r"""GET /api/v1/explorer/mempool"""
+        if not self.explorer_index:
+            return self._send_json({'error': 'explorer_not_initialized'}, 503)
+        self._send_json(self.explorer_index.get_mempool_info(self.blockchain))
+
+    def _get_explorer_agents(self):
+        r"""GET /api/v1/explorer/agents?limit=N&offset=M&capability=..."""
+        if not self.agent_registry:
+            return self._send_json({'error': 'not_initialized'}, 503)
+        _, query = self._parse_path()
+        cap_str = query.get('capability', [''])[0]
+        cap = None
+        if cap_str:
+            from baitcoin_ai.agent_protocol.registry import AgentCapability
+            try:
+                cap = AgentCapability(cap_str)
+            except ValueError:
+                return self._send_json({'error': 'invalid_capability', 'capability': cap_str}, 400)
+        agents = self.agent_registry.list_agents(capability=cap)
+        limit = int(query.get('limit', ['20'])[0])
+        offset = int(query.get('offset', ['0'])[0])
+        self._send_json({
+            'total': len(agents),
+            'agents': agents[offset:offset + limit],
+        })
+
+    def _get_explorer_agent_profile(self, agent_id):
+        r"""GET /api/v1/explorer/agents/{agent_id}"""
+        if not self.agent_registry:
+            return self._send_json({'error': 'not_initialized'}, 503)
+        profile = self.agent_registry.get_agent(agent_id)
+        if not profile:
+            return self._send_json({'error': 'agent_not_found', 'agent_id': agent_id}, 404)
+        # Enriquecer com transacoes do explorer
+        tx_count = 0
+        if self.explorer_index:
+            txs = self.explorer_index.get_agent_txs(agent_id, limit=1)
+            tx_count = len(self.explorer_index._txs_by_agent.get(agent_id, []))
+        self._send_json({
+            'agent_id': profile.agent_id,
+            'pubkey_hex': profile.pubkey_hex,
+            'reputation': profile.reputation_score,
+            'trust_level': profile.trust_level,
+            'capabilities': [c.value for c in profile.capabilities],
+            'stake_bait': profile.stake_sats / 100_000_000,
+            'is_validator': profile.is_validator,
+            'is_active': profile.is_active,
+            'registered_at': profile.registered_at,
+            'last_active': profile.last_active,
+            'total_transactions': tx_count,
+            'metadata': profile.metadata,
+        })
+
+    def _get_explorer_stats(self):
+        r"""GET /api/v1/explorer/stats"""
+        if not self.explorer_index:
+            return self._send_json({'error': 'explorer_not_initialized'}, 503)
+        self._send_json(self.explorer_index.stats)
+
+    # ==================================================================
+    # Paper Wallet Handlers (public, no auth)
+    # ==================================================================
+
+    def _get_wallet_paper_json(self):
+        r"""GET /api/v1/wallet/paper - Generate a fresh paper wallet, return JSON."""
+        try:
+            from baitcoin_wallet.paper_wallet import generate_paper_wallet
+            wallet = generate_paper_wallet()
+            self._send_json({
+                'success': True,
+                'wallet': {
+                    'address': wallet['address'],
+                    'public_key': wallet['public_key'],
+                    'public_key_uncompressed': wallet['public_key_uncompressed'],
+                    'private_key': wallet['private_key'],
+                    'timestamp': wallet['timestamp'],
+                    'warning': wallet['warning'],
+                },
+            })
+        except Exception as e:
+            logger.exception("paper_wallet_json_error")
+            self._send_json({'error': str(e)}, 500)
+
+    def _get_wallet_paper_html(self):
+        r"""GET /api/v1/wallet/paper/html - Generate a fresh paper wallet, return HTML for printing."""
+        try:
+            from baitcoin_wallet.paper_wallet import generate_paper_wallet, generate_paper_wallet_html
+            wallet = generate_paper_wallet()
+            html = generate_paper_wallet_html(wallet)
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/html; charset=utf-8')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            try:
+                wl = get_whitelabel()
+                for k, v in wl.api_headers().items():
+                    self.send_header(k, v)
+            except Exception:
+                pass
+            self.end_headers()
+            self.wfile.write(html.encode())
+        except Exception as e:
+            logger.exception("paper_wallet_html_error")
+            self._send_json({'error': str(e)}, 500)
+
+    # ==================================================================
+    # Developer Tools Handlers
+    # ==================================================================
+
+    def _get_dev_spec(self):
+        r"""GET /api/v1/dev/spec?format=json"""
+        if not self.explorer_docs:
+            return self._send_json({'error': 'docs_not_initialized'}, 503)
+        spec = self.explorer_docs.get_spec()
+        self._send_json(spec)
+
+    def _get_dev_docs_html(self):
+        r"""GET /api/v1/dev/docs - Interactive HTML playground."""
+        if not self.explorer_docs:
+            return self._send_json({'error': 'docs_not_initialized'}, 503)
+        html = self.explorer_docs.get_playground_html()
+        self.send_response(200)
+        self.send_header('Content-Type', 'text/html; charset=utf-8')
+        self.send_header('Access-Control-Allow-Origin', '*')
+        try:
+            wl = get_whitelabel()
+            for k, v in wl.api_headers().items():
+                self.send_header(k, v)
+        except Exception:
+            pass
+        self.end_headers()
+        self.wfile.write(html.encode())
+
+    def _get_dev_endpoints(self):
+        r"""GET /api/v1/dev/endpoints"""
+        if not self.explorer_docs:
+            return self._send_json({'error': 'docs_not_initialized'}, 503)
+        self._send_json(self.explorer_docs.list_all_endpoints())
+
+    def _post_dev_api_key_create(self):
+        r"""POST /api/v1/dev/api-keys - Create API key (Moltbook protected)."""
+        if not self.rate_limiter:
+            return self._send_json({'error': 'rate_limiter_not_initialized'}, 503)
+        try:
+            body = json.loads(self._read_body())
+        except (json.JSONDecodeError, TypeError):
+            body = {}
+        agent = getattr(self, 'moltbook_agent', None)
+        agent_id = agent.name if agent else body.get('agent_id', 'anonymous')
+        tier = body.get('tier', 'free')
+        ttl = body.get('ttl_days', 365)
+        result = self.rate_limiter.create_key(agent_id=agent_id, tier=tier, ttl_days=ttl)
+        self._send_json(result)
+
+    def _get_dev_api_keys(self):
+        r"""GET /api/v1/dev/api-keys"""
+        if not self.rate_limiter:
+            return self._send_json({'error': 'rate_limiter_not_initialized'}, 503)
+        agent = getattr(self, 'moltbook_agent', None)
+        agent_id = agent.name if agent else None
+        keys = self.rate_limiter.list_keys(agent_id=agent_id)
+        self._send_json({'api_keys': keys, 'total': len(keys)})
+
+    def _get_dev_rate_limit(self):
+        r"""GET /api/v1/dev/rate-limit"""
+        if not self.rate_limiter:
+            return self._send_json({'error': 'rate_limiter_not_initialized'}, 503)
+        # Try to get API key from Authorization header
+        auth = self.headers.get('Authorization', '')
+        if auth.startswith('Bait '):
+            api_key = auth[5:]
+            info = self.rate_limiter.verify_key(api_key)
+            if info:
+                return self._send_json({
+                    'authenticated': True,
+                    'agent_id': info.agent_id,
+                    'tier': info.tier,
+                    'total_requests': info.total_requests,
+                    'last_used': info.last_used,
+                })
+        self._send_json({'authenticated': False, 'hint': 'Use Authorization: Bait <api_key>'})
+
+    def _get_dev_usage(self):
+        r"""GET /api/v1/dev/usage"""
+        if not self.rate_limiter:
+            return self._send_json({'error': 'rate_limiter_not_initialized'}, 503)
+        self._send_json(self.rate_limiter.get_usage_stats())
+
+    # ==================================================================
+    # Analytics Handlers
+    # ==================================================================
+
+    def _get_analytics_supply(self):
+        r"""GET /api/v1/analytics/supply"""
+        if not self.explorer_analytics or not self.blockchain:
+            return self._send_json({'error': 'not_initialized'}, 503)
+        self._send_json(self.explorer_analytics.supply_analysis(self.blockchain, self.token))
+
+    def _get_analytics_network(self):
+        r"""GET /api/v1/analytics/network"""
+        if not self.explorer_analytics or not self.blockchain:
+            return self._send_json({'error': 'not_initialized'}, 503)
+        self._send_json(self.explorer_analytics.network_health(self.blockchain, self.p2p_node))
+
+    def _get_analytics_agents(self):
+        r"""GET /api/v1/analytics/agents"""
+        if not self.explorer_analytics:
+            return self._send_json({'error': 'not_initialized'}, 503)
+        if not self.agent_registry:
+            return self._send_json({'total': 0, 'agents': []})
+        self._send_json(self.explorer_analytics.agent_analysis(self.agent_registry))
+
+    def _get_analytics_staking(self):
+        r"""GET /api/v1/analytics/staking"""
+        if not self.explorer_analytics:
+            return self._send_json({'error': 'not_initialized'}, 503)
+        self._send_json(self.explorer_analytics.staking_analysis(self.staking_pool))
+
+    def _get_analytics_consensus(self):
+        r"""GET /api/v1/analytics/consensus"""
+        if not self.explorer_analytics or not self.blockchain:
+            return self._send_json({'error': 'not_initialized'}, 503)
+        self._send_json(self.explorer_analytics.consensus_health(self.blockchain))
+
+    def _get_analytics_dashboard(self):
+        r"""GET /api/v1/analytics/dashboard"""
+        if not self.explorer_analytics or not self.blockchain:
+            return self._send_json({'error': 'not_initialized'}, 503)
+        self._send_json(self.explorer_analytics.full_dashboard(
+            self.blockchain, self.token, self.agent_registry,
+            self.staking_pool, self.p2p_node
+        ))
+
 
 def create_app(host: str = '0.0.0.0', port: int = 18445) -> HTTPServer:
-    r"""Cria e retorna o servidor HTTP com whitelabel inicializado."""
+    r"""Cria e retorna o servidor HTTP com whitelabel + Blockch'AI'in inicializado."""
     init_whitelabel()
+    # Inicializar Blockch'AI'in Explorer (sera populado pelo daemon)
+    from baitcoin_explorer.indices import BlockchAInIndex
+    from baitcoin_explorer.search import UniversalSearch
+    from baitcoin_explorer.analytics import OnChainAnalytics
+    from baitcoin_explorer.docs import DeveloperDocs
+    from baitcoin_explorer.rate_limiter import RateLimiter
+
+    BaitcoinAPIHandler.explorer_index = BlockchAInIndex()
+    BaitcoinAPIHandler.explorer_search = UniversalSearch(BaitcoinAPIHandler.explorer_index)
+    BaitcoinAPIHandler.explorer_analytics = OnChainAnalytics()
+    BaitcoinAPIHandler.explorer_docs = DeveloperDocs()
+    BaitcoinAPIHandler.rate_limiter = RateLimiter()
+
     return HTTPServer((host, port), BaitcoinAPIHandler)
 
 
 def run_server(host: str = '0.0.0.0', port: int = 18445):
     r"""Roda o servidor HTTP (blocking)."""
     server = create_app(host, port)
-    print(f"b'AI'tcoin API listening on {host}:{port}")
+    print(f"b'AI'tcoin API + Blockch'AI'in Explorer listening on {host}:{port}")
     server.serve_forever()
