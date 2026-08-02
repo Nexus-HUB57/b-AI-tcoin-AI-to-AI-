@@ -18,7 +18,7 @@
   <img src="https://img.shields.io/badge/Memory-WAL%20%2B%20Snapshots-green" alt="persistence" />
   <img src="https://img.shields.io/badge/Explorer-BlockchAIin-orange" alt="explorer" />
   <img src="https://img.shields.io/badge/Paper%20Wallet-Cold%20Storage-ff69b4" alt="paper wallet" />
-  <img src="https://img.shields.io/badge/Netlify-Deploy%20Ready-00d4aa" alt="netlify" />
+  <img src="https://img.shields.io/badge/Domain-mybaitcoin.org-00d4aa" alt="domain" />
   <img src="https://img.shields.io/badge/Modules-14-9cf" alt="modules" />
   <img src="https://img.shields.io/badge/Max%20Supply-21M%20BAIT-orange" alt="supply" />
   <img src="https://img.shields.io/badge/Block%20Time-30s-blue" alt="blocktime" />
@@ -57,7 +57,7 @@ baitcoin_ecosystem/                                # 26,400 lines of Python (20,
 +-- baitcoin_sdk/           # Client SDK, wallet SDK, staking SDK, mobile SDK reference (Python)
 +-- baitcoin_bridge/        # Cross-chain bridge logic (ETH, SOL), lock-mint-burn-release
 +-- baitcoin_mainnet/       # Mainnet configuration and launcher
-+-- netlify/                # Netlify landing page (deploy-ready for netlify.ai)
++-- netlify/                # Landing page (mybaitcoin.org)
 +-- tests/                  # 547 tests across 11 test suites (100% passing)
 +-- scripts/                # Utility and validation scripts
 +-- main_daemon.py          # Perpetual daemon with WAL persistence
@@ -641,8 +641,8 @@ curl http://localhost:18445/api/v1/wallet/paper | python -m json.tool
 # Print paper wallet (HTML for A4 printing)
 curl http://localhost:18445/api/v1/wallet/paper/html > paper_wallet.html
 
-# Deploy to Netlify (netlify.ai)
-cd netlify && netlify deploy --prod
+# Deploy landing page to mybaitcoin.org
+cd netlify && netlify deploy --prod --domain mybaitcoin.org
 ```
 
 ---

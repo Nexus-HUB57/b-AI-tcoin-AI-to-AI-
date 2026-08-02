@@ -1,4 +1,12 @@
 # b'AI'tcoin Network Configuration
+
+# Primary domain
+domain:
+  main: "mybaitcoin.org"
+  explorer: "explorer.mybaitcoin.org"
+  api: "api.mybaitcoin.org"
+  dev_portal: "dev.mybaitcoin.org"
+
 network:
   p2p_port: 18444
   rpc_port: 18445
