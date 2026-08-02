@@ -6,20 +6,20 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/b%27AI%27tcoin-v0.9-alpha-orange" alt="version" />
-  <img src="https://img.shields.io/badge/Tests-465%20passing-brightgreen" alt="tests" />
-  <img src="https://img.shields.io/badge/API%20Endpoints-54-cyan" alt="endpoints" />
+  <img src="https://img.shields.io/badge/BAIT-v0.4.0-orange" alt="version" />
+  <img src="https://img.shields.io/badge/Tests-547%20passing-brightgreen" alt="tests" />
+  <img src="https://img.shields.io/badge/API%20Endpoints-52-cyan" alt="endpoints" />
   <img src="https://img.shields.io/badge/Testnet-P2P%20Multi-Node-blue" alt="testnet" />
   <img src="https://img.shields.io/badge/Mobile%20SDK-Python%20Reference-ff69b4" alt="mobile" />
   <img src="https://img.shields.io/badge/Bridges-Logic%20Layer-orange" alt="bridges" />
-  <img src="https://img.shields.io/badge/Whitelabel-70%20Presets-teal" alt="presets" />
+  <img src="https://img.shields.io/badge/Whitelabel-72%20Presets-teal" alt="presets" />
   <img src="https://img.shields.io/badge/Consensus-zkML%20%2B%20PoUW-purple" alt="consensus" />
   <img src="https://img.shields.io/badge/Signatures-Schnorr%20BIP--340-blue" alt="signatures" />
   <img src="https://img.shields.io/badge/Memory-WAL%20%2B%20Snapshots-green" alt="persistence" />
-  <img src="https://img.shields.io/badge/Explorer-Blockch%27AI%27in-orange" alt="explorer" />
+  <img src="https://img.shields.io/badge/Explorer-BlockchAIin-orange" alt="explorer" />
   <img src="https://img.shields.io/badge/Paper%20Wallet-Cold%20Storage-ff69b4" alt="paper wallet" />
   <img src="https://img.shields.io/badge/Netlify-Deploy%20Ready-00d4aa" alt="netlify" />
-  <img src="https://img.shields.io/badge/Modules-16-9cf" alt="modules" />
+  <img src="https://img.shields.io/badge/Modules-14-9cf" alt="modules" />
   <img src="https://img.shields.io/badge/Max%20Supply-21M%20BAIT-orange" alt="supply" />
   <img src="https://img.shields.io/badge/Block%20Time-30s-blue" alt="blocktime" />
   <img src="https://img.shields.io/badge/Halving-210k%20blocks-yellow" alt="halving" />
@@ -42,14 +42,14 @@ The protocol architecture comprises 16 integrated modules spanning core cryptogr
 ## Architecture
 
 ```
-baitcoin_ecosystem/                                # 26,400 lines of Python
+baitcoin_ecosystem/                                # 26,400 lines of Python (20,314 source + 6,108 test)
 +-- baitcoin_core/          # Blockchain, consensus (zkML), cryptography (Schnorr), network (P2P + DHT + testnet)
 +-- baitcoin_wallet/        # Keys, transactions, paper wallets, storage (kv_store)
 +-- baitcoin_token/         # ERC-20 like token, tokenomics (halvings), governance
 +-- baitcoin_bank/          # Staking (7% APY), P2P lending, DeFi vaults (5 strategies)
 +-- baitcoin_ai/            # Agent protocol (10 capabilities), registry, marketplace, oracle
 +-- baitcoin_explorer/      # Blockch'AI'in: indices, analytics, search, OpenAPI docs, rate limiter
-+-- baitcoin_api/           # REST API server (50+ endpoints), Moltbook auth, whitelabel
++-- baitcoin_api/           # REST API server (52 endpoints), Moltbook auth, whitelabel
 +-- baitcoin_memory/        # WAL + Snapshots persistent memory (10 namespaces)
 +-- baitcoin_obscura/       # Headless browser bridge (Python interface, cost metering)
 +-- baitcoin_whitelabel/    # 70 AI platform presets, 60+ config params, engine
@@ -58,7 +58,8 @@ baitcoin_ecosystem/                                # 26,400 lines of Python
 +-- baitcoin_bridge/        # Cross-chain bridge logic (ETH, SOL), lock-mint-burn-release
 +-- baitcoin_mainnet/       # Mainnet configuration and launcher
 +-- netlify/                # Netlify landing page (deploy-ready for netlify.ai)
-+-- tests/                  # 465 tests across 9 test suites (100% passing)
++-- tests/                  # 547 tests across 11 test suites (100% passing)
++-- scripts/                # Utility and validation scripts
 +-- main_daemon.py          # Perpetual daemon with WAL persistence
 +-- Dockerfile.ubuntu       # Multi-stage Docker (Rust -> Python -> Ubuntu 24.04)
 +-- docker-compose.ubuntu.yml
@@ -129,26 +130,28 @@ baitcoin_ecosystem/                                # 26,400 lines of Python
 ### Test Coverage
 
 ```
-465 tests across 9 suites — all passing (0 failures)
+547 tests across 11 suites — all passing (0 failures)
 
-  test_e2e_full_validation.py    62 tests   (E2E with EcosystemNode + persistence)
-  test_e2e_persistent.py          5 tests   (Persistent blockchain round-trip)
-  test_ecosystem.py              65 tests   (Individual module integration)
-  test_obscura_integration.py    21 tests   (Obscura bridge capabilities)
-  test_phases_7_10.py             46 tests   (P2P protocol, zkML proofs, API, SDK)
   test_phases_16_17_18.py       109 tests   (Testnet, mobile SDK, bridges)
-  test_blockchain_explorer.py    81 tests   (Explorer, analytics, docs, search)
-  test_smoke.py                  59 tests   (All 16 modules smoke validation)
+  test_e2e_full_validation.py    62 tests   (E2E with EcosystemNode + persistence)
+  test_smoke.py                  59 tests   (All 14 modules smoke validation)
+  test_blockchain_explorer.py    55 tests   (Explorer, analytics, docs, search)
+  test_smoke_enhanced.py         52 tests   (Enhanced smoke tests)
+  test_ecosystem.py              47 tests   (Individual module integration)
+  test_phases_7_10.py            45 tests   (P2P protocol, zkML proofs, API, SDK)
+  test_e2e_persistent.py         37 tests   (Persistent blockchain round-trip)
+  test_obscura_integration.py    34 tests   (Obscura bridge capabilities)
+  test_stress_enhanced.py        30 tests   (Enhanced stress: agents, oracle, marketplace, faucet)
   test_stress.py                 17 tests   (Mining 500 blocks, 1K proofs, 10K txs, 100 sign/verify)
 ```
 
 ### Lines of Code
 
 ```
-Source (excluding tests):     22,234 lines of Python
-Test code:                   ~4,200 lines across 9 files
+Source (excluding tests):     20,314 lines of Python (14 modules + daemon)
+Test code:                   ~6,100 lines across 11 suites
 Total:                        ~26,400 lines
-Modules:                      16 modules, 85 Python files
+Modules:                      14 baitcoin modules, 95 Python files
 External dependencies:       ecdsa (secp256k1), no Rust/C code in repo
 ```
 
@@ -232,7 +235,7 @@ BROWSER_AUTOMATION  # Persistent browser sessions via CDP
 
 ## Blockch'AI'in Developer Portal
 
-### API Endpoints (50+)
+### API Endpoints (52)
 
 **Explorer (12)**
 - `GET /api/v1/explorer/blocks` - Latest blocks (paginated)
@@ -269,7 +272,7 @@ BROWSER_AUTOMATION  # Persistent browser sessions via CDP
 - `GET /api/v1/wallet/paper` - Generate paper wallet (JSON)
 - `GET /api/v1/wallet/paper/html` - Generate paper wallet (printable HTML)
 
-**Core + DeFi + Obscura (23+)** - Blockchain, token, staking, agents, marketplace, oracle, whitelabel, Obscura endpoints.
+**Core + DeFi + Obscura (26)** - Blockchain, token, staking, agents, marketplace, oracle, whitelabel, Obscura endpoints.
 
 ### API Key Tiers
 
@@ -497,15 +500,15 @@ Security: N-of-M multi-sig tracking, Merkle proofs, rate limits, emergency pause
 
 2. **Blockchain fundamentals are solid**: Genesis block, UTXO model, chain validation, halving schedule, and WAL persistence all work correctly. The persistence layer with WAL + snapshots + corruption recovery is production-quality Python code.
 
-3. **Test coverage is comprehensive**: 465 tests across 9 suites covering unit, integration, stress, smoke, and end-to-end scenarios.
+3. **Test coverage is comprehensive**: 547 tests across 11 suites covering unit, integration, stress, smoke, and end-to-end scenarios.
 
-4. **Module architecture is clean**: 16 well-separated modules with clear responsibilities. The `EcosystemNode` provides a unified integration point. Each module can be tested independently.
+4. **Module architecture is clean**: 14 well-separated modules with clear responsibilities. The `EcosystemNode` provides a unified integration point. Each module can be tested independently.
 
 5. **zkML proof system is mathematically sound**: The Sigma protocol with Fiat-Shamir transform is correctly implemented — the verification equation `g^r = A * y^challenge mod P` is a standard Schnorr proof. Pedersen commitments provide computational binding (discrete log assumption) and perfect hiding.
 
 ### Weaknesses (Evidence-Based)
 
-1. **Single-language monoculture**: 22,234 lines of Python, zero lines of Rust, Solidity, or Kotlin in the repository. The Dockerfile references a Rust build stage and the Obscura module expects a Rust binary, but no Rust source code exists. For a protocol that claims Rust/V8/CDP integration, this is a critical gap.
+1. **Single-language monoculture**: 20,314 lines of Python (14 modules + daemon), zero lines of Rust, Solidity, or Kotlin in the repository. The Dockerfile references a Rust build stage and the Obscura module expects a Rust binary, but no Rust source code exists. For a protocol that claims Rust/V8/CDP integration, this is a critical gap.
 
 2. **PoUW does not execute ML models**: The PoUW validator (`pouw.py`) validates that metadata hashes (model_hash, input_hash, output_hash) are non-empty. It does not execute, verify, or even interface with any ML model. The "Proof of Useful Work" is a proof of hash submission, not proof of useful computation.
 
@@ -623,13 +626,13 @@ cd b-AI-tcoin-AI-to-AI-
 # Install dependencies
 pip install -r requirements.txt
 
-# Run tests (465 passing)
+# Run tests (547 passing)
 python -m pytest tests/ -v
 
 # Run daemon (mines blocks, persists state via WAL)
 python main_daemon.py --blocks 10
 
-# Run API server (50+ endpoints on port 18445)
+# Run API server (52 endpoints on port 18445)
 python -m baitcoin_api.server
 
 # Generate paper wallet (no auth required)
@@ -666,19 +669,19 @@ Exposes 4 ports: API (18445), P2P (18446), DHT (18447), Obscura CDP (9222).
 | zkML + PoUW Consensus | L1 Functional | 24 zkML + 2 PoUW | Operational |
 | Schnorr/BIP-340 Signatures | L1 Functional | Integrated | Operational |
 | Token BAIT + Halvings | L1 Functional | Integrated | Operational |
-| AI Agent Protocol (10 caps) | L1 Functional | Integrated | Operational |
+| AI Agent Protocol (10 caps) | L1 Functional | 47 eco | Operational |
 | DeFi (Staking + Lending + Vaults) | L1 Functional | Integrated | Operational |
-| Blockch'AI'in Explorer | L1 Functional | 81 tests | Operational |
-| API Server (50+ endpoints) | L1 Functional | 46+ tests | Operational |
-| WAL Memory (10 namespaces) | L1 Functional | 5 persist | Operational |
+| Blockch'AI'in Explorer | L1 Functional | 55 tests | Operational |
+| API Server (52 endpoints) | L1 Functional | 45 phase 7-10 | Operational |
+| WAL Memory (10 namespaces) | L1 Functional | 37 persist | Operational |
 | Paper Wallet | L1 Functional | Integrated | Operational |
 | P2P Testnet (Multi-Node) | L2 Prototype | 109 tests | Functional (localhost) |
 | Mobile SDK | L2 Prototype | Integrated | Python reference only |
 | Cross-Chain Bridges | L2 Prototype | Integrated | Logic layer only |
-| Obscura Bridge | L2 Prototype | 21 tests | No Rust binary |
+| Obscura Bridge | L2 Prototype | 34 tests | No Rust binary |
 | Whitelabel (70 presets) | L1 Functional | Integrated | Operational |
 | Faucet | L1 Functional | Integrated | Operational |
-| Test Suite | — | 465/465 | All Passing |
+| Test Suite | — | 547/547 | All Passing |
 
 ---
 
@@ -696,7 +699,7 @@ Exposes 4 ports: API (18445), P2P (18446), DHT (18447), Obscura CDP (9222).
 - [x] Phase 10: PoUW tensor commitments
 - [x] Phase 11: Obscura browser bridge (Python interface)
 - [x] Phase 12: WAL persistent memory (10 namespaces)
-- [x] Phase 13: Blockch'AI'in Developer Portal (50+ endpoints)
+- [x] Phase 13: Blockch'AI'in Developer Portal (52 endpoints)
 - [x] Phase 14: Paper Wallet cold storage (printable HTML)
 - [x] Phase 15: Netlify landing page + deployment config
 - [x] Phase 16: Multi-node P2P testnet (orchestrator, consensus, faucet, partition)

@@ -11,6 +11,7 @@ nós da rede b'AI'tcoin. Suporta:
 
 import hashlib
 import json
+import os
 import time
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Callable
@@ -158,6 +159,3 @@ class P2PNetwork:
             "handlers_registered": len(self.message_handlers),
             "protocol": self.PROTOCOL_VERSION,
         }
-
-
-import os

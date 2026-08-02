@@ -1,8 +1,8 @@
 r"""
 API REST b'AI'tcoin - Interface HTTP para o ecossistema.
 
-Endpoints (55+ total):
-  --- Core (22) ---
+Endpoints (52 total):
+  --- Core (25) ---
   GET  /api/v1/status          - Status da rede (com whitelabel)
   GET  /api/v1/blockchain      - Info da blockchain
   GET  /api/v1/block/:height   - Bloco por altura
@@ -30,7 +30,7 @@ Endpoints (55+ total):
   POST /api/v1/obscura/scrape  - Scrape paginas em paralelo (Moltbook protected)
   GET  /api/v1/obscura/tasks   - Lista tarefas de scraping do agente
 
-  --- Blockch'AI'in Explorer (11) ---
+  --- Blockch'AI'in Explorer (12) ---
   GET  /api/v1/explorer/blocks            - Ultimos blocos (paginado)
   GET  /api/v1/explorer/blocks/hash/{hash}  - Bloco por hash
   GET  /api/v1/explorer/blocks/height/{h}  - Bloco por altura
@@ -44,7 +44,7 @@ Endpoints (55+ total):
   GET  /api/v1/explorer/agents/{id}         - Perfil do agente
   GET  /api/v1/explorer/stats              - Stats do explorer
 
-  --- Developer Tools (6) ---
+  --- Developer Tools (7) ---
   GET  /api/v1/dev/spec          - OpenAPI 3.0 spec (JSON)
   GET  /api/v1/dev/docs          - Interactive docs (HTML playground)
   GET  /api/v1/dev/endpoints     - Lista todos os endpoints

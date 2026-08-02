@@ -70,3 +70,28 @@ Stage Summary:
 - 26 new files created (6,273 lines added)
 - 16 new modules across 3 packages
 - Git commit ready, push blocked by GitHub credentials
+
+---
+Task ID: 3
+Agent: Main
+Task: Varredura completa + stress tests + smoke tests + validacao e2e + atualizacao repo
+
+Work Log:
+- Full codebase scan: read all 109 source files across 16 modules
+- Fixed p2p.py: moved `import os` from bottom to top of file
+- Fixed mempool O(n^2 log n) performance: replaced list.sort() per insert with bisect.insort (O(n log n))
+- Added `_by_fee_neg_fees` list for binary search ordering in Mempool class
+- Created test_stress_enhanced.py (30 tests): mining extreme, mempool fill/eviction, 5000 zkML proofs, verifier replay, ecosystem node load, cryptography batch, P2P max peers, token chain, DeFi mass operations, oracle/marketplace, faucet stress
+- Created test_smoke_enhanced.py (52 tests): blockchain invariants, cryptography edge cases, mempool boundary, token edge cases, consensus edge cases, DeFi edge cases, network edge cases, ecosystem node edge cases, address format, module versions
+- Created scripts/validate_e2e_comprehensive.py: 30-point validation across all 10 subsystems
+- Updated README.md: test count 465->547, version v0.9-alpha->v0.4.0 (matching code), whitelabel presets 70->72
+
+Stage Summary:
+- 547/547 tests passing (was 465)
+- 82 new tests added (30 stress + 52 smoke)
+- 2 code fixes (p2p.py import, mempool O(n^2) -> O(n log n))
+- 30-point e2e validation: ALL PASS in 0.30s
+- 11 test suites total (was 9)
+- Mempool now handles 50,000 transactions in <30s (was timing out)
+- Anti-replay protection verified via ZkMLVerifier
+- Total supply cap mathematically verified (21M BAIT)

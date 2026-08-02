@@ -6,6 +6,7 @@ Implementa priorização por gas price e validação antecipada.
 """
 
 import time
+import bisect
 from typing import List, Optional, Dict
 from collections import defaultdict
 from baitcoin_core.blockchain.block import Transaction
@@ -30,6 +31,7 @@ class Mempool:
         self._transactions: Dict[str, Transaction] = {}
         self._by_agent: Dict[str, List[str]] = defaultdict(list)
         self._by_fee: List[str] = []
+        self._by_fee_neg_fees: List[int] = []  # Negated fees para bisect (ordem decrescente)
         self._total_fees_sats = 0
         self._stats = {"added": 0, "removed": 0, "expired": 0}
 
@@ -57,12 +59,12 @@ class Mempool:
         return True
 
     def _insert_by_fee(self, tx_id: str, fee: int) -> None:
-        """Insere na lista ordenada por fee (maior primeiro)."""
-        self._by_fee.append(tx_id)
-        self._by_fee.sort(
-            key=lambda tid: self._transactions[tid].gas_price * self._transactions[tid].gas_limit,
-            reverse=True,
-        )
+        r"""Insere na lista ordenada por fee (maior primeiro) via binary search."""
+        # Negate fee para ordem decrescente com bisect
+        neg_fee = -fee
+        pos = bisect.bisect_left(self._by_fee_neg_fees, neg_fee)
+        self._by_fee.insert(pos, tx_id)
+        self._by_fee_neg_fees.insert(pos, neg_fee)
 
     def get_transactions(self, max_count: int = 1000, min_fee_rate: int = 0) -> List[Transaction]:
         """Retorna transações priorizadas por fee."""
@@ -81,7 +83,10 @@ class Mempool:
         for tx_id in tx_ids:
             tx = self._transactions.pop(tx_id, None)
             if tx:
-                self._by_fee.remove(tx_id)
+                idx = self._by_fee.index(tx_id) if tx_id in self._by_fee else -1
+                if idx >= 0:
+                    self._by_fee.pop(idx)
+                    self._by_fee_neg_fees.pop(idx)
                 self._by_agent[tx.agent_id].remove(tx_id)
                 self._total_fees_sats -= tx.gas_price * tx.gas_limit
                 self._stats["removed"] += 1
@@ -89,7 +94,8 @@ class Mempool:
     def _evict_lowest_fee(self) -> None:
         """Remove a transação com menor fee."""
         if self._by_fee:
-            lowest = self._by_fee.pop()
+            lowest = self._by_fee.pop()  # Ultimo = menor fee
+            self._by_fee_neg_fees.pop()  # Sincronizar
             tx = self._transactions.pop(lowest, None)
             if tx:
                 self._by_agent[tx.agent_id].remove(lowest)
