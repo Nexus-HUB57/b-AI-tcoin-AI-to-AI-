@@ -115,10 +115,12 @@ class TransactionVerifier:
         if fee < min_fee and fee_rate == 0:
             return TxVerificationResult(False, f"Fee {fee} below minimum {min_fee}")
 
-        # 6. Signature verification (if signature is present)
-        if tx.signature and len(tx.signature) == 64:
-            if not self._verify_signature(tx):
-                return TxVerificationResult(False, "Invalid Schnorr signature")
+        # 6. Signature verification (MANDATORY for non-coinbase)
+        # Phase A Hardening: All non-coinbase txs must have valid Schnorr sig
+        if not tx.signature or len(tx.signature) != 64:
+            return TxVerificationResult(False, "Transaction must have a 64-byte Schnorr signature")
+        if not self._verify_signature(tx):
+            return TxVerificationResult(False, "Invalid Schnorr signature")
 
         # 7. Nonce check (per agent, must be increasing)
         if tx.agent_id:

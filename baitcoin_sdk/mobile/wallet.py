@@ -290,7 +290,7 @@ class MobileWallet:
         is_valid = True
         reason = ""
 
-        if not address.startswith("bait"):
+        if not address.startswith("b'"):
             is_valid = False
             reason = "missing_bait_prefix"
         elif len(address) < 10:
@@ -301,7 +301,7 @@ class MobileWallet:
                 # Base58 decode validation
                 alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
                 n = 0
-                for char in address[4:]:  # Skip 'bait'
+                for char in address[2:]:  # Skip "b'"
                     n = n * 58 + alphabet.index(char)
                 # Convert to bytes for checksum
                 data = n.to_bytes(25, byteorder='big')

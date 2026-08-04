@@ -51,7 +51,7 @@ class AgentWalletSDK:
     def create(self, agent_id: str) -> Wallet:
         r"""Cria nova carteira para o agente."""
         keypair = SchnorrKeyPair()
-        address = f'bAI1q{keypair.public_key_hex}'
+        from baitcoin_core.blockchain.addresses import pubkey_to_address; address = pubkey_to_address(keypair.pub_bytes)
         wallet = self.Wallet(agent_id=agent_id, keypair=keypair, address=address)
         self._wallets[agent_id] = wallet
         return wallet

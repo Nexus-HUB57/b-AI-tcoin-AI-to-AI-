@@ -264,7 +264,7 @@ class Blockchain:
         coinbase_tx = Transaction(
             tx_type="coinbase",
             outputs=[TransactionOutput(
-                amount_sats=self.INITIAL_REWARD_SATS * 100,
+                amount_sats=self.INITIAL_REWARD_SATS,
                 script_pubkey=b"GENESIS_CHIMERA7",
             )],
             agent_id="chimera7_genesis",
@@ -396,12 +396,38 @@ class Blockchain:
         return True
 
     def get_balance(self, pubkey: bytes) -> int:
-        r"""Calcula saldo de um endereço (pubkey)."""
+        r"""Calcula saldo de um endereco (pubkey)."""
         total = 0
         for utxo in self.utxo_set.values():
             if utxo.script_pubkey == pubkey:
                 total += utxo.amount_sats
         return total
+
+    def get_balance_by_address(self, address: str) -> int:
+        r"""Calcula saldo por endereco BAITAddress (b\'...)."""
+        try:
+            from baitcoin_core.blockchain.addresses import BAITAddress, hash160
+            addr = BAITAddress.parse(address)
+            total = 0
+            for utxo in self.utxo_set.values():
+                try:
+                    utxo_hash = hash160(utxo.script_pubkey)
+                    if utxo_hash == addr.pubkey_hash:
+                        total += utxo.amount_sats
+                except Exception:
+                    pass
+            return total
+        except (ValueError, Exception):
+            return 0
+
+    def get_address_for_pubkey(self, pubkey: bytes) -> str:
+        r"""Retorna o endereco BAITAddress para um pubkey."""
+        from baitcoin_core.blockchain.addresses import pubkey_to_address
+        if len(pubkey) == 33 and pubkey[0] in (0x02, 0x03):
+            pubkey = pubkey[1:]
+        if len(pubkey) >= 32:
+            return pubkey_to_address(pubkey[:32])
+        return ""
 
     def to_dict(self) -> dict:
         r"""Retorna estado completo da blockchain como dicionário."""

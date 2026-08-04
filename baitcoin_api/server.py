@@ -962,3 +962,73 @@ def run_server(host: str = '0.0.0.0', port: int = 18445):
     server = create_app(host, port)
     print(f"b'AI'tcoin API + Blockch'AI'in Explorer listening on {host}:{port}")
     server.serve_forever()
+
+    # Phase A: Signed transaction broadcast endpoint
+    def _handle_tx_broadcast(self):
+        r"""POST /api/v1/transactions/broadcast — Broadcast a signed transaction.
+
+        Request body (JSON):
+            inputs: [{prev_tx_id, prev_output_index, script_sig}]
+            outputs: [{amount_sats, script_pubkey_hex}]
+            nonce: int
+            agent_id: str
+            signature: hex string (64 bytes)
+            gas_limit: int (optional)
+            gas_price: int (optional)
+            payload: hex string (optional)
+        """
+        try:
+            content_len = int(self.headers.get('Content-Length', 0))
+            body = json.loads(self.rfile.read(content_len).decode()) if content_len > 0 else {}
+        except Exception:
+            self._json_response({"error": "invalid_json"}, 400)
+            return
+
+        # Build Transaction object
+        from baitcoin_core.blockchain.block import Transaction, TransactionInput, TransactionOutput
+
+        inputs = []
+        for inp in body.get('inputs', []):
+            inputs.append(TransactionInput(
+                prev_tx_id=bytes.fromhex(inp['prev_tx_id']),
+                prev_output_index=inp['prev_output_index'],
+                script_sig=bytes.fromhex(inp.get('script_sig', '')),
+            ))
+
+        outputs = []
+        for out in body.get('outputs', []):
+            outputs.append(TransactionOutput(
+                amount_sats=out['amount_sats'],
+                script_pubkey=bytes.fromhex(out['script_pubkey_hex']),
+            ))
+
+        signature = bytes.fromhex(body.get('signature', '')) if body.get('signature') else b''
+        payload = bytes.fromhex(body.get('payload', '')) if body.get('payload') else b''
+
+        tx = Transaction(
+            tx_type=body.get('tx_type', 'transfer'),
+            inputs=inputs,
+            outputs=outputs,
+            nonce=body.get('nonce', 0),
+            agent_id=body.get('agent_id', ''),
+            gas_limit=body.get('gas_limit', 0),
+            gas_price=body.get('gas_price', 0),
+            payload=payload,
+            signature=signature,
+        )
+
+        # Add to mempool via blockchain's fee market
+        fee_rate = body.get('fee_rate', 10)
+        success = self.server.blockchain.add_transaction(tx, fee_rate)
+
+        if success:
+            self._json_response({
+                "success": True,
+                "tx_id": tx.tx_id.hex(),
+                "mempool_size": self.server.blockchain.fee_market.size,
+            })
+        else:
+            self._json_response({"error": "transaction_rejected", "reason": "fee_too_low"}, 400)
+
+    # Register broadcast endpoint in POST routes
+    POST_ROUTES['/api/v1/transactions/broadcast'] = _handle_tx_broadcast

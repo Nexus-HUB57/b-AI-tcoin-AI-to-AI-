@@ -120,6 +120,27 @@ class SchnorrKeyPair:
         return f"SchnorrKeyPair(pub={self.public_key_hex[:16]}...)"
 
 
+    @classmethod
+    def from_pubkey_hex(cls, pubkey_hex: str) -> 'SchnorrKeyPair':
+        r"""Create a keypair from an existing x-only public key hex string.
+
+        The private key will be a dummy (signing will produce invalid signatures).
+        This is useful for signature verification only.
+        """
+        kp = cls.__new__(cls)
+        kp._private_key = None  # No private key — verify-only
+        pubkey_bytes = bytes.fromhex(pubkey_hex)
+        if len(pubkey_bytes) == 33:
+            # Compressed pubkey — extract x-only
+            kp._pub_bytes = pubkey_bytes[1:33]
+        elif len(pubkey_bytes) == 32:
+            kp._pub_bytes = pubkey_bytes
+        else:
+            raise ValueError(f"Expected 32 or 33-byte pubkey, got {len(pubkey_bytes)}")
+        kp._public_key = None  # Lazy init if needed
+        kp.public_key_hex = kp._pub_bytes.hex()
+        return kp
+
 class SchnorrSignature:
     r"""Assinatura Schnorr (64 bytes = r || s)."""
 

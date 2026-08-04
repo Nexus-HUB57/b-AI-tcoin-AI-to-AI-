@@ -119,19 +119,32 @@ class MobileSecurity:
         iv = os.urandom(12)
         plaintext = json.dumps(key_data, sort_keys=True).encode()
 
-        # Simulated AES-CTR: XOR plaintext with key stream
-        # In production, use: from cryptography.fernet import Fernet
-        key_stream = hashlib.sha256(derived_key + iv).digest()
-        ciphertext = bytes(
-            a ^ b for a, b in zip(plaintext, (key_stream * (len(plaintext) // 32 + 1))[:len(plaintext)])
-        )
-
-        # HMAC for integrity
-        auth_tag = hmac.new(derived_key, iv + ciphertext, hashlib.sha256).digest()[:self.AUTH_TAG_LENGTH]
+        # AES-256-GCM encryption (Phase A Hardening — real crypto)
+        try:
+            from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+            aesgcm = AESGCM(derived_key)
+            ct_and_tag = aesgcm.encrypt(iv, plaintext, None)
+            # AES-GCM appends 16-byte tag to ciphertext
+            ciphertext = ct_and_tag[:-16]
+            auth_tag = ct_and_tag[-16:]
+            algorithm_name = "aes-256-gcm"
+        except ImportError:
+            # Fallback: HMAC-SHA256 keyed stream cipher (still better than plain XOR)
+            key_stream = hashlib.sha256(derived_key + iv).digest()
+            # Generate extended key stream using HKDF-like expansion
+            stream = b''
+            counter = 0
+            while len(stream) < len(plaintext):
+                block = hashlib.sha256(derived_key + iv + counter.to_bytes(4, 'big')).digest()
+                stream += block
+                counter += 1
+            ciphertext = bytes(a ^ b for a, b in zip(plaintext, stream[:len(plaintext)]))
+            auth_tag = hmac.new(derived_key, iv + ciphertext, hashlib.sha256).digest()[:self.AUTH_TAG_LENGTH]
+            algorithm_name = "pbkdf2-sha256-hkdf-stream"
 
         return {
-            "version": 1,
-            "algorithm": "pbkdf2-sha256-xor",
+            "version": 2,
+            "algorithm": algorithm_name,
             "iterations": self.PBKDF2_ITERATIONS,
             "salt": base64.b64encode(salt).decode(),
             "iv": base64.b64encode(iv).decode(),
@@ -170,11 +183,26 @@ class MobileSecurity:
             if not hmac.compare_digest(auth_tag, expected_tag):
                 return {"error": "integrity_check_failed"}
 
-            # Decrypt (reverse XOR)
-            key_stream = hashlib.sha256(derived_key + iv).digest()
-            plaintext = bytes(
-                a ^ b for a, b in zip(ciphertext, (key_stream * (len(ciphertext) // 32 + 1))[:len(ciphertext)])
-            )
+            # Decrypt (Phase A Hardening — real crypto)
+            version = encrypted.get("version", 1)
+            if version >= 2 and encrypted.get("algorithm", "").startswith("aes-256-gcm"):
+                try:
+                    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+                    aesgcm = AESGCM(derived_key)
+                    ct_and_tag = ciphertext + auth_tag
+                    plaintext = aesgcm.decrypt(iv, ct_and_tag, None)
+                except ImportError:
+                    # Should not happen if encrypt used fallback, but handle gracefully
+                    raise ValueError("cryptography library required for AES-256-GCM decryption")
+            else:
+                # Legacy fallback decryption (HKDF stream cipher or XOR)
+                stream = b''
+                counter = 0
+                while len(stream) < len(ciphertext):
+                    block = hashlib.sha256(derived_key + iv + counter.to_bytes(4, 'big')).digest()
+                    stream += block
+                    counter += 1
+                plaintext = bytes(a ^ b for a, b in zip(ciphertext, stream[:len(ciphertext)]))
 
             return json.loads(plaintext.decode())
         except Exception as e:
@@ -257,11 +285,17 @@ class MobileSecurity:
             Hex-encoded public key
         """
         try:
-            from baitcoin_core.cryptography.schnorr import SchnorrKeyPair
-            kp = SchnorrKeyPair.from_pubkey_hex(pubkey_hex)
+            from baitcoin_core.cryptography.schnorr import SchnorrKeyPair, SchnorrSignature
+            pubkey_bytes = bytes.fromhex(pubkey_hex)
             msg_hash = hashlib.sha256(challenge.encode()).digest()
             sig_bytes = bytes.fromhex(signature_hex)
-            valid = kp.verify(msg_hash, sig_bytes)
+            if len(sig_bytes) != 64:
+                return {"verified": False, "error": "invalid_signature_length"}
+            sig = SchnorrSignature(
+                s=int.from_bytes(sig_bytes[32:64], byteorder='big'),
+                r_bytes=sig_bytes[:32],
+            )
+            valid = sig.verify(pubkey_bytes, msg_hash)
             return {"verified": valid}
         except Exception as e:
             return {"verified": False, "error": str(e)}

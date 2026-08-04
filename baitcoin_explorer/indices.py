@@ -28,27 +28,13 @@ def _pubkey_to_bait_address(pubkey_hex: str) -> str:
     """
     try:
         pubkey_bytes = bytes.fromhex(pubkey_hex) if len(pubkey_hex) <= 128 else bytes.fromhex(pubkey_hex[:128])
+        # Schnorr/BIP-340 uses x-only (32 bytes). Strip compression prefix.
+        if len(pubkey_bytes) == 33 and pubkey_bytes[0] in (0x02, 0x03):
+            pubkey_bytes = pubkey_bytes[1:33]
     except (ValueError, TypeError):
-        return f"bait_unknown_{hashlib.sha256(str(pubkey_hex).encode()).hexdigest()[:12]}"
-    sha = hashlib.sha256(pubkey_bytes).digest()
-    ripemd = hashlib.new('ripemd160', sha).digest()
-    payload = b'\x00' + ripemd
-    checksum = hashlib.sha256(hashlib.sha256(payload).digest()).digest()[:4]
-    addr_bytes = payload + checksum
-    # Base58 encode
-    alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
-    n = int.from_bytes(addr_bytes, 'big')
-    result = ''
-    while n > 0:
-        n, r = divmod(n, 58)
-        result = alphabet[r] + result
-    # Leading zeros
-    for byte in addr_bytes:
-        if byte == 0:
-            result = '1' + result
-        else:
-            break
-    return 'bait' + result
+        return f"b'unknown_{hashlib.sha256(str(pubkey_hex).encode()).hexdigest()[:12]}"
+    from baitcoin_core.blockchain.addresses import pubkey_to_address
+    return pubkey_to_address(pubkey_bytes)
 
 
 def _sats_to_bait(sats: int) -> float:

@@ -225,9 +225,26 @@ class TestTransactionVerifier:
         assert not result.valid
         assert "not found" in result.reason
 
+    def _make_signed_tx(self, utxo_set, tx):
+        r"""Add a valid Schnorr signature to a transaction for testing."""
+        from baitcoin_core.cryptography.schnorr import SchnorrKeyPair, SchnorrSignature
+        kp = SchnorrKeyPair()
+        sig = kp.sign(tx.tx_id)
+        tx.signature = sig.raw
+        # Update UTXO to have correct pubkey for verification
+        first_key = f"{tx.inputs[0].prev_tx_id.hex()}:{tx.inputs[0].prev_output_index}"
+        if first_key in utxo_set:
+            utxo_set[first_key] = TransactionOutput(
+                amount_sats=utxo_set[first_key].amount_sats,
+                script_pubkey=kp.pub_bytes,  # Use signer's pubkey
+            )
+        return tx
+
     def test_reject_double_spend(self):
         r"""Double-spend within same block is rejected."""
-        utxo = TransactionOutput(amount_sats=1000, script_pubkey=b"\x00" * 32)
+        from baitcoin_core.cryptography.schnorr import SchnorrKeyPair
+        kp = SchnorrKeyPair()
+        utxo = TransactionOutput(amount_sats=1000, script_pubkey=kp.pub_bytes)
         utxo_set = {"aa" * 32 + ":0": utxo}
         verifier = TransactionVerifier(utxo_set)
         tx = Transaction(
@@ -235,6 +252,7 @@ class TestTransactionVerifier:
             inputs=[TransactionInput(prev_tx_id=b"\xaa" * 32, prev_output_index=0)],
             outputs=[TransactionOutput(amount_sats=500, script_pubkey=b"\x00" * 32)],
         )
+        tx = self._make_signed_tx(utxo_set, tx)
         # First time: OK
         r1 = verifier.verify(tx)
         assert r1.valid
@@ -245,7 +263,9 @@ class TestTransactionVerifier:
 
     def test_valid_transfer(self):
         r"""Valid transfer passes verification."""
-        utxo = TransactionOutput(amount_sats=1000, script_pubkey=b"\x00" * 32)
+        from baitcoin_core.cryptography.schnorr import SchnorrKeyPair
+        kp = SchnorrKeyPair()
+        utxo = TransactionOutput(amount_sats=1000, script_pubkey=kp.pub_bytes)
         utxo_set = {"bb" * 16 + "00" * 16 + ":0": utxo}
         verifier = TransactionVerifier(utxo_set)
         tx = Transaction(
@@ -253,17 +273,20 @@ class TestTransactionVerifier:
             inputs=[TransactionInput(prev_tx_id=b"\xbb" * 16 + b"\x00" * 16, prev_output_index=0)],
             outputs=[TransactionOutput(amount_sats=900, script_pubkey=b"\x00" * 32)],
         )
+        tx = self._make_signed_tx(utxo_set, tx)
         result = verifier.verify(tx, fee_rate=10)
         assert result.valid
         assert result.fee == 100
 
     def test_nonce_enforcement(self):
         r"""Nonces must be increasing per agent."""
+        from baitcoin_core.cryptography.schnorr import SchnorrKeyPair
+        kp = SchnorrKeyPair()
         utxo_set = {}
         for i in range(3):
             txid = hashlib.sha256(f"utxo_{i}".encode()).digest()
             key = f"{txid.hex()}:0"
-            utxo_set[key] = TransactionOutput(amount_sats=1000, script_pubkey=b"\x00" * 32)
+            utxo_set[key] = TransactionOutput(amount_sats=1000, script_pubkey=kp.pub_bytes)
 
         verifier = TransactionVerifier(utxo_set)
         txid0 = hashlib.sha256(b"utxo_0").digest()
@@ -272,12 +295,14 @@ class TestTransactionVerifier:
             inputs=[TransactionInput(prev_tx_id=txid0, prev_output_index=0)],
             outputs=[TransactionOutput(amount_sats=500, script_pubkey=b"\x00" * 32)],
         )
+        tx1 = self._make_signed_tx(utxo_set, tx1)
         txid1 = hashlib.sha256(b"utxo_1").digest()
         tx2 = Transaction(
             tx_type="transfer", agent_id="a1", nonce=0,
             inputs=[TransactionInput(prev_tx_id=txid1, prev_output_index=0)],
             outputs=[TransactionOutput(amount_sats=500, script_pubkey=b"\x00" * 32)],
         )
+        tx2 = self._make_signed_tx(utxo_set, tx2)
         r1 = verifier.verify(tx1)
         assert r1.valid
         r2 = verifier.verify(tx2)
@@ -348,7 +373,11 @@ class TestPhaseAIntegration:
 
     def test_mine_blocks_with_phase_a(self):
         r"""Mine 5 blocks and verify Phase A features work."""
-        bc = Blockchain()
+        # Use loose target for test speed
+        consensus = ZkMLConsensus(
+            target=0x00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+        )
+        bc = Blockchain(consensus=consensus)
         for i in range(5):
             pubkey = hashlib.sha256(f"miner_{i}".encode()).digest()[:33]
             block = bc.mine_block(f"miner_{i}", pubkey)
@@ -378,4 +407,4 @@ class TestPhaseAIntegration:
     def test_version_bump(self):
         r"""Core version is now 0.5.0."""
         from baitcoin_core import __version__
-        assert __version__ == "0.5.0"
+        assert __version__ == "0.6.0"

@@ -43,21 +43,20 @@ def _base58_encode(data: bytes) -> str:
 
 
 def _pubkey_to_bait_address(pubkey_hex: str) -> str:
-    r"""Converte pubkey hex para endereco b'AI'tcoin (bait + Base58Check).
+    r"""Converte pubkey hex para endereco b'AI'tcoin (unified BAITAddress).
 
-    Formato: "bait" + Base58Check(0x00 + RIPEMD160(SHA256(pubkey_bytes)))
-    Same implementation as baitcoin_explorer.indices._pubkey_to_bait_address().
+    Phase A: Uses the unified BAITAddress system (Hash160 + Base58Check).
+    Strips compression prefix from 33-byte compressed pubkeys.
     """
     try:
         pubkey_bytes = bytes.fromhex(pubkey_hex) if len(pubkey_hex) <= 128 else bytes.fromhex(pubkey_hex[:128])
+        # Schnorr/BIP-340 uses x-only (32 bytes). Strip compression prefix if present.
+        if len(pubkey_bytes) == 33 and pubkey_bytes[0] in (0x02, 0x03):
+            pubkey_bytes = pubkey_bytes[1:33]
     except (ValueError, TypeError):
-        return f"bait_unknown_{hashlib.sha256(str(pubkey_hex).encode()).hexdigest()[:12]}"
-    sha = hashlib.sha256(pubkey_bytes).digest()
-    ripemd = hashlib.new('ripemd160', sha).digest()
-    payload = b'\x00' + ripemd
-    checksum = hashlib.sha256(hashlib.sha256(payload).digest()).digest()[:4]
-    addr_bytes = payload + checksum
-    return 'bait' + _base58_encode(addr_bytes)
+        return f"b'unknown_{hashlib.sha256(str(pubkey_hex).encode()).hexdigest()[:12]}"
+    from baitcoin_core.blockchain.addresses import pubkey_to_address
+    return pubkey_to_address(pubkey_bytes)
 
 
 # ==========================================================================

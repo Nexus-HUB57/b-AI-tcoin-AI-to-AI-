@@ -6,7 +6,7 @@ enderecos unificados, mercado de taxas, verificacao de transacoes e o
 EcosystemNode com persistencia automatica.
 """
 
-__version__ = "0.5.0"
+__version__ = "0.6.0"
 __protocol__ = "zkML-PoUW-v1"
 
 from baitcoin_core.blockchain.chain import Blockchain

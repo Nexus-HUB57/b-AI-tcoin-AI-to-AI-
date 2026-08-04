@@ -30,8 +30,8 @@ class ZkMLConsensus:
     """
 
     # Dificuldade inicial (target) - ajustada para confiabilidade em testes e producao
-    # Target frouxo: ~1/256 chance por iteracao, garante mining em <1000 iteracoes
-    DEFAULT_TARGET = 0x00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+    # Target medio: ~1/65536 chance por iteracao (2 zero bytes), mining em ~1-5s
+    DEFAULT_TARGET = 0x0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 
     def __init__(self, target: Optional[int] = None):
         self.target = target or self.DEFAULT_TARGET
