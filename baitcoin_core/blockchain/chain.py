@@ -18,6 +18,9 @@ import hashlib
 from typing import List, Optional, Dict
 from baitcoin_core.blockchain.block import Block, BlockHeader, Transaction, TransactionOutput, TransactionInput
 from baitcoin_core.consensus.zkml_engine import ZkMLConsensus
+from baitcoin_core.blockchain.fees import FeeMarket
+from baitcoin_core.consensus.difficulty import DifficultyAdjuster
+from baitcoin_core.blockchain.tx_verifier import TransactionVerifier
 
 
 class Blockchain:
@@ -62,6 +65,9 @@ class Blockchain:
         self.utxo_set: Dict[str, TransactionOutput] = {}
         self.consensus = consensus or ZkMLConsensus()
         self.mempool: List[Transaction] = []
+        self.fee_market = FeeMarket()  # Phase A: Fee market
+        self.difficulty_adjuster = DifficultyAdjuster()  # Phase A: DAA
+        self.tx_verifier: Optional[TransactionVerifier] = None  # Phase A: Tx verification
         self._persistent = persistent
         self._memory_store = memory_store
         self._create_genesis()
@@ -284,48 +290,63 @@ class Blockchain:
             key = f"{tx.tx_id.hex()}:{i}"
             self.utxo_set[key] = output
 
-    def add_transaction(self, tx: Transaction) -> bool:
-        r"""Adiciona transação ao mempool após validação básica."""
-        if tx.is_coinbase:
-            return False
-        for inp in tx.inputs:
-            key = f"{inp.prev_tx_id.hex()}:{inp.prev_output_index}"
-            if key not in self.utxo_set:
-                return False
-        self.mempool.append(tx)
-        return True
+    def add_transaction(self, tx: Transaction, fee_rate: int = 10) -> bool:
+        r"""Adiciona transação ao mempool com validação e taxa.
+
+        Uses FeeMarket for fee-based mempool management.
+        """
+        success, reason = self.fee_market.add_transaction(tx, fee_rate)
+        return success
 
     def mine_block(self, miner_agent: str, miner_pubkey: bytes) -> Block:
-        r"""Minera um novo bloco com transações do mempool.
+        r"""Minera um novo bloco com transações priorizadas por taxa.
 
-        O bloco minerado é:
-        1. Adicionado à cadeia em memória
-        2. Persistido de forma imutável no MemoryStore
-        3. UTXO set atualizado
+        Phase A improvements:
+        - Transactions selected by fee rate (FeeMarket)
+        - Difficulty adjustment every 2016 blocks (DifficultyAdjuster)
+        - Transaction verification before inclusion
+        - Fee collection from transactions
 
         Returns:
-            O bloco minerado (mesmo se mining falhar, retorna o bloco
-            construído mas não adicionado à cadeia).
+            O bloco minerado.
         """
         block_height = self.height + 1
         reward = self.get_block_reward(block_height)
 
+        # Phase A: Difficulty adjustment
+        if self.difficulty_adjuster.should_adjust(block_height):
+            new_bits = self.difficulty_adjuster.calculate(self.chain)
+            self.consensus.target_bits = new_bits
+
+        # Phase A: Select transactions via FeeMarket (fee-prioritized)
+        selected_txs, total_fees, median_fee = self.fee_market.select_transactions()
+
+        # Create coinbase with reward + fees
         coinbase = Transaction(
             tx_type="coinbase",
             outputs=[TransactionOutput(
-                amount_sats=reward,
+                amount_sats=reward + total_fees,
                 script_pubkey=miner_pubkey,
             )],
             agent_id=miner_agent,
         )
 
-        selected_txs = self.mempool[:1000]
-        self.mempool = self.mempool[1000:]
-
+        # Phase A: Verify each transaction before inclusion
+        self.tx_verifier = TransactionVerifier(self.utxo_set, self.height)
+        verified_txs = []
         for tx in selected_txs:
-            for inp in tx.inputs:
-                key = f"{inp.prev_tx_id.hex()}:{inp.prev_output_index}"
-                self.utxo_set.pop(key, None)
+            result = self.tx_verifier.verify(tx)
+            if result.valid:
+                verified_txs.append(tx)
+                # Remove UTXOs spent by this tx
+                for inp in tx.inputs:
+                    key = f"{inp.prev_tx_id.hex()}:{inp.prev_output_index}"
+                    self.utxo_set.pop(key, None)
+
+        # Phase A: Record fee data and prune mempool
+        self.fee_market.prune_selected(verified_txs)
+        if verified_txs:
+            self.fee_market.record_block_median(median_fee)
 
         header = BlockHeader(
             version=1,
@@ -334,14 +355,14 @@ class Blockchain:
             bits=self.consensus.target_bits,
             agent_validator=miner_agent,
         )
-        block = Block(index=block_height, header=header, transactions=[coinbase] + selected_txs)
+        block = Block(index=block_height, header=header, transactions=[coinbase] + verified_txs)
 
         mined = self.consensus.mine_block(block)
         if mined:
             block.finalize()
             self.chain.append(block)
             self._update_utxo(coinbase)
-            for tx in selected_txs:
+            for tx in verified_txs:
                 self._update_utxo(tx)
             # Persistir bloco de forma imutável
             self._persist_block(block)
@@ -388,7 +409,7 @@ class Blockchain:
             "height": self.height,
             "block_count": len(self.chain),
             "utxo_count": len(self.utxo_set),
-            "mempool_size": len(self.mempool),
+            "mempool_size": self.fee_market.size,
             "persistent": self.is_persistent,
             "total_supply_sats": sum(
                 tx.outputs[0].amount_sats
@@ -396,4 +417,6 @@ class Blockchain:
             ),
             "last_block_hash": self.last_block.block_hash.hex(),
             "blocks": [b.to_dict() for b in self.chain[-10:]],
+            "fee_market": self.fee_market.to_dict(),
+            "difficulty": self.difficulty_adjuster.get_difficulty_info(self.chain),
         }
