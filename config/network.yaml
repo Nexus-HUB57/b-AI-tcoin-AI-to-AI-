@@ -2,10 +2,10 @@
 
 # Primary domain
 domain:
-  main: "mybaitcoin.org"
-  explorer: "explorer.mybaitcoin.org"
-  api: "api.mybaitcoin.org"
-  dev_portal: "dev.mybaitcoin.org"
+  main: "mybait.org"
+  explorer: "explorer.mybait.org"
+  api: "api.mybait.org"
+  dev_portal: "dev.mybait.org"
 
 network:
   p2p_port: 18444

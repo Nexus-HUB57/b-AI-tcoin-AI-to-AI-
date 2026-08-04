@@ -283,4 +283,4 @@ Execute final preparations for mainnet launch including genesis block configurat
 - Docker for containerized deployment
 - Cloud infrastructure (AWS/GCP) for seed nodes
 - SSL certificates for API endpoints
-- **Domain name**: `mybaitcoin.org` (acquired, awaiting activation)
+- **Domain name**: `mybait.org` (acquired, active at https://www.mybait.org)

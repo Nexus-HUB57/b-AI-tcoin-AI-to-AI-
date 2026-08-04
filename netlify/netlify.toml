@@ -1,6 +1,6 @@
 # ═══════════════════════════════════════════════════════════════════════
 # b'AI'tcoin Ecosystem — Netlify Configuration
-# Domain: mybaitcoin.org
+# Domain: mybait.org
 # ═══════════════════════════════════════════════════════════════════════
 
 [build]
@@ -30,7 +30,7 @@
 # API proxy — if backend is deployed separately
 [[redirects]]
   from = "/api/*"
-  to = "https://api.mybaitcoin.org/v1/:splat"
+  to = "https://api.mybait.org/v1/:splat"
   status = 200
 
 # Developer portal

@@ -1,13 +1,13 @@
-# DNS Configuration — mybaitcoin.org
+# DNS Configuration — mybait.org
 
 ## Domain Overview
 
 | Subdomain | Purpose | Target |
 |-----------|---------|--------|
-| `mybaitcoin.org` | Landing page | Netlify |
-| `explorer.mybaitcoin.org` | Blockch'AI'in Explorer | Netlify |
-| `api.mybaitcoin.org` | REST API (52 endpoints) | Backend server |
-| `dev.mybaitcoin.org` | Developer Portal / OpenAPI | Netlify |
+| `mybait.org` | Landing page | Netlify |
+| `explorer.mybait.org` | Blockch'AI'in Explorer | Netlify |
+| `api.mybait.org` | REST API (52 endpoints) | Backend server |
+| `dev.mybait.org` | Developer Portal / OpenAPI | Netlify |
 
 ## Netlify DNS Setup
 
@@ -15,14 +15,14 @@
 
 1. Go to **Netlify Dashboard** > **Site settings** > **Domain management**
 2. Click **Add custom domain**
-3. Enter `mybaitcoin.org`
-4. Repeat for `explorer.mybaitcoin.org` and `dev.mybaitcoin.org`
+3. Enter `mybait.org`
+4. Repeat for `explorer.mybait.org` and `dev.mybait.org`
 
 ### Step 2: Configure DNS Records
 
-At your domain registrar (where `mybaitcoin.org` was purchased), add the following records:
+At your domain registrar (where `mybait.org` was purchased), add the following records:
 
-#### Root Domain (mybaitcoin.org)
+#### Root Domain (mybait.org)
 
 | Type | Name | Value | TTL |
 |------|------|-------|-----|
@@ -42,9 +42,9 @@ At your domain registrar (where `mybaitcoin.org` was purchased), add the followi
 Netlify automatically provisions SSL/TLS certificates via Let's Encrypt for all custom domains. After DNS propagation (up to 48 hours, typically 1-4 hours):
 
 1. Netlify will automatically issue an SSL certificate
-2. Verify HTTPS is active: `curl -I https://mybaitcoin.org`
+2. Verify HTTPS is active: `curl -I https://mybait.org`
 
-### Step 4: API Subdomain (api.mybaitcoin.org)
+### Step 4: API Subdomain (api.mybait.org)
 
 The API subdomain points to the backend server (not Netlify). Configure this separately:
 
@@ -53,26 +53,26 @@ The API subdomain points to the backend server (not Netlify). Configure this sep
 
 ```bash
 # Example: SSL with certbot on the backend server
-sudo certbot --nginx -d api.mybaitcoin.org
+sudo certbot --nginx -d api.mybait.org
 ```
 
 ## Verification Commands
 
 ```bash
 # Check DNS propagation
-dig mybaitcoin.org +short
-dig explorer.mybaitcoin.org +short
+dig mybait.org +short
+dig explorer.mybait.org +short
 
 # Check HTTPS
-curl -I https://mybaitcoin.org
+curl -I https://mybait.org
 
 # Check API connectivity
-curl https://api.mybaitcoin.org/v1/status
+curl https://api.mybait.org/v1/status
 ```
 
 ## Status
 
-- [x] Domain `mybaitcoin.org` acquired
+- [x] Domain `mybait.org` acquired
 - [ ] DNS records configured at registrar
 - [ ] Netlify custom domain added
 - [ ] SSL certificate provisioned
