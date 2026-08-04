@@ -1,16 +1,12 @@
-# b'AI'tcoin — HostGator .htaccess
+# b'AI'tcoin — HostGator Compatible .htaccess
 # Domain: mybait.org
 
-# Force HTTPS and www
+# Force www (non-SSL to SSL handled by cPanel)
 RewriteEngine On
-RewriteCond %{HTTPS} off [OR]
 RewriteCond %{HTTP_HOST} ^mybait\.org$ [NC]
 RewriteRule ^(.*)$ https://www.mybait.org/$1 [R=301,L]
 
-# ═══════════════════════════════════════════════════════
-# API ROUTING — CGI Gateway
-# ═══════════════════════════════════════════════════════
-# All /api/ requests go to api.cgi
+# API routing — CGI Gateway
 RewriteRule ^api/(.*)$ /api.cgi/$1 [QSA,L,E=PATH_INFO:/$1]
 
 # Security headers
@@ -20,15 +16,17 @@ RewriteRule ^api/(.*)$ /api.cgi/$1 [QSA,L,E=PATH_INFO:/$1]
   Header set X-Content-Type-Options "nosniff"
   Header set Referrer-Policy "strict-origin-when-cross-origin"
   Header set Permissions-Policy "camera=(), microphone=(), geolocation=()"
-  Header set Strict-Transport-Security "max-age=31536000; includeSubDomains" always
+  <IfModule mod_ssl.c>
+    Header set Strict-Transport-Security "max-age=31536000; includeSubDomains" always
+  </IfModule>
 </IfModule>
 
-# Enable compression
+# Compression
 <IfModule mod_deflate.c>
   AddOutputFilterByType DEFLATE text/html text/css application/javascript application/json image/svg+xml
 </IfModule>
 
-# Cache static assets
+# Cache
 <IfModule mod_expires.c>
   ExpiresActive On
   ExpiresByType text/html "access plus 0 seconds"
@@ -40,12 +38,10 @@ RewriteRule ^api/(.*)$ /api.cgi/$1 [QSA,L,E=PATH_INFO:/$1]
   ExpiresByType application/pdf "access plus 1 month"
 </IfModule>
 
-# Custom error pages — whitepaper gets its own handler
+# Error page
 ErrorDocument 404 /index.html
 
 # Prevent directory listing
-Options -Indexes
-
-# CGI support
-Options +ExecCGI
-AddHandler cgi-script .cgi
+<IfModule mod_autoindex.c>
+  Options -Indexes
+</IfModule>
