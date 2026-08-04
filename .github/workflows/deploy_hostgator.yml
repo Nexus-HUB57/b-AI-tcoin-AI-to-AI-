@@ -6,7 +6,34 @@ on:
     paths:
       - 'netlify/**'
       - 'docs/whitepaper/**'
+      - 'baitcoin_api/**'
+      - 'baitcoin_core/**'
+      - 'baitcoin_token/**'
+      - 'baitcoin_bank/**'
+      - 'baitcoin_ai/**'
+      - 'baitcoin_explorer/**'
+      - 'baitcoin_wallet/**'
+      - 'baitcoin_memory/**'
+      - 'baitcoin_whitelabel/**'
+      - 'baitcoin_faucet/**'
+      - 'baitcoin_obscura/**'
+      - 'baitcoin_bridge/**'
+      - 'baitcoin_sdk/**'
+      - 'baitcoin_mainnet/**'
+      - 'config/**'
+      - 'main_daemon.py'
+      - 'requirements.txt'
   workflow_dispatch:
+    inputs:
+      deploy_target:
+        description: 'What to deploy'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - frontend-only
+          - api-only
 
 jobs:
   deploy:
@@ -19,136 +46,239 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Prepare deploy files
-        run: |
-          mkdir -p deploy/
-          cp netlify/index.html deploy/index.html
-          cp netlify/.htaccess deploy/.htaccess
-          cp docs/whitepaper/bAIcoin_Whitepaper.pdf deploy/whitepaper.pdf
-          echo '--- Deploy files ---'
-          ls -la deploy/
-
-      - name: Parse credentials and deploy to HostGator
+      - name: Parse credentials
         env:
           HG_CREDS: ${{ secrets.CREDENCIAIS_HOSTGATOR }}
         run: |
-          # ── Diagnostics (safe, no secret leakage) ──
-          echo "Secret length: ${#HG_CREDS} chars"
-          echo "First char code: $(echo -n "$HG_CREDS" | head -c1 | od -An -tx1 | tr -d ' ')"
-          echo "Contains pipe: $(echo "$HG_CREDS" | grep -c '|')"
-          echo "Contains colon: $(echo "$HG_CREDS" | grep -c ':')"
-          echo "Contains @: $(echo "$HG_CREDS" | grep -c '@')"
-          echo "Contains equals: $(echo "$HG_CREDS" | grep -c '=')"
-          echo "Contains brace: $(echo "$HG_CREDS" | grep -c '{\|}')"
-          echo "Newlines: $(echo "$HG_CREDS" | wc -l)"
-          echo ""
-
-          # ── Check secret is not empty ──
           if [ -z "$HG_CREDS" ]; then
-            echo "::error::CREDENCIAIS_HOSTGATOR esta vazio."
-            exit 1
+            echo "::error::CREDENCIAIS_HOSTGATOR empty"; exit 1
           fi
-
-          # ── Parse credentials — auto-detect format ──
-          HOST=""; USER=""; PASS=""; PORT="21"; REMOTE_PATH="public_html/"
-
-          # Format 1: JSON
-          if echo "$HG_CREDS" | python3 -c "import sys,json; json.load(sys.stdin)" 2>/dev/null; then
-            echo "[+] Format: JSON"
-            HOST=$(echo "$HG_CREDS" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('host',d.get('server',d.get('hostname',''))))")
-            USER=$(echo "$HG_CREDS" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('user',d.get('username',d.get('login',''))))")
-            PASS=$(echo "$HG_CREDS" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('password',d.get('pass',d.get('passwd',''))))")
-            PORT=$(echo "$HG_CREDS" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('port',21))")
-            REMOTE_PATH=$(echo "$HG_CREDS" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('remote_path',d.get('path',d.get('target','public_html/'))))")
-
-          # Format 2: key=value (dotenv style, one per line)
-          elif echo "$HG_CREDS" | grep -qE '^(host|user|password|port|remote_path|server|username)=' ; then
-            echo "[+] Format: key=value (dotenv)"
-            HOST=$(echo "$HG_CREDS" | grep -iE '^host=' | head -1 | cut -d= -f2-)
-            HOST=${HOST:-$(echo "$HG_CREDS" | grep -iE '^server=' | head -1 | cut -d= -f2-)}
-            USER=$(echo "$HG_CREDS" | grep -iE '^(user|username)=' | head -1 | cut -d= -f2-)
-            PASS=$(echo "$HG_CREDS" | grep -iE '^pass' | head -1 | cut -d= -f2-)
-            PORT=$(echo "$HG_CREDS" | grep -iE '^port=' | head -1 | cut -d= -f2-)
-            PORT=${PORT:-21}
-            REMOTE_PATH=$(echo "$HG_CREDS" | grep -iE '^(remote_path|path|target)=' | head -1 | cut -d= -f2-)
-            REMOTE_PATH=${REMOTE_PATH:-public_html/}
-
-          # Format 3: pipe-separated
-          elif echo "$HG_CREDS" | grep -q '|'; then
-            echo "[+] Format: pipe-separated"
-            IFS='|' read -r HOST USER PASS PORT REMOTE_PATH <<< "$HG_CREDS"
-            PORT=${PORT:-21}
-            REMOTE_PATH=${REMOTE_PATH:-public_html/}
-
-          # Format 4: URL-style  sftp://user:pass@host:port/path
-          elif echo "$HG_CREDS" | grep -qE '^(s?ftp|https?)://'; then
-            echo "[+] Format: URL"
-            HOST=$(echo "$HG_CREDS" | sed -E 's|^[^/]+://([^@]+)@([^/:]+).*|\2|')
-            CREDS_PART=$(echo "$HG_CREDS" | sed -E 's|^[^/]+://||; s|@.*||')
-            USER=$(echo "$CREDS_PART" | cut -d: -f1)
-            PASS=$(echo "$CREDS_PART" | cut -d: -f2-)
-            PORT=$(echo "$HG_CREDS" | grep -oP ':\K[0-9]+(?=/|$)' | tail -1)
-            PORT=${PORT:-21}
-            RPATH=$(echo "$HG_CREDS" | sed -E 's|^[^/]+://[^/]+||; s|^[^/]*||')
-            REMOTE_PATH=${RPATH:-public_html/}
-
-          # Format 5: colon-separated  host:port:user:pass
-          elif [ "$(echo "$HG_CREDS" | tr -cd ':' | wc -c)" -ge 2 ]; then
-            echo "[+] Format: colon-separated"
-            HOST=$(echo "$HG_CREDS" | cut -d: -f1)
-            PORT=$(echo "$HG_CREDS" | cut -d: -f2)
-            USER=$(echo "$HG_CREDS" | cut -d: -f3)
-            PASS=$(echo "$HG_CREDS" | cut -d: -f4-)
-            REMOTE_PATH=${REMOTE_PATH:-public_html/}
-
-          else
-            echo "[!] Format: UNKNOWN — could not auto-detect"
-            echo ""
-            echo "Supported formats:"
-            echo '  1. JSON:  {"host":"...","user":"...","password":"..."}'
-            echo '  2. Dotenv: host=...\nuser=...\npassword=...'
-            echo '  3. Pipe:   host|user|password|port|path'
-            echo '  4. URL:    sftp://user:pass@host:port/path'
-            echo '  5. Colon:  host:port:user:password'
-            echo ""
-            echo "Por favor, atualize o secret CREDENCIAIS_HOSTGATOR"
-            echo "em Settings > Secrets and variables > Actions"
-            exit 1
-          fi
-
-          echo ""
-          echo "Host: $HOST"
-          echo "User length: ${#USER}"
-          echo "Pass length: ${#PASS}"
-          echo "Port: $PORT"
-          echo "Remote: $REMOTE_PATH"
-
+          HOST=$(echo "$HG_CREDS" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('host',''))")
+          USER=$(echo "$HG_CREDS" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('user',''))")
+          PASS=$(echo "$HG_CREDS" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('password',''))")
+          PORT=$(echo "$HG_CREDS" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('port', 21))")
           if [ -z "$HOST" ] || [ -z "$USER" ] || [ -z "$PASS" ]; then
-            echo ""
-            echo "::error::Campos obrigatorios ausentes apos parse."
-            echo "Host empty: $([ -z "$HOST" ] && echo YES || echo no)"
-            echo "User empty: $([ -z "$USER" ] && echo YES || echo no)"
-            echo "Pass empty: $([ -z "$PASS" ] && echo YES || echo no)"
-            echo ""
-            echo "Revise o formato do secret. Formatos aceitos:"
-            echo '  JSON:    {"host":"IP","user":"LOGIN","password":"SENHA"}'
-            echo '  Dotenv:  host=IP\nuser=LOGIN\npassword=SENHA'
-            echo '  Pipe:    IP|LOGIN|SENHA'
-            exit 1
+            echo "::error::Missing host/user/password"; exit 1
           fi
+          echo "HOST=$HOST" >> $GITHUB_ENV
+          echo "USER=$USER" >> $GITHUB_ENV
+          echo "PASS=$PASS" >> $GITHUB_ENV
+          echo "PORT=$PORT" >> $GITHUB_ENV
+          echo "[+] Parsed: $HOST:${PORT} user=${#USER}c"
 
-          # ── Install lftp ──
-          sudo apt-get update -qq && sudo apt-get install -y -qq lftp
+      - name: Install lftp
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq lftp
 
-          # ── Deploy via SFTP/FTP ──
+      # ═══════════════════════════════════════════════════════════
+      # FRONTEND DEPLOY
+      # ═══════════════════════════════════════════════════════════
+      - name: Prepare frontend files
+        if: "${{ github.event.inputs.deploy_target != 'api-only' }}"
+        run: |
+          mkdir -p deploy-frontend/
+          cp netlify/index.html deploy-frontend/index.html
+          cp netlify/.htaccess deploy-frontend/.htaccess
+          cp docs/whitepaper/bAIcoin_Whitepaper.pdf deploy-frontend/whitepaper.pdf
+          echo "--- Frontend files ---"
+          ls -la deploy-frontend/
+
+      - name: Deploy frontend to public_html/
+        if: "${{ github.event.inputs.deploy_target != 'api-only' }}"
+        run: |
           lftp -u "$USER","$PASS" -p "$PORT" "$HOST" <<LFTP_EOF
           set ftp:ssl-force true
           set ssl:verify-certificate no
           set net:timeout 30
-          set net:reconnect-interval-base 5
-          mirror --reverse --overwrite --verbose --no-perms deploy/ $REMOTE_PATH
+          mirror --reverse --overwrite --verbose --no-perms deploy-frontend/ public_html/
+          bye
+          LFTP_EOF
+          echo "=== Frontend deployed ==="
+
+      # ═══════════════════════════════════════════════════════════
+      # API DEPLOY
+      # ═══════════════════════════════════════════════════════════
+      - name: Prepare API package
+        if: "${{ github.event.inputs.deploy_target != 'frontend-only' }}"
+        run: |
+          # Create codebase tarball (exclude .git, caches, data)
+          tar czf /tmp/baitcoin-codebase.tar.gz \
+            --exclude='.git' \
+            --exclude='__pycache__' \
+            --exclude='.pytest_cache' \
+            --exclude='*.pyc' \
+            --exclude='baitcoin_data' \
+            --exclude='.venv' \
+            --exclude='node_modules' \
+            .
+
+          # Create API deploy directory
+          mkdir -p deploy-api/
+
+          # 1. CGI proxy script
+          cat > deploy-api/index.cgi << 'CGIEOF'
+          #!/bin/bash
+          VENV="$HOME/baitcoin-api/venv"
+          INSTALL="$HOME/baitcoin-api"
+          PIDFILE="$INSTALL/daemon.pid"
+          API_PORT=18445
+
+          # Ensure daemon is running
+          if [ ! -f "$PIDFILE" ] || ! kill -0 $(cat "$PIDFILE") 2>/dev/null; then
+            if [ -f "$INSTALL/start.sh" ]; then
+              bash "$INSTALL/start.sh" >/dev/null 2>&1 &
+              sleep 5
+            fi
+          fi
+
+          # Proxy via curl
+          PATH_INFO="${PATH_INFO#/api}"
+          QS="${QUERY_STRING:+?$QUERY_STRING}"
+          URL="http://127.0.0.1:${API_PORT}${PATH_INFO}${QS}"
+          CT="${CONTENT_TYPE:-application/json}"
+          BODY="$(cat)"
+
+          # Set CGI headers
+          echo "Content-Type: application/json"
+          echo "Access-Control-Allow-Origin: *"
+          echo "X-Powered-By: b-AI-tcoin-CGI"
+          echo ""
+
+          curl -s -X "${REQUEST_METHOD}" \
+            -H "Content-Type: $CT" \
+            -H "X-Moltbook-Identity: ${HTTP_X_MOLTBOOK_IDENTITY:-}" \
+            -d "$BODY" \
+            --max-time 25 \
+            "$URL" 2>/dev/null || echo '{"error":"API starting up, retry in 10s"}'
+          CGIEOF
+          chmod +x deploy-api/index.cgi
+
+          # 2. API .htaccess
+          cat > deploy-api/.htaccess << 'HTEOF'
+          Options +ExecCGI
+          AddHandler cgi-script .cgi
+          RewriteEngine On
+          RewriteBase /api/
+          RewriteCond %{REQUEST_FILENAME} !-f
+          RewriteCond %{REQUEST_FILENAME} !-d
+          RewriteRule ^(.*)$ /api/index.cgi/$1 [QSA,L,E=PATH_INFO:/$1]
+          <IfModule mod_headers.c>
+            Header always set Access-Control-Allow-Origin "*"
+            Header always set Access-Control-Allow-Methods "GET, POST, OPTIONS"
+            Header always set Access-Control-Allow-Headers "Content-Type, X-Moltbook-Identity, Authorization"
+          </IfModule>
+          HTEOF
+
+          # 3. Setup script
+          cat > deploy-api/setup.sh << 'SETEOF'
+          #!/bin/bash
+          set -e
+          INSTALL="$HOME/baitcoin-api"
+          mkdir -p "$INSTALL"
+          cd "$INSTALL"
+          if [ ! -d venv ]; then
+            python3 -m venv venv 2>/dev/null || python3.11 -m venv venv
+          fi
+          source venv/bin/activate
+          pip install --quiet --upgrade pip
+          pip install --quiet ecdsa numpy aiohttp
+          echo "[SETUP] Done"
+          SETEOF
+          chmod +x deploy-api/setup.sh
+
+          # 4. Start script
+          cat > deploy-api/start.sh << 'STARTEOF'
+          #!/bin/bash
+          INSTALL="$HOME/baitcoin-api"
+          PIDFILE="$INSTALL/daemon.pid"
+          LOGFILE="$INSTALL/daemon.log"
+          PORT=18445
+          if [ -f "$PIDFILE" ] && kill -0 $(cat "$PIDFILE") 2>/dev/null; then
+            exit 0
+          fi
+          cd "$INSTALL"
+          source venv/bin/activate
+          nohup python3 -u main_daemon.py --blocks 0 --api-port $PORT >> "$LOGFILE" 2>&1 &
+          echo $! > "$PIDFILE"
+          STARTEOF
+          chmod +x deploy-api/start.sh
+
+          echo "--- API deploy package ---"
+          ls -la deploy-api/
+          ls -lh /tmp/baitcoin-codebase.tar.gz
+
+      - name: Deploy API codebase to ~/baitcoin-api/
+        if: "${{ github.event.inputs.deploy_target != 'frontend-only' }}"
+        run: |
+          # Upload codebase tarball
+          lftp -u "$USER","$PASS" -p "$PORT" "$HOST" <<LFTP_EOF
+          set ftp:ssl-force true
+          set ssl:verify-certificate no
+          set net:timeout 60
+          mkdir -p baitcoin-api
+          cd baitcoin-api
+          put -O /tmp/baitcoin-codebase.tar.gz /tmp/baitcoin-codebase.tar.gz
           bye
           LFTP_EOF
 
+          # Upload scripts
+          lftp -u "$USER","$PASS" -p "$PORT" "$HOST" <<LFTP_EOF
+          set ftp:ssl-force true
+          set ssl:verify-certificate no
+          set net:timeout 30
+          cd baitcoin-api
+          put -O setup.sh deploy-api/setup.sh
+          put -O start.sh deploy-api/start.sh
+          bye
+          LFTP_EOF
+
+          echo "=== Codebase uploaded ==="
+
+      - name: Deploy CGI proxy to public_html/api/
+        if: "${{ github.event.inputs.deploy_target != 'frontend-only' }}"
+        run: |
+          lftp -u "$USER","$PASS" -p "$PORT" "$HOST" <<LFTP_EOF
+          set ftp:ssl-force true
+          set ssl:verify-certificate no
+          set net:timeout 30
+          mkdir -p public_html/api
+          cd public_html/api
+          put -O .htaccess deploy-api/.htaccess
+          put -O index.cgi deploy-api/index.cgi
+          chmod 755 index.cgi
+          bye
+          LFTP_EOF
+          echo "=== CGI proxy deployed ==="
+
+      # ═══════════════════════════════════════════════════════════
+      # VERIFICATION
+      # ═══════════════════════════════════════════════════════════
+      - name: Verify deployment
+        if: "${{ github.event.inputs.deploy_target != 'api-only' }}"
+        run: |
+          echo "[+] Verifying frontend..."
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://www.mybait.org" 2>/dev/null || echo "000")
+          echo "  Landing page: HTTP $STATUS"
+
+          STATUS_WP=$(curl -s -o /dev/null -w "%{http_code}" "https://www.mybait.org/whitepaper.pdf" 2>/dev/null || echo "000")
+          echo "  Whitepaper:   HTTP $STATUS_WP"
+
+      - name: Trigger API setup (first request)
+        if: "${{ github.event.inputs.deploy_target != 'frontend-only' }}"
+        run: |
+          echo "[+] Triggering API setup via CGI..."
+          echo "[+] First request to /api/api/v1/status will auto-start the daemon"
+          echo "[+] Note: The daemon needs ~10s to initialize on first hit"
+          echo "[+] Visit: https://www.mybait.org/api/api/v1/status"
+
+      - name: Deploy summary
+        run: |
           echo ""
-          echo "=== Deploy concluido com sucesso em $HOST:$REMOTE_PATH ==="
+          echo "========================================"
+          echo "  b'AI'tcoin Deploy Complete"
+          echo "========================================"
+          echo "  Frontend:  https://www.mybait.org"
+          echo "  Whitepaper: https://www.mybait.org/whitepaper.pdf"
+          echo "  API:        https://www.mybait.org/api/api/v1/status"
+          echo "  Docs:       https://www.mybait.org/api/api/v1/dev/docs"
+          echo "  Explorer:   https://www.mybait.org/api/api/v1/explorer/stats"
+          echo "========================================"
