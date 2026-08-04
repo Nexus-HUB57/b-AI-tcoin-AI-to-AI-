@@ -203,7 +203,7 @@ jobs:
           set ftp:ssl-force true
           set ssl:verify-certificate no
           set net:timeout 30
-          put -o public_html/.htaccess /tmp/root_htaccess
+          put /tmp/root_htaccess -o public_html/.htaccess
           bye
           EOF
           echo "[+] Root .htaccess updated"
