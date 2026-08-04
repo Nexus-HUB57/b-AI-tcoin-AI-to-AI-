@@ -113,6 +113,8 @@ jobs:
 
       - name: Build AI Store
         if: steps.flags.outputs.deploy_aistore == 'true'
+        env:
+          DATABASE_URL: file:/home/runner/work/b-AI-tcoin-AI-to-AI-/b-AI-tcoin-AI-to-AI-/aistore/db/custom.db
         run: |
           cd aistore
           npm ci 2>&1 | tail -3
