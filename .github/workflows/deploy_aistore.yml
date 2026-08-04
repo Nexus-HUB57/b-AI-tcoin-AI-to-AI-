@@ -42,23 +42,22 @@ jobs:
           echo "USER=$USER" >> $GITHUB_ENV
           echo "PASS=$PASS" >> $GITHUB_ENV
           echo "PORT=$PORT" >> $GITHUB_ENV
-          echo "[+] Parsed: $HOST:$PORT user=${#USER}c"
 
       - name: Install lftp
         run: sudo apt-get update -qq && sudo apt-get install -y -qq lftp
 
-      # Determine what to deploy
       - name: Set deploy flags
         id: flags
         run: |
           TARGET="${{ github.event.inputs.deploy_target || 'all' }}"
-          echo "deploy_bait=$( [[ '$TARGET' != 'aistore-only' ]] && echo 'true' || echo 'false' )" >> $GITHUB_OUTPUT
-          echo "deploy_aistore=$( [[ '$TARGET' != 'baitcoin-only' ]] && echo 'true' || echo 'false' )" >> $GITHUB_OUTPUT
-          echo "Deploy target: $TARGET"
+          DEPLOY_BAIT=false; DEPLOY_AI=false
+          [ "$TARGET" != "aistore-only" ] && DEPLOY_BAIT=true
+          [ "$TARGET" != "baitcoin-only" ] && DEPLOY_AI=true
+          echo "deploy_bait=$DEPLOY_BAIT" >> $GITHUB_OUTPUT
+          echo "deploy_aistore=$DEPLOY_AI" >> $GITHUB_OUTPUT
+          echo "Deploy: bait=$DEPLOY_BAIT aistore=$DEPLOY_AI"
 
-      # ═══════════════════════════════════════════════════════════
-      # b'AI'tcoin DEPLOY
-      # ═══════════════════════════════════════════════════════════
+      # ═════════════════ b'AI'tcoin ═════════════════
       - name: Checkout b'AI'tcoin
         if: steps.flags.outputs.deploy_bait == 'true'
         uses: actions/checkout@v4
@@ -66,53 +65,53 @@ jobs:
       - name: Deploy b'AI'tcoin
         if: steps.flags.outputs.deploy_bait == 'true'
         run: |
-          mkdir -p deploy-frontend/
-          cp netlify/index.html deploy-frontend/index.html 2>/dev/null || true
-          cp netlify/.htaccess deploy-frontend/.htaccess 2>/dev/null || true
-          cp docs/whitepaper/bAIcoin_Whitepaper.pdf deploy-frontend/whitepaper.pdf 2>/dev/null || true
+          # Frontend
+          mkdir -p /tmp/deploy-bait
+          cp netlify/index.html /tmp/deploy-bait/ 2>/dev/null || true
+          cp netlify/.htaccess /tmp/deploy-bait/ 2>/dev/null || true
+          cp docs/whitepaper/bAIcoin_Whitepaper.pdf /tmp/deploy-bait/ 2>/dev/null || true
 
-          lftp -u "$USER","$PASS" -p "$PORT" "$HOST" <<LFTP_EOF
+          lftp -u "$USER","$PASS" -p "$PORT" "$HOST" <<EOF
           set ftp:ssl-force true
           set ssl:verify-certificate no
           set net:timeout 30
-          mirror --reverse --overwrite --verbose --no-perms deploy-frontend/ public_html/
+          mirror --reverse --overwrite --no-perms /tmp/deploy-bait/ public_html/
           bye
-          LFTP_EOF
+          EOF
 
-          tar czf /tmp/baitcoin-codebase.tar.gz \
+          # Codebase + CGI
+          tar czf /tmp/bait-codebase.tar.gz \
             --exclude='.git' --exclude='__pycache__' --exclude='.pytest_cache' \
-            --exclude='*.pyc' --exclude='baitcoin_data' --exclude='.venv' .
+            --exclude='*.pyc' --exclude='baitcoin_data' --exclude='.venv' \
+            --exclude='baitcoin-repo' .
 
-          lftp -u "$USER","$PASS" -p "$PORT" "$HOST" <<LFTP_EOF
+          lftp -u "$USER","$PASS" -p "$PORT" "$HOST" <<EOF
           set ftp:ssl-force true
           set ssl:verify-certificate no
-          set net:timeout 60
-          put /tmp/baitcoin-codebase.tar.gz -o public_html/codebase.tar.gz
-          put /tmp/baitcoin-codebase.tar.gz -o public_html/baitcoin-codebase.tar.gz
+          set net:timeout 90
+          put /tmp/bait-codebase.tar.gz -o public_html/codebase.tar.gz
+          put /tmp/bait-codebase.tar.gz -o public_html/baitcoin-codebase.tar.gz
           put netlify/api.cgi -o public_html/api.cgi
           chmod 755 public_html/api.cgi
           bye
-          LFTP_EOF
+          EOF
           echo "[+] b'AI'tcoin deployed"
 
-      # ═══════════════════════════════════════════════════════════
-      # AI Store DEPLOY
-      # ═══════════════════════════════════════════════════════════
+      # ═════════════════ AI Store ═════════════════
       - name: Checkout AI Store
         if: steps.flags.outputs.deploy_aistore == 'true'
         uses: actions/checkout@v4
         with:
           repository: Nexus-HUB57/AI_Store
           path: aistore
-          token: ${{ secrets.CREDENCIAIS_HOSTGATOR }}
 
-      - name: Build AI Store
+      - name: Setup Node.js
         if: steps.flags.outputs.deploy_aistore == 'true'
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
-      - name: Build and package AI Store
+      - name: Build AI Store
         if: steps.flags.outputs.deploy_aistore == 'true'
         run: |
           cd aistore
@@ -126,59 +125,59 @@ jobs:
             npx tsx scripts/seed-full.ts
           fi
 
+          # Build
           NODE_ENV=production \
           NEXT_PUBLIC_BASE_PATH=/aistore \
           NEXT_PUBLIC_BASE_URL=https://www.mybait.org/aistore \
           npx next build 2>&1 | tail -15
 
-          mkdir -p pkg/standalone
-          cp -r .next/standalone/* pkg/standalone/
-          mkdir -p pkg/standalone/.next/static
-          cp -r .next/static/* pkg/standalone/.next/static/
-          mkdir -p pkg/standalone/public
-          cp -r public/* pkg/standalone/public/ 2>/dev/null || true
-          mkdir -p pkg/standalone/{prisma,db}
-          cp prisma/schema.prisma pkg/standalone/prisma/
-          cp db/custom.db pkg/standalone/db/
-          cp package.json pkg/standalone/
-          cp hostgator/api.cgi hostgator/.htaccess hostgator/setup_aistore.sh pkg/
-          chmod +x pkg/api.cgi pkg/setup_aistore.sh
+          # Package
+          mkdir -p /tmp/aistore-pkg/standalone
+          cp -r .next/standalone/* /tmp/aistore-pkg/standalone/
+          mkdir -p /tmp/aistore-pkg/standalone/.next/static
+          cp -r .next/static/* /tmp/aistore-pkg/standalone/.next/static/
+          mkdir -p /tmp/aistore-pkg/standalone/public
+          cp -r public/* /tmp/aistore-pkg/standalone/public/ 2>/dev/null || true
+          mkdir -p /tmp/aistore-pkg/standalone/{prisma,db}
+          cp prisma/schema.prisma /tmp/aistore-pkg/standalone/prisma/
+          cp db/custom.db /tmp/aistore-pkg/standalone/db/
+          cp package.json /tmp/aistore-pkg/standalone/
+          cp hostgator/api.cgi /tmp/aistore-pkg/
+          cp hostgator/.htaccess /tmp/aistore-pkg/
+          cp hostgator/setup_aistore.sh /tmp/aistore-pkg/
+          chmod +x /tmp/aistore-pkg/api.cgi /tmp/aistore-pkg/setup_aistore.sh
 
-          cd pkg/standalone && tar czf ../aistore-codebase.tar.gz .
-          echo "[+] Package: $(du -h pkg/aistore-codebase.tar.gz | cut -f1)"
+          cd /tmp/aistore-pkg/standalone
+          tar czf /tmp/aistore-codebase.tar.gz .
+          echo "[+] Package: $(du -h /tmp/aistore-codebase.tar.gz | cut -f1)"
 
-      - name: Upload AI Store to HostGator
+      - name: Upload AI Store
         if: steps.flags.outputs.deploy_aistore == 'true'
         run: |
-          cd aistore/pkg
-
-          lftp -u "$USER","$PASS" -p "$PORT" "$HOST" <<LFTP_EOF
+          lftp -u "$USER","$PASS" -p "$PORT" "$HOST" <<EOF
           set ftp:ssl-force true
           set ssl:verify-certificate no
-          set net:timeout 120
+          set net:timeout 180
 
           mkdir -p public_html/aistore
 
-          put api.cgi -o public_html/aistore/api.cgi
+          put /tmp/aistore-pkg/api.cgi -o public_html/aistore/api.cgi
           chmod 755 public_html/aistore/api.cgi
 
-          put .htaccess -o public_html/aistore/.htaccess
-          put setup_aistore.sh -o public_html/aistore/setup_aistore.sh
+          put /tmp/aistore-pkg/.htaccess -o public_html/aistore/.htaccess
+          put /tmp/aistore-pkg/setup_aistore.sh -o public_html/aistore/setup_aistore.sh
           chmod 755 public_html/aistore/setup_aistore.sh
 
-          put aistore-codebase.tar.gz -o public_html/aistore-codebase.tar.gz
+          put /tmp/aistore-codebase.tar.gz -o public_html/aistore-codebase.tar.gz
 
           bye
-          LFTP_EOF
+          EOF
           echo "[+] AI Store uploaded"
 
-      # ═══════════════════════════════════════════════════════════
-      # ROOT .htaccess UPDATE
-      # ═══════════════════════════════════════════════════════════
+      # ═════════════════ ROOT .htaccess ═════════════════
       - name: Update root .htaccess
         run: |
-          cat > /tmp/root_htaccess << 'HTEOF'
-          # b'AI'tcoin + AI Store — Combined Root .htaccess
+          cat > /tmp/root_htaccess << 'HT'
           <IfModule mod_rewrite.c>
             RewriteEngine On
             RewriteCond %{REQUEST_URI} !^/aistore
@@ -196,29 +195,29 @@ jobs:
             ExpiresByType application/pdf "access plus 1 month"
           </IfModule>
           ErrorDocument 404 /index.html
-          HTEOF
+          HT
 
-          lftp -u "$USER","$PASS" -p "$PORT" "$HOST" <<LFTP_EOF
+          lftp -u "$USER","$PASS" -p "$PORT" "$HOST" <<EOF
           set ftp:ssl-force true
           set ssl:verify-certificate no
           set net:timeout 30
           put -o public_html/.htaccess /tmp/root_htaccess
           bye
-          LFTP_EOF
+          EOF
           echo "[+] Root .htaccess updated"
 
-      # ═══════════════════════════════════════════════════════════
-      # VERIFICATION
-      # ═══════════════════════════════════════════════════════════
+      # ═════════════════ VERIFICATION ═════════════════
       - name: Verify
         if: always()
         run: |
           echo ""
           echo "========== VERIFICATION =========="
-          echo -n "  b'AI'tcoin landing: "; curl -s -o /dev/null -w "HTTP %{http_code}\n" --max-time 10 "https://www.mybait.org/" 2>/dev/null || echo "TIMEOUT"
-          echo -n "  b'AI'tcoin API:    "; curl -s -o /dev/null -w "HTTP %{http_code}\n" --max-time 15 "https://www.mybait.org/api/api/v1/status" 2>/dev/null || echo "TIMEOUT"
-          echo -n "  AI Store:          "; curl -s -o /dev/null -w "HTTP %{http_code}\n" --max-time 30 "https://www.mybait.org/aistore/" 2>/dev/null || echo "TIMEOUT (first hit triggers setup)"
+          echo -n "  b'AI'tcoin: "
+          curl -s -o /dev/null -w "HTTP %{http_code}\n" --max-time 10 "https://www.mybait.org/" 2>/dev/null || echo "TIMEOUT"
+          echo -n "  b'AI't API: "
+          curl -s -o /dev/null -w "HTTP %{http_code}\n" --max-time 15 "https://www.mybait.org/api/api/v1/status" 2>/dev/null || echo "TIMEOUT"
+          echo -n "  AI Store:   "
+          curl -s -o /dev/null -w "HTTP %{http_code}\n" --max-time 30 "https://www.mybait.org/aistore/" 2>/dev/null || echo "TIMEOUT (setup)"
           echo ""
-          echo "  Store:   https://www.mybait.org/aistore/"
-          echo "  Health:  https://www.mybait.org/aistore/api/health"
-          echo "  b'AI't:  https://www.mybait.org/api/api/v1/status"
+          echo "  https://www.mybait.org/aistore/"
+          echo "  https://www.mybait.org/aistore/api/health"
