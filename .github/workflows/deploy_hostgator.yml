@@ -50,13 +50,15 @@ jobs:
         env:
           HG_CREDS: ${{ secrets.CREDENCIAIS_HOSTGATOR }}
         run: |
-          if [ -z "$HG_CREDS" ]; then
-            echo "::error::CREDENCIAIS_HOSTGATOR empty"; exit 1
-          fi
-          HOST=$(echo "$HG_CREDS" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('host',''))")
-          USER=$(echo "$HG_CREDS" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('user',''))")
-          PASS=$(echo "$HG_CREDS" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('password',''))")
-          PORT=$(echo "$HG_CREDS" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('port', 21))")
+          # Use Python to parse JSON safely (avoids bash $ expansion in passwords)
+          eval $(python3 -c "
+          import os, json
+          c = json.loads(os.environ['HG_CREDS'])
+          print(f\"HOST={c.get('host','')}\")
+          print(f\"USER={c.get('user','')}\")
+          print(f\"PASS={c.get('password','')}\")
+          print(f\"PORT={c.get('port', 21)}\")
+          ")
           if [ -z "$HOST" ] || [ -z "$USER" ] || [ -z "$PASS" ]; then
             echo "::error::Missing host/user/password"; exit 1
           fi
