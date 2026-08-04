@@ -1,47 +1,27 @@
-# b'AI'tcoin — HostGator Compatible .htaccess
-# Domain: mybait.org
+# b'AI'tcoin — HostGator .htaccess (minimal)
 
-# Force www (non-SSL to SSL handled by cPanel)
-RewriteEngine On
-RewriteCond %{HTTP_HOST} ^mybait\.org$ [NC]
-RewriteRule ^(.*)$ https://www.mybait.org/$1 [R=301,L]
-
-# API routing — CGI Gateway
-RewriteRule ^api/(.*)$ /api.cgi/$1 [QSA,L,E=PATH_INFO:/$1]
+# API routing
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule ^api/(.*)$ /api.cgi/$1 [QSA,L,E=PATH_INFO:/$1]
+</IfModule>
 
 # Security headers
 <IfModule mod_headers.c>
   Header set X-Frame-Options "DENY"
-  Header set X-XSS-Protection "1; mode=block"
   Header set X-Content-Type-Options "nosniff"
-  Header set Referrer-Policy "strict-origin-when-cross-origin"
-  Header set Permissions-Policy "camera=(), microphone=(), geolocation=()"
-  <IfModule mod_ssl.c>
-    Header set Strict-Transport-Security "max-age=31536000; includeSubDomains" always
-  </IfModule>
 </IfModule>
 
 # Compression
 <IfModule mod_deflate.c>
-  AddOutputFilterByType DEFLATE text/html text/css application/javascript application/json image/svg+xml
+  AddOutputFilterByType DEFLATE text/html text/css application/javascript application/json
 </IfModule>
 
 # Cache
 <IfModule mod_expires.c>
   ExpiresActive On
-  ExpiresByType text/html "access plus 0 seconds"
-  ExpiresByType text/css "access plus 1 year"
-  ExpiresByType application/javascript "access plus 1 year"
-  ExpiresByType image/png "access plus 1 year"
-  ExpiresByType image/jpeg "access plus 1 year"
-  ExpiresByType image/svg+xml "access plus 1 year"
   ExpiresByType application/pdf "access plus 1 month"
 </IfModule>
 
 # Error page
 ErrorDocument 404 /index.html
-
-# Prevent directory listing
-<IfModule mod_autoindex.c>
-  Options -Indexes
-</IfModule>
