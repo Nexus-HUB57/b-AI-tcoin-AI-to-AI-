@@ -7,12 +7,6 @@ RewriteCond %{HTTPS} off [OR]
 RewriteCond %{HTTP_HOST} ^mybait\.org$ [NC]
 RewriteRule ^(.*)$ https://www.mybait.org/$1 [R=301,L]
 
-# ═══════════════════════════════════════════════════════
-# API ROUTING — CGI Gateway
-# ═══════════════════════════════════════════════════════
-# All /api/ requests go to api.cgi
-RewriteRule ^api/(.*)$ /api.cgi/$1 [QSA,L,E=PATH_INFO:/$1]
-
 # Security headers
 <IfModule mod_headers.c>
   Header set X-Frame-Options "DENY"
@@ -40,12 +34,8 @@ RewriteRule ^api/(.*)$ /api.cgi/$1 [QSA,L,E=PATH_INFO:/$1]
   ExpiresByType application/pdf "access plus 1 month"
 </IfModule>
 
-# Custom error pages — whitepaper gets its own handler
+# Custom error pages
 ErrorDocument 404 /index.html
 
 # Prevent directory listing
 Options -Indexes
-
-# CGI support
-Options +ExecCGI
-AddHandler cgi-script .cgi

@@ -1039,16 +1039,129 @@
     ::-webkit-scrollbar-thumb:hover { background: rgba(59,130,246,0.4); }
 
     /* ═══════════════════════════════════════════════════════════
+       LIVE DASHBOARD
+       ═══════════════════════════════════════════════════════════ */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 32px;
+    }
+    .dash-card {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 20px;
+      backdrop-filter: blur(12px);
+      transition: border-color 0.3s;
+    }
+    .dash-card:hover { border-color: var(--card-border-hover); }
+    .dash-card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .dash-card-title {
+      font-family: var(--font-display);
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text);
+      flex: 1;
+    }
+    .module-status {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      padding: 2px 8px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .module-status.online { background: rgba(52,211,153,0.15); color: var(--green); }
+    .module-status.syncing { background: rgba(251,191,36,0.15); color: var(--gold); }
+    .module-status.connecting { background: rgba(136,136,168,0.15); color: var(--text-muted); }
+    .module-status.offline { background: rgba(248,113,113,0.15); color: var(--red); }
+    .dash-card-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .dash-metric {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .dash-label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .dash-value {
+      font-family: var(--font-mono);
+      font-size: 0.9rem;
+      color: var(--text);
+      font-weight: 500;
+    }
+    .blocks-section {
+      margin-top: 32px;
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .blocks-feed {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 360px;
+      overflow-y: auto;
+    }
+    .block-row {
+      display: grid;
+      grid-template-columns: 60px 1fr 100px 80px 80px;
+      gap: 12px;
+      align-items: center;
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: var(--surface);
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      transition: background 0.2s;
+    }
+    .block-row:hover { background: var(--blue-dim); }
+    .block-row .b-height { color: var(--blue-bright); font-weight: 600; }
+    .block-row .b-hash { color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .block-row .b-validator { color: var(--gold); }
+    .block-row .b-txs { color: var(--cyan); text-align: center; }
+    .block-row .b-reward { color: var(--green); text-align: right; }
+    .module-card { position: relative; }
+    .module-indicator {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      transition: all 0.5s;
+    }
+    .module-indicator.live { background: var(--green); box-shadow: 0 0 8px rgba(52,211,153,0.6); animation: pulse-dot 2s ease-in-out infinite; }
+
+    /* ═══════════════════════════════════════════════════════════
        RESPONSIVE
        ═══════════════════════════════════════════════════════════ */
     @media (max-width: 768px) {
       .hero { padding: 64px 0 48px; }
       .hero-sub { font-size: 0.9rem; }
       .stats-bar { grid-template-columns: repeat(2, 1fr); }
+      .dashboard-grid { grid-template-columns: 1fr; }
       .modules-grid { grid-template-columns: 1fr 1fr; }
       .features-card, .roadmap-card { padding: 22px; }
       .token-grid { grid-template-columns: repeat(2, 1fr); }
       .nav-link.nav-hide-mobile { display: none; }
+      .block-row { grid-template-columns: 50px 1fr 70px 60px; font-size: 0.7rem; }
+      .block-row .b-reward { display: none; }
     }
 
     @media (max-width: 480px) {
@@ -1084,7 +1197,9 @@
       <div class="nav-links">
         <a href="#tech" class="nav-link nav-hide-mobile">Tech</a>
         <a href="#ecosystem" class="nav-link nav-hide-mobile">Ecosystem</a>
+        <a href="#dashboard" class="nav-link nav-hide-mobile">Dashboard</a>
         <a href="#roadmap" class="nav-link nav-hide-mobile">Roadmap</a>
+        <a href="/whitepaper.pdf" class="nav-link nav-hide-mobile">Whitepaper</a>
         <a href="https://github.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-" target="_blank" rel="noopener noreferrer" class="nav-cta">GitHub</a>
       </div>
     </div>
@@ -1106,7 +1221,7 @@
         zkML consensus · PoUW mining · 52 REST API endpoints · Built for the AI agent economy.
       </p>
       <div class="hero-actions">
-        <a href="/whitepaper" class="btn-primary">
+        <a href="/whitepaper.pdf" class="btn-primary">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
           Whitepaper
         </a>
@@ -1117,23 +1232,31 @@
       </div>
     </section>
 
-    <!-- ═══════════ STATS BAR ═══════════ -->
-    <div class="stats-bar fade-up">
+    <!-- ═══════════ LIVE STATS BAR ═══════════ -->
+    <div class="stats-bar fade-up" id="statsBar">
       <div class="stat-item">
-        <div class="stat-value">21M</div>
-        <div class="stat-label">BAIT Supply</div>
+        <div class="stat-value" id="liveHeight">--</div>
+        <div class="stat-label">Block Height</div>
       </div>
       <div class="stat-item">
-        <div class="stat-value">52</div>
-        <div class="stat-label">API Endpoints</div>
+        <div class="stat-value" id="liveAgents">--</div>
+        <div class="stat-label">Active Agents</div>
       </div>
       <div class="stat-item">
-        <div class="stat-value">547</div>
-        <div class="stat-label">Tests Passing</div>
+        <div class="stat-value" id="liveMinted">--</div>
+        <div class="stat-label">BAIT Minted</div>
       </div>
       <div class="stat-item">
-        <div class="stat-value">~20K</div>
-        <div class="stat-label">LOC Python</div>
+        <div class="stat-value" id="liveUtxo">--</div>
+        <div class="stat-label">UTXO Set</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="liveMempool">--</div>
+        <div class="stat-label">Mempool</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="liveStatus" style="font-size:0.8rem;"><span class="pulse" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--gold);margin-right:4px;vertical-align:middle;"></span>Connecting...</div>
+        <div class="stat-label">Network</div>
       </div>
     </div>
 
@@ -1269,74 +1392,162 @@
       </div>
       <div class="modules-grid">
         <div class="module-card">
+          <span class="module-indicator" id="mod-blockchain"></span>
           <div class="module-icon orange">⛓️</div>
           <div class="module-name">Blockchain Core</div>
           <div class="module-desc">Block creation, validation, chain management with 30s block time</div>
         </div>
         <div class="module-card">
+          <span class="module-indicator" id="mod-zkml"></span>
           <div class="module-icon purple">🔐</div>
           <div class="module-name">zkML Consensus</div>
           <div class="module-desc">Sigma + Fiat-Shamir + Pedersen for verifiable ML proofs</div>
         </div>
         <div class="module-card">
+          <span class="module-indicator" id="mod-pouw"></span>
           <div class="module-icon teal">⚡</div>
           <div class="module-name">PoUW Mining</div>
           <div class="module-desc">Proof of Useful Work using real ML inference</div>
         </div>
         <div class="module-card">
+          <span class="module-indicator" id="mod-schnorr"></span>
           <div class="module-icon cyan">🔑</div>
           <div class="module-name">Schnorr Signatures</div>
           <div class="module-desc">BIP-340 on secp256k1 with batch verification</div>
         </div>
         <div class="module-card">
+          <span class="module-indicator" id="mod-api"></span>
           <div class="module-icon green">🌐</div>
           <div class="module-name">REST API Server</div>
           <div class="module-desc">52 endpoints, OpenAPI 3.0, full CRUD operations</div>
         </div>
         <div class="module-card">
+          <span class="module-indicator" id="mod-explorer"></span>
           <div class="module-icon gold">📊</div>
           <div class="module-name">Blockch'AI'in Explorer</div>
           <div class="module-desc">Real-time blockchain visualization and search</div>
         </div>
         <div class="module-card">
+          <span class="module-indicator" id="mod-bank"></span>
           <div class="module-icon orange">🏦</div>
           <div class="module-name">Be Your Bank</div>
           <div class="module-desc">Staking, lending, and vaults for DeFi operations</div>
         </div>
         <div class="module-card">
+          <span class="module-indicator" id="mod-agents"></span>
           <div class="module-icon purple">🤖</div>
           <div class="module-name">AI Agent Marketplace</div>
           <div class="module-desc">Agent capabilities, whitelabel presets, 2.5% fees</div>
         </div>
         <div class="module-card">
+          <span class="module-indicator" id="mod-memory"></span>
           <div class="module-icon teal">💾</div>
           <div class="module-name">WAL Memory</div>
           <div class="module-desc">Write-Ahead Logging for persistent state</div>
         </div>
         <div class="module-card">
+          <span class="module-indicator" id="mod-wallet"></span>
           <div class="module-icon cyan">📝</div>
           <div class="module-name">Paper Wallet</div>
           <div class="module-desc">Cold storage with QR code generation</div>
         </div>
         <div class="module-card">
+          <span class="module-indicator" id="mod-p2p"></span>
           <div class="module-icon green">🌐</div>
           <div class="module-name">DHT Kademlia P2P</div>
           <div class="module-desc">Decentralized peer-to-peer networking layer</div>
         </div>
         <div class="module-card">
+          <span class="module-indicator" id="mod-tests"></span>
           <div class="module-icon gold">🧪</div>
           <div class="module-name">Test Suite</div>
           <div class="module-desc">547 tests across 11 suites, all passing</div>
         </div>
         <div class="module-card">
+          <span class="module-indicator" id="mod-obscura"></span>
           <div class="module-icon orange">🔀</div>
           <div class="module-name">Obscura Bridge</div>
           <div class="module-desc">Headless browser for cross-chain bridging</div>
         </div>
         <div class="module-card">
+          <span class="module-indicator" id="mod-dev"></span>
           <div class="module-icon purple">🏗️</div>
           <div class="module-name">Dev Portal</div>
           <div class="module-desc">Developer documentation and interactive API</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════ LIVE DASHBOARD ═══════════ -->
+    <section id="dashboard" class="fade-up">
+      <div class="section-header">
+        <div class="section-tag">Live Network</div>
+        <h2 class="section-title">Real-time protocol dashboard</h2>
+        <p class="section-desc">Data fetched directly from the b'AI'tcoin daemon running on this server. Auto-refreshes every 10s.</p>
+      </div>
+      <div class="dashboard-grid">
+        <!-- Blockchain Health -->
+        <div class="dash-card">
+          <div class="dash-card-header">
+            <span class="module-icon orange" style="width:28px;height:28px;font-size:14px;">⛓️</span>
+            <span class="dash-card-title">Blockchain</span>
+            <span class="module-status" id="dashChainStatus">connecting</span>
+          </div>
+          <div class="dash-card-body">
+            <div class="dash-metric"><span class="dash-label">Height</span><span class="dash-value" id="dashHeight">--</span></div>
+            <div class="dash-metric"><span class="dash-label">Valid</span><span class="dash-value" id="dashValid">--</span></div>
+            <div class="dash-metric"><span class="dash-label">Mempool</span><span class="dash-value" id="dashMempool">--</span></div>
+            <div class="dash-metric"><span class="dash-label">UTXOs</span><span class="dash-value" id="dashUtxo">--</span></div>
+          </div>
+        </div>
+        <!-- Token -->
+        <div class="dash-card">
+          <div class="dash-card-header">
+            <span class="module-icon purple" style="width:28px;height:28px;font-size:14px;">🪙</span>
+            <span class="dash-card-title">BAIT Token</span>
+            <span class="module-status" id="dashTokenStatus">connecting</span>
+          </div>
+          <div class="dash-card-body">
+            <div class="dash-metric"><span class="dash-label">Minted</span><span class="dash-value" id="dashMinted">--</span></div>
+            <div class="dash-metric"><span class="dash-label">Max Supply</span><span class="dash-value">21,000,000</span></div>
+            <div class="dash-metric"><span class="dash-label">Decimals</span><span class="dash-value">8</span></div>
+            <div class="dash-metric"><span class="dash-label">Halving</span><span class="dash-value">210,000</span></div>
+          </div>
+        </div>
+        <!-- Consensus -->
+        <div class="dash-card">
+          <div class="dash-card-header">
+            <span class="module-icon teal" style="width:28px;height:28px;font-size:14px;">⚡</span>
+            <span class="dash-card-title">Consensus</span>
+            <span class="module-status" id="dashConsensusStatus">connecting</span>
+          </div>
+          <div class="dash-card-body">
+            <div class="dash-metric"><span class="dash-label">Type</span><span class="dash-value">zkML+PoUW</span></div>
+            <div class="dash-metric"><span class="dash-label">Schnorr</span><span class="dash-value">BIP-340</span></div>
+            <div class="dash-metric"><span class="dash-label">Curve</span><span class="dash-value">secp256k1</span></div>
+            <div class="dash-metric"><span class="dash-label">Block Time</span><span class="dash-value">30s</span></div>
+          </div>
+        </div>
+        <!-- Agents -->
+        <div class="dash-card">
+          <div class="dash-card-header">
+            <span class="module-icon green" style="width:28px;height:28px;font-size:14px;">🤖</span>
+            <span class="dash-card-title">AI Agents</span>
+            <span class="module-status" id="dashAgentsStatus">connecting</span>
+          </div>
+          <div class="dash-card-body">
+            <div class="dash-metric"><span class="dash-label">Registered</span><span class="dash-value" id="dashAgents">--</span></div>
+            <div class="dash-metric"><span class="dash-label">Capabilities</span><span class="dash-value">10</span></div>
+            <div class="dash-metric"><span class="dash-label">Marketplace</span><span class="dash-value" id="dashMarketplace">--</span></div>
+            <div class="dash-metric"><span class="dash-label">Presets</span><span class="dash-value">70</span></div>
+          </div>
+        </div>
+      </div>
+      <!-- Last Blocks -->
+      <div class="blocks-section">
+        <div class="section-tag" style="margin-bottom:12px;">Latest Blocks</div>
+        <div id="liveBlocks" class="blocks-feed">
+          <div style="text-align:center;padding:40px;color:var(--text-muted);">Fetching blocks from daemon...</div>
         </div>
       </div>
     </section>
@@ -1433,7 +1644,7 @@
           <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
           GitHub
         </a>
-        <a href="/whitepaper" class="footer-link">
+        <a href="/whitepaper.pdf" class="footer-link">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
           Whitepaper
         </a>
@@ -1447,53 +1658,177 @@
 
   <script>
     // ═══════════════════════════════════════════════════════════
-    // Scroll-triggered fade-in animations
+    // b'AI'tcoin LIVE ENGINE — Connects to daemon API
     // ═══════════════════════════════════════════════════════════
+    var API_BASE = '/api';
+    var apiConnected = false;
+    var refreshInterval = 10000;
+    var refreshTimer = null;
+
+    // Scroll-triggered fade-in animations
     (function() {
       var observer = new IntersectionObserver(function(entries) {
         entries.forEach(function(entry) {
           if (entry.isIntersecting) {
             entry.target.classList.add('visible');
-
-            // Animate progress bar when roadmap comes into view
             if (entry.target.id === 'roadmap') {
               var fill = document.getElementById('progressFill');
-              if (fill) {
-                setTimeout(function() {
-                  fill.style.width = '82%';
-                }, 200);
-              }
+              if (fill) setTimeout(function() { fill.style.width = '82%'; }, 200);
             }
           }
         });
       }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
-
-      document.querySelectorAll('.fade-up, .badge').forEach(function(el) {
-        observer.observe(el);
-      });
-
-      // Stagger badge animations
+      document.querySelectorAll('.fade-up, .badge').forEach(function(el) { observer.observe(el); });
       document.querySelectorAll('.badge').forEach(function(badge, i) {
         badge.style.transitionDelay = (i * 0.04) + 's';
         badge.style.transitionDuration = '0.4s';
         badge.style.transitionProperty = 'opacity, transform';
         badge.style.transitionTimingFunction = 'ease';
       });
-
-      // Smooth scroll for nav links
       document.querySelectorAll('a[href^="#"]').forEach(function(anchor) {
         anchor.addEventListener('click', function(e) {
           var href = this.getAttribute('href');
-          if (href.length > 1) {
-            e.preventDefault();
-            var target = document.querySelector(href);
-            if (target) {
-              target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-          }
+          if (href.length > 1) { e.preventDefault(); var t = document.querySelector(href); if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
         });
       });
     })();
+
+    // ═══════════════════════════════════════════════════════════
+    // API FETCH HELPER
+    // ═══════════════════════════════════════════════════════════
+    function apiFetch(endpoint) {
+      return fetch(API_BASE + endpoint, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(20)
+      }).then(function(r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      });
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // STATUS INDICATOR HELPERS
+    // ═══════════════════════════════════════════════════════════
+    function setStatus(elId, status) {
+      var el = document.getElementById(elId);
+      if (!el) return;
+      el.className = 'module-status ' + status;
+      el.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+    }
+    function setIndicator(elId, live) {
+      var el = document.getElementById(elId);
+      if (!el) return;
+      if (live) el.classList.add('live'); else el.classList.remove('live');
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // UPDATE STATS BAR
+    // ═══════════════════════════════════════════════════════════
+    function updateStatsBar(data) {
+      document.getElementById('liveHeight').textContent = data.chain_height || '--';
+      document.getElementById('liveAgents').textContent = (data.agents_registered || '--');
+      document.getElementById('liveMinted').textContent = (data.token_minted_bait || 0).toFixed(4);
+      document.getElementById('liveUtxo').textContent = (data.utxo_count || '--');
+      document.getElementById('liveMempool').textContent = (data.mempool_size || '0');
+      var statusEl = document.getElementById('liveStatus');
+      if (data.chain_valid) {
+        statusEl.innerHTML = '<span class="pulse" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);margin-right:4px;vertical-align:middle;"></span>Live';
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // UPDATE DASHBOARD
+    // ═══════════════════════════════════════════════════════════
+    function updateDashboard(data) {
+      document.getElementById('dashHeight').textContent = data.chain_height || '--';
+      document.getElementById('dashValid').textContent = data.chain_valid ? 'YES' : 'NO';
+      document.getElementById('dashMempool').textContent = (data.mempool_size || 0) + ' txs';
+      document.getElementById('dashUtxo').textContent = (data.utxo_count || 0).toLocaleString();
+      document.getElementById('dashMinted').textContent = (data.token_minted_bait || 0).toFixed(4) + ' BAIT';
+      document.getElementById('dashAgents').textContent = (data.agents_registered || 0);
+      document.getElementById('dashMarketplace').textContent = 'Active';
+
+      // Set status badges
+      var chainOk = data.chain_valid && data.chain_height > 0;
+      setStatus('dashChainStatus', chainOk ? 'online' : 'offline');
+      setStatus('dashTokenStatus', data.token_minted_bait > 0 ? 'online' : 'connecting');
+      setStatus('dashConsensusStatus', chainOk ? 'online' : 'offline');
+      setStatus('dashAgentsStatus', (data.agents_registered || 0) > 0 ? 'online' : 'connecting');
+
+      // Module indicators
+      var live = chainOk;
+      ['blockchain','zkml','pouw','schnorr','api','explorer','bank','agents','memory','wallet','p2p','tests','obscura','dev'].forEach(function(m) {
+        setIndicator('mod-' + m, live);
+      });
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // FETCH LATEST BLOCKS
+    // ═══════════════════════════════════════════════════════════
+    function updateBlocks() {
+      apiFetch('/api/v1/explorer/blocks?limit=10').then(function(data) {
+        var container = document.getElementById('liveBlocks');
+        if (!data || !data.blocks || data.blocks.length === 0) {
+          container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">No blocks yet. Daemon is mining...</div>';
+          return;
+        }
+        var html = '';
+        data.blocks.forEach(function(b) {
+          var hash = (b.block_hash || b.hash || '...').substring(0, 24) + '...';
+          var validator = b.validator || b.miner || 'unknown';
+          var txs = b.tx_count || b.transactions_count || 0;
+          var reward = b.reward || b.reward_bait || 0;
+          html += '<div class="block-row">' +
+            '<span class="b-height">#' + (b.height || b.index || b.block_number || '?') + '</span>' +
+            '<span class="b-hash" title="' + (b.block_hash || b.hash || '') + '">' + hash + '</span>' +
+            '<span class="b-validator">' + validator + '</span>' +
+            '<span class="b-txs">' + txs + ' txs</span>' +
+            '<span class="b-reward">+' + parseFloat(reward).toFixed(4) + '</span>' +
+            '</div>';
+        });
+        container.innerHTML = html;
+      }).catch(function() {
+        document.getElementById('liveBlocks').innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">Waiting for blocks from daemon...</div>';
+      });
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // MAIN REFRESH LOOP
+    // ═══════════════════════════════════════════════════════════
+    function refreshAll() {
+      apiFetch('/api/v1/status').then(function(data) {
+        if (!apiConnected) {
+          apiConnected = true;
+          console.log('[bait] Connected to daemon API');
+        }
+        updateStatsBar(data);
+        updateDashboard(data);
+        updateBlocks();
+      }).catch(function(err) {
+        apiConnected = false;
+        console.warn('[bait] API fetch failed:', err.message);
+        setStatus('dashChainStatus', 'connecting');
+        setStatus('dashTokenStatus', 'connecting');
+        setStatus('dashConsensusStatus', 'connecting');
+        setStatus('dashAgentsStatus', 'connecting');
+        document.getElementById('liveStatus').innerHTML = '<span class="pulse" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--red);margin-right:4px;vertical-align:middle;"></span>Reconnecting';
+      });
+    }
+
+    // Initial fetch + auto-refresh
+    refreshAll();
+    refreshTimer = setInterval(refreshAll, refreshInterval);
+
+    // Clear interval when tab is not visible to save resources
+    document.addEventListener('visibilitychange', function() {
+      if (document.hidden) {
+        clearInterval(refreshTimer);
+      } else {
+        refreshAll();
+        refreshTimer = setInterval(refreshAll, refreshInterval);
+      }
+    });
   </script>
 
 </body>

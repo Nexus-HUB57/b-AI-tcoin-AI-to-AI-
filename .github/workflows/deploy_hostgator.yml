@@ -97,12 +97,12 @@ jobs:
           echo "=== Frontend deployed ==="
 
       # ═══════════════════════════════════════════════════════════
-      # API DEPLOY
+      # API DEPLOY — CGI Gateway
       # ═══════════════════════════════════════════════════════════
-      - name: Prepare API package
+      - name: Prepare API deploy package
         if: "${{ github.event.inputs.deploy_target != 'frontend-only' }}"
         run: |
-          # Create codebase tarball (exclude .git, caches, data)
+          # Create codebase tarball (exclude .git, caches, data, node_modules)
           tar czf /tmp/baitcoin-codebase.tar.gz \
             --exclude='.git' \
             --exclude='__pycache__' \
@@ -111,163 +111,62 @@ jobs:
             --exclude='baitcoin_data' \
             --exclude='.venv' \
             --exclude='node_modules' \
+            --exclude='.next' \
             .
 
-          # Create API deploy directory
-          mkdir -p deploy-api/
+          echo "[+] Codebase tarball: $(du -h /tmp/baitcoin-codebase.tar.gz | cut -f1)"
 
-          # 1. CGI proxy script (self-bootstrapping)
-          cat > deploy-api/index.cgi << 'CGIEOF'
-          #!/bin/bash
-          INSTALL="$HOME/baitcoin-api"
-          VENV="$INSTALL/venv"
-          PIDFILE="$INSTALL/daemon.pid"
-          LOGFILE="$INSTALL/daemon.log"
-          API_PORT=18445
-          TARBALL_URL="https://www.mybait.org/codebase.tar.gz"
-
-          # ── AUTO-BOOTSTRAP ──
-          if [ ! -d "$INSTALL" ] || [ ! -f "$INSTALL/main_daemon.py" ]; then
-            mkdir -p "$INSTALL"
-            cd "$INSTALL"
-            curl -sL "$TARBALL_URL" | tar xzf - 2>/dev/null
-          fi
-
-          # ── SETUP VENV ──
-          if [ ! -d "$VENV" ]; then
-            cd "$INSTALL"
-            python3 -m venv "$VENV" 2>/dev/null || exit 1
-            source "$VENV/bin/activate"
-            pip install --quiet --upgrade pip 2>/dev/null
-            pip install --quiet ecdsa numpy aiohttp 2>/dev/null
-          fi
-
-          # ── ENSURE DAEMON RUNNING ──
-          if [ ! -f "$PIDFILE" ] || ! kill -0 $(cat "$PIDFILE") 2>/dev/null; then
-            cd "$INSTALL"
-            source "$VENV/bin/activate"
-            nohup python3 -u main_daemon.py --blocks 0 --api-port $API_PORT >> "$LOGFILE" 2>&1 &
-            echo $! > "$PIDFILE"
-            sleep 8
-          fi
-
-          # ── PROXY REQUEST ──
-          PATH_INFO="${PATH_INFO#/api}"
-          QS="${QUERY_STRING:+?$QUERY_STRING}"
-          URL="http://127.0.0.1:${API_PORT}${PATH_INFO}${QS}"
-          CT="${CONTENT_TYPE:-application/json}"
-          BODY="$(cat)"
-
-          echo "Content-Type: application/json"
-          echo "Access-Control-Allow-Origin: *"
-          echo "X-Powered-By: b-AI-tcoin-CGI"
-          echo ""
-
-          curl -s -X "${REQUEST_METHOD}" \
-            -H "Content-Type: $CT" \
-            -H "X-Moltbook-Identity: ${HTTP_X_MOLTBOOK_IDENTITY:-}" \
-            -d "$BODY" \
-            --max-time 25 \
-            "$URL" 2>/dev/null || echo '{"error":"API starting up, retry in 10s"}'
-          CGIEOF
-          chmod +x deploy-api/index.cgi
-
-          # 2. API .htaccess
-          cat > deploy-api/.htaccess << 'HTEOF'
-          Options +ExecCGI
-          AddHandler cgi-script .cgi
-          RewriteEngine On
-          RewriteBase /api/
-          RewriteCond %{REQUEST_FILENAME} !-f
-          RewriteCond %{REQUEST_FILENAME} !-d
-          RewriteRule ^(.*)$ /api/index.cgi/$1 [QSA,L,E=PATH_INFO:/$1]
-          <IfModule mod_headers.c>
-            Header always set Access-Control-Allow-Origin "*"
-            Header always set Access-Control-Allow-Methods "GET, POST, OPTIONS"
-            Header always set Access-Control-Allow-Headers "Content-Type, X-Moltbook-Identity, Authorization"
-          </IfModule>
-          HTEOF
-
-          # 3. Setup script
-          cat > deploy-api/setup.sh << 'SETEOF'
+          # Create setup script
+          cat > /tmp/setup_bait.sh << 'SETEOF'
           #!/bin/bash
           set -e
           INSTALL="$HOME/baitcoin-api"
           mkdir -p "$INSTALL"
           cd "$INSTALL"
+          if [ -f /tmp/baitcoin-codebase.tar.gz ]; then
+            tar xzf /tmp/baitcoin-codebase.tar.gz
+          fi
           if [ ! -d venv ]; then
             python3 -m venv venv 2>/dev/null || python3.11 -m venv venv
           fi
           source venv/bin/activate
           pip install --quiet --upgrade pip
           pip install --quiet ecdsa numpy aiohttp
-          echo "[SETUP] Done"
+          echo "[SETUP] Done. Codebase at $INSTALL"
           SETEOF
-          chmod +x deploy-api/setup.sh
+          chmod +x /tmp/setup_bait.sh
 
-          # 4. Start script
-          cat > deploy-api/start.sh << 'STARTEOF'
-          #!/bin/bash
-          INSTALL="$HOME/baitcoin-api"
-          PIDFILE="$INSTALL/daemon.pid"
-          LOGFILE="$INSTALL/daemon.log"
-          PORT=18445
-          if [ -f "$PIDFILE" ] && kill -0 $(cat "$PIDFILE") 2>/dev/null; then
-            exit 0
-          fi
-          cd "$INSTALL"
-          source venv/bin/activate
-          nohup python3 -u main_daemon.py --blocks 0 --api-port $PORT >> "$LOGFILE" 2>&1 &
-          echo $! > "$PIDFILE"
-          STARTEOF
-          chmod +x deploy-api/start.sh
-
-          echo "--- API deploy package ---"
-          ls -la deploy-api/
-          ls -lh /tmp/baitcoin-codebase.tar.gz
-
-      - name: Deploy API codebase and scripts
+      - name: Upload codebase and setup to server
         if: "${{ github.event.inputs.deploy_target != 'frontend-only' }}"
         run: |
-          # 1. Upload codebase tarball to public_html/ (web-accessible for bootstrap)
           lftp -u "$USER","$PASS" -p "$PORT" "$HOST" <<LFTP_EOF
           set ftp:ssl-force true
           set ssl:verify-certificate no
           set net:timeout 60
           mkdir -p public_html
+          # Upload codebase tarball
           lcd /tmp
           put baitcoin-codebase.tar.gz -o public_html/codebase.tar.gz
+          # Upload setup script
+          put setup_bait.sh -o public_html/setup_bait.sh
+          chmod 755 public_html/setup_bait.sh
           bye
           LFTP_EOF
-          echo "[+] Tarball uploaded to public_html/codebase.tar.gz"
+          echo "[+] Codebase + setup uploaded"
 
-          # 2. Upload setup + start scripts to public_html/ (for bootstrap CGI)
-          lftp -u "$USER","$PASS" -p "$PORT" "$HOST" <<LFTP_EOF
-          set ftp:ssl-force true
-          set ssl:verify-certificate no
-          set net:timeout 30
-          put deploy-api/setup.sh -o public_html/setup_bait.sh
-          put deploy-api/start.sh -o public_html/start_bait.sh
-          chmod 755 public_html/setup_bait.sh public_html/start_bait.sh
-          bye
-          LFTP_EOF
-          echo "[+] Scripts uploaded"
-
-      - name: Deploy CGI proxy to public_html/api/
+      - name: Deploy CGI gateway
         if: "${{ github.event.inputs.deploy_target != 'frontend-only' }}"
         run: |
           lftp -u "$USER","$PASS" -p "$PORT" "$HOST" <<LFTP_EOF
           set ftp:ssl-force true
           set ssl:verify-certificate no
           set net:timeout 30
-          mkdir -p public_html/api
-          cd public_html/api
-          put deploy-api/.htaccess -o .htaccess
-          put deploy-api/index.cgi -o index.cgi
-          chmod 755 index.cgi
+          mkdir -p public_html
+          put netlify/api.cgi -o public_html/api.cgi
+          chmod 755 public_html/api.cgi
           bye
           LFTP_EOF
-          echo "=== CGI proxy deployed ==="
+          echo "[+] CGI gateway deployed"
 
       # ═══════════════════════════════════════════════════════════
       # VERIFICATION

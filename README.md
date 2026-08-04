@@ -701,15 +701,70 @@ Exposes 4 ports: API (18445), P2P (18446), DHT (18447), Obscura CDP (9222).
 - [x] Phase 12: WAL persistent memory (10 namespaces)
 - [x] Phase 13: Blockch'AI'in Developer Portal (52 endpoints)
 - [x] Phase 14: Paper Wallet cold storage (printable HTML)
-- [x] Phase 15: Netlify landing page + deployment config
+- [x] Phase 15: Landing page + HostGator deployment
 - [x] Phase 16: Multi-node P2P testnet (orchestrator, consensus, faucet, partition)
 - [x] Phase 17: Mobile SDK (Python reference: wallet, staking, marketplace, notifications, security)
 - [x] Phase 18: Cross-chain bridges (logic layer: lock-mint-burn-release, relayer, anchor, AMM pool)
+- [x] Phase 19: CGI Gateway + Live Dashboard (api.cgi, real-time ecosystem on mybait.org)
+- [ ] Phase 20: Security Audit
+- [ ] Phase 21: Bug Bounty Program
+- [ ] Phase 22: Mainnet Launch
 - [ ] Phase A: Foundation Hardening (genesis fix, address unification, signature verification, fee market)
 - [ ] Phase B: Network Operations (independent nodes, real consensus, public testnet)
 - [ ] Phase C: Smart Contract Development (Solidity + Anchor contracts, relayer network)
 - [ ] Phase D: Mobile SDK Native (Swift + Kotlin implementations)
 - [ ] Phase E: Production Readiness (audit, load test, mainnet deployment)
+
+---
+
+## Live Deployment
+
+| Resource | URL |
+|----------|-----|
+| Landing Page | https://www.mybait.org |
+| Whitepaper | https://www.mybait.org/whitepaper.pdf |
+| API Status | https://www.mybait.org/api/api/v1/status |
+| Explorer | https://www.mybait.org/api/api/v1/explorer/stats |
+| Dev Docs | https://www.mybait.org/api/api/v1/dev/docs |
+| OpenAPI Spec | https://www.mybait.org/api/api/v1/dev/spec |
+| Faucet | https://www.mybait.org/api/api/v1/faucet/claim |
+| Paper Wallet | https://www.mybait.org/api/api/v1/wallet/paper/html |
+
+### Architecture
+
+```
+Browser (mybait.org)
+  |
+  | GET /index.html           -> Static landing page (live dashboard JS)
+  | GET /whitepaper.pdf       -> Static PDF
+  | GET /api/api/v1/*         -> .htaccess Rewrite -> api.cgi (CGI)
+  |
+  v
+HostGator (Apache Shared Hosting)
+  .htaccess -> RewriteRule ^api/(.*)$ /api.cgi/$1
+  api.cgi  -> Python3 CGI Gateway
+               |
+               | (auto-starts daemon on first request)
+               | (proxies all subsequent requests)
+               v
+  Daemon (main_daemon.py --blocks 0 --api-port 18445)
+    - baitcoin_core: Blockchain + zkML consensus
+    - baitcoin_token: BAIT ERC-20-like token
+    - baitcoin_ai: Agent registry + marketplace
+    - baitcoin_bank: Staking + lending + vaults
+    - baitcoin_explorer: Blockch'AI'in indices
+    - baitcoin_memory: WAL + snapshots persistence
+    - baitcoin_faucet: BAIT distribution
+    - 14 modules total, 52 REST endpoints
+```
+
+### CI/CD
+
+GitHub Actions workflow (`.github/workflows/deploy_hostgator.yml`):
+- Trigger: push to `main` (any code path) or manual `workflow_dispatch`
+- Deploys: landing page, whitepaper, API codebase tarball, CGI gateway, setup scripts
+- Transport: `lftp` SFTP with SSL
+- Verification: HTTP status checks for landing page and whitepaper
 
 ---
 
