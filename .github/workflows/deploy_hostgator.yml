@@ -32,44 +32,108 @@ jobs:
         env:
           HG_CREDS: ${{ secrets.CREDENCIAIS_HOSTGATOR }}
         run: |
+          # ── Diagnostics (safe, no secret leakage) ──
+          echo "Secret length: ${#HG_CREDS} chars"
+          echo "First char code: $(echo -n "$HG_CREDS" | head -c1 | od -An -tx1 | tr -d ' ')"
+          echo "Contains pipe: $(echo "$HG_CREDS" | grep -c '|')"
+          echo "Contains colon: $(echo "$HG_CREDS" | grep -c ':')"
+          echo "Contains @: $(echo "$HG_CREDS" | grep -c '@')"
+          echo "Contains equals: $(echo "$HG_CREDS" | grep -c '=')"
+          echo "Contains brace: $(echo "$HG_CREDS" | grep -c '{\|}')"
+          echo "Newlines: $(echo "$HG_CREDS" | wc -l)"
+          echo ""
+
           # ── Check secret is not empty ──
           if [ -z "$HG_CREDS" ]; then
-            echo "::error::CREDENCIAIS_HOSTGATOR secret is EMPTY or not set."
-            echo ""
-            echo "=== COMO CONFIGURAR ==="
-            echo "Va em: GitHub Repo > Settings > Secrets and variables > Actions"
-            echo "Edite o secret CREDENCIAIS_HOSTGATOR com o valor:"
-            echo ''
-            echo '{"host":"SEU_IP_HOSTGATOR","user":"SEU_USUARIO","password":"SUA_SENHA","port":21,"remote_path":"public_html/"}'
-            echo ''
-            echo 'Ou formato alternativo (pipe-separated):'
-            echo 'HOST|USUARIO|SENHA|PORTA|CAMINHO'
-            echo 'Ex: 192.168.1.1|meuuser|minhasenha|21|public_html/'
+            echo "::error::CREDENCIAIS_HOSTGATOR esta vazio."
             exit 1
           fi
 
-          # ── Parse credentials (JSON or pipe-separated) ──
+          # ── Parse credentials — auto-detect format ──
+          HOST=""; USER=""; PASS=""; PORT="21"; REMOTE_PATH="public_html/"
+
+          # Format 1: JSON
           if echo "$HG_CREDS" | python3 -c "import sys,json; json.load(sys.stdin)" 2>/dev/null; then
-            echo "[+] Detected JSON format"
-            HOST=$(echo "$HG_CREDS" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('host',''))")
-            USER=$(echo "$HG_CREDS" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('user',''))")
-            PASS=$(echo "$HG_CREDS" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('password',''))")
-            PORT=$(echo "$HG_CREDS" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('port', 21))")
-            REMOTE_PATH=$(echo "$HG_CREDS" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('remote_path','public_html/'))")
-          else
-            echo "[+] Detected pipe-separated format"
+            echo "[+] Format: JSON"
+            HOST=$(echo "$HG_CREDS" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('host',d.get('server',d.get('hostname',''))))")
+            USER=$(echo "$HG_CREDS" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('user',d.get('username',d.get('login',''))))")
+            PASS=$(echo "$HG_CREDS" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('password',d.get('pass',d.get('passwd',''))))")
+            PORT=$(echo "$HG_CREDS" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('port',21))")
+            REMOTE_PATH=$(echo "$HG_CREDS" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('remote_path',d.get('path',d.get('target','public_html/'))))")
+
+          # Format 2: key=value (dotenv style, one per line)
+          elif echo "$HG_CREDS" | grep -qE '^(host|user|password|port|remote_path|server|username)=' ; then
+            echo "[+] Format: key=value (dotenv)"
+            HOST=$(echo "$HG_CREDS" | grep -iE '^host=' | head -1 | cut -d= -f2-)
+            HOST=${HOST:-$(echo "$HG_CREDS" | grep -iE '^server=' | head -1 | cut -d= -f2-)}
+            USER=$(echo "$HG_CREDS" | grep -iE '^(user|username)=' | head -1 | cut -d= -f2-)
+            PASS=$(echo "$HG_CREDS" | grep -iE '^pass' | head -1 | cut -d= -f2-)
+            PORT=$(echo "$HG_CREDS" | grep -iE '^port=' | head -1 | cut -d= -f2-)
+            PORT=${PORT:-21}
+            REMOTE_PATH=$(echo "$HG_CREDS" | grep -iE '^(remote_path|path|target)=' | head -1 | cut -d= -f2-)
+            REMOTE_PATH=${REMOTE_PATH:-public_html/}
+
+          # Format 3: pipe-separated
+          elif echo "$HG_CREDS" | grep -q '|'; then
+            echo "[+] Format: pipe-separated"
             IFS='|' read -r HOST USER PASS PORT REMOTE_PATH <<< "$HG_CREDS"
             PORT=${PORT:-21}
             REMOTE_PATH=${REMOTE_PATH:-public_html/}
+
+          # Format 4: URL-style  sftp://user:pass@host:port/path
+          elif echo "$HG_CREDS" | grep -qE '^(s?ftp|https?)://'; then
+            echo "[+] Format: URL"
+            HOST=$(echo "$HG_CREDS" | sed -E 's|^[^/]+://([^@]+)@([^/:]+).*|\2|')
+            CREDS_PART=$(echo "$HG_CREDS" | sed -E 's|^[^/]+://||; s|@.*||')
+            USER=$(echo "$CREDS_PART" | cut -d: -f1)
+            PASS=$(echo "$CREDS_PART" | cut -d: -f2-)
+            PORT=$(echo "$HG_CREDS" | grep -oP ':\K[0-9]+(?=/|$)' | tail -1)
+            PORT=${PORT:-21}
+            RPATH=$(echo "$HG_CREDS" | sed -E 's|^[^/]+://[^/]+||; s|^[^/]*||')
+            REMOTE_PATH=${RPATH:-public_html/}
+
+          # Format 5: colon-separated  host:port:user:pass
+          elif [ "$(echo "$HG_CREDS" | tr -cd ':' | wc -c)" -ge 2 ]; then
+            echo "[+] Format: colon-separated"
+            HOST=$(echo "$HG_CREDS" | cut -d: -f1)
+            PORT=$(echo "$HG_CREDS" | cut -d: -f2)
+            USER=$(echo "$HG_CREDS" | cut -d: -f3)
+            PASS=$(echo "$HG_CREDS" | cut -d: -f4-)
+            REMOTE_PATH=${REMOTE_PATH:-public_html/}
+
+          else
+            echo "[!] Format: UNKNOWN — could not auto-detect"
+            echo ""
+            echo "Supported formats:"
+            echo '  1. JSON:  {"host":"...","user":"...","password":"..."}'
+            echo '  2. Dotenv: host=...\nuser=...\npassword=...'
+            echo '  3. Pipe:   host|user|password|port|path'
+            echo '  4. URL:    sftp://user:pass@host:port/path'
+            echo '  5. Colon:  host:port:user:password'
+            echo ""
+            echo "Por favor, atualize o secret CREDENCIAIS_HOSTGATOR"
+            echo "em Settings > Secrets and variables > Actions"
+            exit 1
           fi
 
+          echo ""
           echo "Host: $HOST"
-          echo "User: $USER"
+          echo "User length: ${#USER}"
+          echo "Pass length: ${#PASS}"
           echo "Port: $PORT"
           echo "Remote: $REMOTE_PATH"
 
           if [ -z "$HOST" ] || [ -z "$USER" ] || [ -z "$PASS" ]; then
-            echo "::error::Campos obrigatorios ausentes: host, user, password"
+            echo ""
+            echo "::error::Campos obrigatorios ausentes apos parse."
+            echo "Host empty: $([ -z "$HOST" ] && echo YES || echo no)"
+            echo "User empty: $([ -z "$USER" ] && echo YES || echo no)"
+            echo "Pass empty: $([ -z "$PASS" ] && echo YES || echo no)"
+            echo ""
+            echo "Revise o formato do secret. Formatos aceitos:"
+            echo '  JSON:    {"host":"IP","user":"LOGIN","password":"SENHA"}'
+            echo '  Dotenv:  host=IP\nuser=LOGIN\npassword=SENHA'
+            echo '  Pipe:    IP|LOGIN|SENHA'
             exit 1
           fi
 
