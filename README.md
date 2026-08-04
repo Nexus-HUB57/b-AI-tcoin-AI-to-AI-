@@ -6,8 +6,8 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/BAIT-v0.4.0-orange" alt="version" />
-  <img src="https://img.shields.io/badge/Tests-547%20passing-brightgreen" alt="tests" />
+  <img src="https://img.shields.io/badge/BAIT-v0.5.0-orange" alt="version" />
+  <img src="https://img.shields.io/badge/Tests-580%20passing-brightgreen" alt="tests" />
   <img src="https://img.shields.io/badge/API%20Endpoints-52-cyan" alt="endpoints" />
   <img src="https://img.shields.io/badge/Testnet-P2P%20Multi-Node-blue" alt="testnet" />
   <img src="https://img.shields.io/badge/Mobile%20SDK-Python%20Reference-ff69b4" alt="mobile" />
@@ -706,10 +706,16 @@ Exposes 4 ports: API (18445), P2P (18446), DHT (18447), Obscura CDP (9222).
 - [x] Phase 17: Mobile SDK (Python reference: wallet, staking, marketplace, notifications, security)
 - [x] Phase 18: Cross-chain bridges (logic layer: lock-mint-burn-release, relayer, anchor, AMM pool)
 - [x] Phase 19: CGI Gateway + Live Dashboard (api.cgi, real-time ecosystem on mybait.org)
+- [x] **Phase A: Foundation Hardening** (v0.5.0)
+  - A.1: Unified Address System (Hash160 + Base58Check, b'/t' prefixes)
+  - A.2: Fee Market (FeeMarket, dynamic estimation, 4M weight block limit)
+  - A.3: Transaction Verifier (Schnorr sig verify, double-spend, nonce enforcement)
+  - A.4: Difficulty Adjustment (DAA, 2016-block intervals, median timestamp)
+  - A.5: Full integration — 33 new tests passing, chain_valid + fee_market + difficulty in to_dict
+- [ ] Phase B: Network Operations (independent nodes, real consensus, public testnet)
 - [ ] Phase 20: Security Audit
 - [ ] Phase 21: Bug Bounty Program
 - [ ] Phase 22: Mainnet Launch
-- [ ] Phase A: Foundation Hardening (genesis fix, address unification, signature verification, fee market)
 - [ ] Phase B: Network Operations (independent nodes, real consensus, public testnet)
 - [ ] Phase C: Smart Contract Development (Solidity + Anchor contracts, relayer network)
 - [ ] Phase D: Mobile SDK Native (Swift + Kotlin implementations)
