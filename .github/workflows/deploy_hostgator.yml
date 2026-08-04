@@ -1,0 +1,65 @@
+name: Deploy to HostGator
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'netlify/**'
+      - 'docs/whitepaper/**'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: hostgator-deploy
+      cancel-in-progress: true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Prepare deploy files
+        run: |
+          mkdir -p deploy/
+          cp netlify/index.html deploy/index.html
+          cp netlify/.htaccess deploy/.htaccess
+          cp docs/whitepaper/bAIcoin_Whitepaper.pdf deploy/whitepaper.pdf
+          echo '--- Deploy files ---'
+          ls -la deploy/
+
+      - name: Deploy to HostGator via SFTP
+        env:
+          HG_CREDS: ${{ secrets.CREDENCIAIS_HOSTGATOR }}
+        run: |
+          echo "$HG_CREDS" > /tmp/hg_creds.json
+          HOST=$(python3 -c "import json; d=json.load(open('/tmp/hg_creds.json')); print(d.get('host',''))")
+          USER=$(python3 -c "import json; d=json.load(open('/tmp/hg_creds.json')); print(d.get('user',''))")
+          PASS=$(python3 -c "import json; d=json.load(open('/tmp/hg_creds.json')); print(d.get('password',''))")
+          PORT=$(python3 -c "import json; d=json.load(open('/tmp/hg_creds.json')); print(d.get('port', 21))")
+          REMOTE_PATH=$(python3 -c "import json; d=json.load(open('/tmp/hg_creds.json')); print(d.get('remote_path','public_html/'))")
+          
+          echo "Host: $HOST"
+          echo "User: $USER"
+          echo "Port: $PORT"
+          echo "Remote: $REMOTE_PATH"
+          
+          if [ -z "$HOST" ] || [ -z "$USER" ] || [ -z "$PASS" ]; then
+            echo "ERROR: Missing host, user or password in CREDENCIAIS_HOSTGATOR"
+            exit 1
+          fi
+          
+          # Install lftp for SFTP support
+          sudo apt-get update -qq && sudo apt-get install -y -qq lftp
+          
+          lftp -u "$USER","$PASS" -p "$PORT" "$HOST" <<EOF
+          set ftp:ssl-force true
+          set ssl:verify-certificate no
+          mirror --reverse --overwrite --verbose deploy/ $REMOTE_PATH
+          bye
+          EOF
+          
+          echo "=== Deploy concluido com sucesso ==="
+          
+          # Cleanup
+          rm -f /tmp/hg_creds.json
