@@ -1,0 +1,260 @@
+name: Deploy AI Store + b'AI'tcoin to HostGator
+
+on:
+  workflow_dispatch:
+    inputs:
+      deploy_target:
+        description: 'What to deploy'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - aistore-only
+          - baitcoin-only
+  repository_dispatch:
+    types: [deploy-aistore]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: hostgator-full-deploy
+      cancel-in-progress: true
+
+    steps:
+      - name: Parse credentials
+        env:
+          HG_CREDS: ${{ secrets.CREDENCIAIS_HOSTGATOR }}
+        run: |
+          eval $(python3 -c "
+          import os, json
+          c = json.loads(os.environ['HG_CREDS'])
+          print(f\"HOST={c.get('host','')}\")
+          print(f\"USER={c.get('user','')}\")
+          print(f\"PASS={c.get('password','')}\")
+          print(f\"PORT={c.get('port', 21)}\")
+          ")
+          if [ -z "$HOST" ] || [ -z "$USER" ] || [ -z "$PASS" ]; then
+            echo "::error::Missing credentials"; exit 1
+          fi
+          echo "HOST=$HOST" >> $GITHUB_ENV
+          echo "USER=$USER" >> $GITHUB_ENV
+          echo "PASS=$PASS" >> $GITHUB_ENV
+          echo "PORT=$PORT" >> $GITHUB_ENV
+          echo "[+] Parsed: $HOST:$PORT user=${#USER}c"
+
+      - name: Install lftp
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq lftp
+
+      # ═══════════════════════════════════════════════════════════
+      # b'AI'tcoin DEPLOY (existing workflow)
+      # ═══════════════════════════════════════════════════════════
+      - name: Checkout b'AI'tcoin
+        if: "${{ github.event.inputs.deploy_target != 'aistore-only' }}"
+        uses: actions/checkout@v4
+
+      - name: Deploy b'AI'tcoin frontend
+        if: "${{ github.event.inputs.deploy_target != 'aistore-only' }}"
+        run: |
+          mkdir -p deploy-frontend/
+          cp netlify/index.html deploy-frontend/index.html 2>/dev/null || true
+          cp netlify/.htaccess deploy-frontend/.htaccess 2>/dev/null || true
+          cp docs/whitepaper/bAIcoin_Whitepaper.pdf deploy-frontend/whitepaper.pdf 2>/dev/null || true
+
+          lftp -u "$USER","$PASS" -p "$PORT" "$HOST" <<LFTP_EOF
+          set ftp:ssl-force true
+          set ssl:verify-certificate no
+          set net:timeout 30
+          mirror --reverse --overwrite --verbose --no-perms deploy-frontend/ public_html/
+          bye
+          LFTP_EOF
+          echo "[+] b'AI'tcoin frontend deployed"
+
+      - name: Deploy b'AI'tcoin API
+        if: "${{ github.event.inputs.deploy_target != 'aistore-only' }}"
+        run: |
+          tar czf /tmp/baitcoin-codebase.tar.gz \
+            --exclude='.git' --exclude='__pycache__' --exclude='.pytest_cache' \
+            --exclude='*.pyc' --exclude='baitcoin_data' --exclude='.venv' \
+            --exclude='node_modules' --exclude='.next' .
+
+          lftp -u "$USER","$PASS" -p "$PORT" "$HOST" <<LFTP_EOF
+          set ftp:ssl-force true
+          set ssl:verify-certificate no
+          set net:timeout 60
+          cd /tmp
+          put baitcoin-codebase.tar.gz -o public_html/codebase.tar.gz
+          put baitcoin-codebase.tar.gz -o public_html/baitcoin-codebase.tar.gz
+          bye
+          LFTP_EOF
+
+          lftp -u "$USER","$PASS" -p "$PORT" "$HOST" <<LFTP_EOF
+          set ftp:ssl-force true
+          set ssl:verify-certificate no
+          set net:timeout 30
+          put netlify/api.cgi -o public_html/api.cgi
+          chmod 755 public_html/api.cgi
+          bye
+          LFTP_EOF
+          echo "[+] b'AI'tcoin API deployed"
+
+      # ═══════════════════════════════════════════════════════════
+      # AI Store DEPLOY
+      # ═══════════════════════════════════════════════════════════
+      - name: Checkout AI Store
+        if: "${{ github.event.inputs.deploy_target != 'baitcoin-only' }}"
+        uses: actions/checkout@v4
+        with:
+          repository: Nexus-HUB57/AI_Store
+          path: aistore
+          token: ${{ secrets.CREDENCIAIS_HOSTGATOR }}
+
+      - name: Setup Node.js for AI Store
+        if: "${{ github.event.inputs.deploy_target != 'baitcoin-only' }}"
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Build AI Store
+        if: "${{ github.event.inputs.deploy_target != 'baitcoin-only' }}"
+        run: |
+          cd aistore
+          npm ci 2>&1 | tail -3
+          npx prisma generate
+
+          # Seed DB if empty
+          COUNT=$(node -e "const{PrismaClient}=require('@prisma/client');new PrismaClient().product.count().then(c=>{console.log(c);process.exit(c>0?0:1)})" 2>/dev/null || echo "0")
+          if [ "$COUNT" = "0" ]; then
+            echo "[+] Seeding 1504 products..."
+            npx tsx scripts/seed-full.ts
+          fi
+
+          # Build
+          NODE_ENV=production \
+          NEXT_PUBLIC_BASE_PATH=/aistore \
+ NEXT_PUBLIC_BASE_URL=https://www.mybait.org/aistore \
+          BUILD_TIME=$(date -u) \
+          npx next build 2>&1 | tail -15
+
+          # Package standalone
+          mkdir -p deploy-pkg/standalone
+          cp -r .next/standalone/* deploy-pkg/standalone/
+          mkdir -p deploy-pkg/standalone/.next/static
+          cp -r .next/static/* deploy-pkg/standalone/.next/static/
+          mkdir -p deploy-pkg/standalone/public
+          cp -r public/* deploy-pkg/standalone/public/ 2>/dev/null || true
+          mkdir -p deploy-pkg/standalone/prisma
+          cp prisma/schema.prisma deploy-pkg/standalone/prisma/
+          mkdir -p deploy-pkg/standalone/db
+          cp db/custom.db deploy-pkg/standalone/db/custom.db
+          cp package.json deploy-pkg/standalone/
+
+          cp hostgator/api.cgi deploy-pkg/
+          cp hostgator/.htaccess deploy-pkg/
+          cp hostgator/setup_aistore.sh deploy-pkg/
+          chmod +x deploy-pkg/api.cgi deploy-pkg/setup_aistore.sh
+
+          cd deploy-pkg/standalone
+          tar czf ../aistore-codebase.tar.gz .
+          cd ../..
+
+          echo "[+] AI Store package: $(du -h deploy-pkg/aistore-codebase.tar.gz | cut -f1)"
+
+      - name: Deploy AI Store to HostGator
+        if: "${{ github.event.inputs.deploy_target != 'baitcoin-only' }}"
+        run: |
+          cd aistore/deploy-pkg
+
+          lftp -u "$USER","$PASS" -p "$PORT" "$HOST" <<LFTP_EOF
+          set ftp:ssl-force true
+          set ssl:verify-certificate no
+          set net:timeout 120
+
+          # Create aistore directory and upload CGI + routing
+          mkdir -p public_html/aistore
+
+          put api.cgi -o public_html/aistore/api.cgi
+          chmod 755 public_html/aistore/api.cgi
+
+          put .htaccess -o public_html/aistore/.htaccess
+
+          put setup_aistore.sh -o public_html/aistore/setup_aistore.sh
+          chmod 755 public_html/aistore/setup_aistore.sh
+
+          # Upload codebase tarball
+          put aistore-codebase.tar.gz -o public_html/aistore-codebase.tar.gz
+
+          bye
+          LFTP_EOF
+          echo "[+] AI Store deployed to HostGator"
+
+      # ═══════════════════════════════════════════════════════════
+      # Update root .htaccess (both projects)
+      # ═══════════════════════════════════════════════════════════
+      - name: Update root .htaccess
+        run: |
+          lftp -u "$USER","$PASS" -p "$PORT" "$HOST" <<'LFTP_EOF'
+          set ftp:ssl-force true
+          set ssl:verify-certificate no
+          set net:timeout 30
+
+          # Upload combined root .htaccess
+          cat > /tmp/root_htaccess.txt << 'HTACCESS'
+          # b'AI'tcoin + AI Store — Combined Root .htaccess
+
+          <IfModule mod_rewrite.c>
+            RewriteEngine On
+
+            # b'AI'tcoin API routing (EXCLUDE /aistore/)
+            RewriteCond %{REQUEST_URI} !^/aistore
+            RewriteRule ^api/(.*)$ /api.cgi/$1 [QSA,L,E=PATH_INFO:/$1]
+          </IfModule>
+
+          <IfModule mod_headers.c>
+            Header set X-Frame-Options "DENY"
+            Header set X-Content-Type-Options "nosniff"
+          </IfModule>
+
+          <IfModule mod_deflate.c>
+            AddOutputFilterByType DEFLATE text/html text/css application/javascript application/json
+          </IfModule>
+
+          <IfModule mod_expires.c>
+            ExpiresActive On
+            ExpiresByType application/pdf "access plus 1 month"
+          </IfModule>
+
+          ErrorDocument 404 /index.html
+          HTACCESS
+
+          put -o public_html/.htaccess /tmp/root_htaccess.txt
+
+          bye
+          LFTP_EOF
+          echo "[+] Root .htaccess updated"
+
+      # ═══════════════════════════════════════════════════════════
+      # VERIFICATION
+      # ═══════════════════════════════════════════════════════════
+      - name: Verify deployment
+        if: always()
+        run: |
+          echo ""
+          echo "========== DEPLOY VERIFICATION =========="
+
+          echo -n "  b'AI'tcoin landing: "; curl -s -o /dev/null -w "HTTP %{http_code}\n" --max-time 10 "https://www.mybait.org/" 2>/dev/null || echo "TIMEOUT"
+          echo -n "  b'AI'tcoin API:    "; curl -s -o /dev/null -w "HTTP %{http_code}\n" --max-time 15 "https://www.mybait.org/api/api/v1/status" 2>/dev/null || echo "TIMEOUT"
+          echo -n "  AI Store:          "; curl -s -o /dev/null -w "HTTP %{http_code}\n" --max-time 15 "https://www.mybait.org/aistore/" 2>/dev/null || echo "TIMEOUT"
+          echo -n "  AI Store Health:   "; curl -s -o /dev/null -w "HTTP %{http_code}\n" --max-time 20 "https://www.mybait.org/aistore/api/health" 2>/dev/null || echo "TIMEOUT"
+
+          echo ""
+          echo "========================================"
+          echo "  b'AI'tcoin: https://www.mybait.org"
+          echo "  b'AI't API: https://www.mybait.org/api/api/v1/status"
+          echo "  AI Store:  https://www.mybait.org/aistore/"
+          echo "  Store API: https://www.mybait.org/aistore/api/health"
+          echo "========================================"
+          echo "  Note: First AI Store visit triggers Node.js"
+          echo "  setup (~30s). Subsequent visits are fast."
+          echo "========================================"
