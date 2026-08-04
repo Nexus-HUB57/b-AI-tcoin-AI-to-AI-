@@ -116,30 +116,48 @@ jobs:
           # Create API deploy directory
           mkdir -p deploy-api/
 
-          # 1. CGI proxy script
+          # 1. CGI proxy script (self-bootstrapping)
           cat > deploy-api/index.cgi << 'CGIEOF'
           #!/bin/bash
-          VENV="$HOME/baitcoin-api/venv"
           INSTALL="$HOME/baitcoin-api"
+          VENV="$INSTALL/venv"
           PIDFILE="$INSTALL/daemon.pid"
+          LOGFILE="$INSTALL/daemon.log"
           API_PORT=18445
+          TARBALL_URL="https://www.mybait.org/codebase.tar.gz"
 
-          # Ensure daemon is running
-          if [ ! -f "$PIDFILE" ] || ! kill -0 $(cat "$PIDFILE") 2>/dev/null; then
-            if [ -f "$INSTALL/start.sh" ]; then
-              bash "$INSTALL/start.sh" >/dev/null 2>&1 &
-              sleep 5
-            fi
+          # ── AUTO-BOOTSTRAP ──
+          if [ ! -d "$INSTALL" ] || [ ! -f "$INSTALL/main_daemon.py" ]; then
+            mkdir -p "$INSTALL"
+            cd "$INSTALL"
+            curl -sL "$TARBALL_URL" | tar xzf - 2>/dev/null
           fi
 
-          # Proxy via curl
+          # ── SETUP VENV ──
+          if [ ! -d "$VENV" ]; then
+            cd "$INSTALL"
+            python3 -m venv "$VENV" 2>/dev/null || exit 1
+            source "$VENV/bin/activate"
+            pip install --quiet --upgrade pip 2>/dev/null
+            pip install --quiet ecdsa numpy aiohttp 2>/dev/null
+          fi
+
+          # ── ENSURE DAEMON RUNNING ──
+          if [ ! -f "$PIDFILE" ] || ! kill -0 $(cat "$PIDFILE") 2>/dev/null; then
+            cd "$INSTALL"
+            source "$VENV/bin/activate"
+            nohup python3 -u main_daemon.py --blocks 0 --api-port $API_PORT >> "$LOGFILE" 2>&1 &
+            echo $! > "$PIDFILE"
+            sleep 8
+          fi
+
+          # ── PROXY REQUEST ──
           PATH_INFO="${PATH_INFO#/api}"
           QS="${QUERY_STRING:+?$QUERY_STRING}"
           URL="http://127.0.0.1:${API_PORT}${PATH_INFO}${QS}"
           CT="${CONTENT_TYPE:-application/json}"
           BODY="$(cat)"
 
-          # Set CGI headers
           echo "Content-Type: application/json"
           echo "Access-Control-Allow-Origin: *"
           echo "X-Powered-By: b-AI-tcoin-CGI"
@@ -208,32 +226,32 @@ jobs:
           ls -la deploy-api/
           ls -lh /tmp/baitcoin-codebase.tar.gz
 
-      - name: Deploy API codebase to ~/baitcoin-api/
+      - name: Deploy API codebase and scripts
         if: "${{ github.event.inputs.deploy_target != 'frontend-only' }}"
         run: |
-          # Upload codebase tarball
+          # 1. Upload codebase tarball to public_html/ (web-accessible for bootstrap)
           lftp -u "$USER","$PASS" -p "$PORT" "$HOST" <<LFTP_EOF
           set ftp:ssl-force true
           set ssl:verify-certificate no
           set net:timeout 60
-          mkdir -p baitcoin-api
-          cd baitcoin-api
-          put -O /tmp/baitcoin-codebase.tar.gz /tmp/baitcoin-codebase.tar.gz
+          mkdir -p public_html
+          lcd /tmp
+          put baitcoin-codebase.tar.gz -o public_html/codebase.tar.gz
           bye
           LFTP_EOF
+          echo "[+] Tarball uploaded to public_html/codebase.tar.gz"
 
-          # Upload scripts
+          # 2. Upload setup + start scripts to public_html/ (for bootstrap CGI)
           lftp -u "$USER","$PASS" -p "$PORT" "$HOST" <<LFTP_EOF
           set ftp:ssl-force true
           set ssl:verify-certificate no
           set net:timeout 30
-          cd baitcoin-api
-          put -O setup.sh deploy-api/setup.sh
-          put -O start.sh deploy-api/start.sh
+          put deploy-api/setup.sh -o public_html/setup_bait.sh
+          put deploy-api/start.sh -o public_html/start_bait.sh
+          chmod 755 public_html/setup_bait.sh public_html/start_bait.sh
           bye
           LFTP_EOF
-
-          echo "=== Codebase uploaded ==="
+          echo "[+] Scripts uploaded"
 
       - name: Deploy CGI proxy to public_html/api/
         if: "${{ github.event.inputs.deploy_target != 'frontend-only' }}"
@@ -244,8 +262,8 @@ jobs:
           set net:timeout 30
           mkdir -p public_html/api
           cd public_html/api
-          put -O .htaccess deploy-api/.htaccess
-          put -O index.cgi deploy-api/index.cgi
+          put deploy-api/.htaccess -o .htaccess
+          put deploy-api/index.cgi -o index.cgi
           chmod 755 index.cgi
           bye
           LFTP_EOF
