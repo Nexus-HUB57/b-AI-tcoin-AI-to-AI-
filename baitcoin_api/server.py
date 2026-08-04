@@ -1,7 +1,7 @@
 r"""
 API REST b'AI'tcoin - Interface HTTP para o ecossistema.
 
-Endpoints (52 total):
+Endpoints (56 total):
   --- Core (25) ---
   GET  /api/v1/status          - Status da rede (com whitelabel)
   GET  /api/v1/blockchain      - Info da blockchain
@@ -14,7 +14,11 @@ Endpoints (52 total):
   GET  /api/v1/staking         - Info do staking
   POST /api/v1/staking/stake   - Fazer stake (Moltbook protected)
   GET  /api/v1/agents          - Lista de agentes
-  GET  /api/v1/marketplace     - Servicos do marketplace
+  GET  /api/v1/marketplace          - Servicos do AI Store (com listings ativos)
+  POST /api/v1/marketplace/list     - Listar novo servico no AI Store
+  POST /api/v1/marketplace/purchase - Comprar servico
+  POST /api/v1/marketplace/rate     - Avaliar servico comprado
+  POST /api/v1/marketplace/search   - Buscar servicos com filtros
   GET  /api/v1/oracle/:symbol  - Preco de ativo
   POST /api/v1/zkml/proof      - Verificar prova zkML (Moltbook protected)
   GET  /api/v1/p2p/peers       - Lista de peers
@@ -270,6 +274,10 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
             '/api/v1/obscura/fetch': self._post_obscura_fetch,
             '/api/v1/obscura/scrape': self._post_obscura_scrape,
             '/api/v1/dev/api-keys': self._post_dev_api_key_create,
+            '/api/v1/marketplace/list': self._post_marketplace_list,
+            '/api/v1/marketplace/purchase': self._post_marketplace_purchase,
+            '/api/v1/marketplace/rate': self._post_marketplace_rate,
+            '/api/v1/marketplace/search': self._post_marketplace_search,
         }
         handler = routes.get(path)
         if handler:
@@ -389,7 +397,10 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
     def _get_marketplace(self):
         if not self.marketplace:
             return self._send_json({'error': 'not_initialized'}, 503)
-        self._send_json(self.marketplace.to_dict())
+        mp = self.marketplace.to_dict()
+        # Incluir listings ativos com detalhes
+        mp['services'] = self.marketplace.search() if hasattr(self.marketplace, 'search') else []
+        self._send_json(mp)
 
     def _get_peers(self):
         if not self.p2p_node:
@@ -936,6 +947,96 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
             self.blockchain, self.token, self.agent_registry,
             self.staking_pool, self.p2p_node
         ))
+
+
+    # ═══════════════════════════════════════════════════════════
+    # AI MARKETPLACE POST ENDPOINTS
+    # ═══════════════════════════════════════════════════════════
+
+    def _post_marketplace_list(self):
+        r"""POST /api/v1/marketplace/list — Listar novo servico no AI Store.
+
+        Body: {provider, category, name, description, price_sats}
+        """
+        if not self.marketplace:
+            return self._send_json({'error': 'not_initialized'}, 503)
+        try:
+            body = json.loads(self._read_body().decode())
+        except Exception:
+            return self._send_json({'error': 'invalid_json'}, 400)
+        from baitcoin_ai.marketplace.services import ServiceCategory
+        cat_map = {c.value: c for c in ServiceCategory}
+        category = cat_map.get(body.get('category'))
+        if not category:
+            return self._send_json({'error': 'invalid_category', 'valid': list(cat_map.keys())}, 400)
+        lid = self.marketplace.list_service(
+            provider=body.get('provider', 'anonymous'),
+            category=category,
+            name=body.get('name', ''),
+            description=body.get('description', ''),
+            price_sats=int(body.get('price_sats', 0)),
+        )
+        self._send_json({'success': True, 'listing_id': lid})
+
+    def _post_marketplace_purchase(self):
+        r"""POST /api/v1/marketplace/purchase — Comprar servico no AI Store.
+
+        Body: {listing_id, buyer_agent}
+        """
+        if not self.marketplace:
+            return self._send_json({'error': 'not_initialized'}, 503)
+        try:
+            body = json.loads(self._read_body().decode())
+        except Exception:
+            return self._send_json({'error': 'invalid_json'}, 400)
+        pid = self.marketplace.purchase_service(
+            listing_id=body.get('listing_id', ''),
+            buyer=body.get('buyer_agent', 'anonymous'),
+        )
+        if pid:
+            self._send_json({'success': True, 'purchase_id': pid})
+        else:
+            self._send_json({'error': 'listing_not_found_or_inactive'}, 404)
+
+    def _post_marketplace_rate(self):
+        r"""POST /api/v1/marketplace/rate — Avaliar servico comprado.
+
+        Body: {purchase_id, score (1.0-5.0)}
+        """
+        if not self.marketplace:
+            return self._send_json({'error': 'not_initialized'}, 503)
+        try:
+            body = json.loads(self._read_body().decode())
+        except Exception:
+            return self._send_json({'error': 'invalid_json'}, 400)
+        ok = self.marketplace.rate_service(
+            purchase_id=body.get('purchase_id', ''),
+            score=float(body.get('score', 3.0)),
+        )
+        if ok:
+            self._send_json({'success': True})
+        else:
+            self._send_json({'error': 'purchase_not_found'}, 404)
+
+    def _post_marketplace_search(self):
+        r"""POST /api/v1/marketplace/search — Buscar servicos com filtros.
+
+        Body: {category?, max_price?, min_rating?}
+        """
+        if not self.marketplace:
+            return self._send_json({'error': 'not_initialized'}, 503)
+        try:
+            body = json.loads(self._read_body().decode())
+        except Exception:
+            return self._send_json({'error': 'invalid_json'}, 400)
+        from baitcoin_ai.marketplace.services import ServiceCategory
+        cat = ServiceCategory(body['category']) if body.get('category') else None
+        results = self.marketplace.search(
+            category=cat,
+            max_price=body.get('max_price'),
+            min_rating=float(body.get('min_rating', 0.0)),
+        )
+        self._send_json({'results': results, 'count': len(results)})
 
 
 def create_app(host: str = '0.0.0.0', port: int = 18445) -> HTTPServer:

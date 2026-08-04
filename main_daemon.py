@@ -54,6 +54,8 @@ class BAITDaemon:
         self.staking_pool = None
         self.explorer_index = None
         self.persistent_state = None
+        self.marketplace = None
+        self.oracle = None
 
     def initialize(self) -> None:
         r"""Inicializa todos os modulos do ecossistema."""
@@ -85,10 +87,23 @@ class BAITDaemon:
         self.persistent_state = PersistentState(data_path=self.data_path)
         logger.info(f"Memoria persistente: {self.data_path}")
 
-        # 6. Tentar restaurar estado persistido
+        # 6. AI Marketplace (servicos AI comprados/vendidos em BAIT)
+        from baitcoin_ai.marketplace.services import AIMarketplace, ServiceCategory
+        self.marketplace = AIMarketplace()
+        self._seed_marketplace()
+        logger.info(f"AI Marketplace inicializado: {self.marketplace.to_dict()}")
+
+        # 7. Price Oracle
+        from baitcoin_ai.oracle.feed import PriceOracle
+        self.oracle = PriceOracle()
+        self.oracle.register_oracle("chimera7_oracle", reputation=85.0)
+        self._seed_oracle()
+        logger.info(f"Price Oracle inicializado: {self.oracle.to_dict()}")
+
+        # 8. Tentar restaurar estado persistido
         self._restore_state()
 
-        # 7. Blockch'AI'in Explorer indices
+        # 9. Blockch'AI'in Explorer indices
         from baitcoin_explorer.indices import BlockchAInIndex
         self.explorer_index = BlockchAInIndex()
         self.explorer_index.rebuild(
@@ -138,6 +153,52 @@ class BAITDaemon:
                 logger.debug(f"Estado persistido apos bloco #{block_height}")
         except Exception as e:
             logger.warning(f"Erro ao persistir estado: {e}")
+
+    def _seed_marketplace(self) -> None:
+        r"""Popula o marketplace com servicos fundadores."""
+        from baitcoin_ai.marketplace.services import ServiceCategory
+        services = [
+            ("chimera7", ServiceCategory.ML_INFERENCE,
+             "GPT-7 Inference",
+             "Inference de linguagem natural com modelo GPT-7 otimizado para blockchain",
+             5000),
+            ("chimera7", ServiceCategory.BLOCK_VALIDATION,
+             "zkML Block Validator",
+             "Validacao de blocos com prova zkML completa e verificacao Schnorr",
+             8000),
+            ("chimera7_oracle", ServiceCategory.ORACLE_DATA,
+             "BTC/USD Price Feed",
+             "Feed de preco BTC/USD atualizado a cada 30s com 3 fontes agregadas",
+             2000),
+            ("chimera7_oracle", ServiceCategory.MARKET_ANALYSIS,
+             "DeFi Market Scanner",
+             "Scanner de mercado DeFi com analise de liquidez e spread",
+             3500),
+            ("chimera7_defi", ServiceCategory.SMART_CONTRACT,
+             "Anchor Contract Auditor",
+             "Auditoria automatica de contratos Anchor com deteccao de vulnerabilidades",
+             10000),
+            ("chimera7_defi", ServiceCategory.DATA_PROCESSING,
+             "On-Chain Analytics Engine",
+             "Motor de analise on-chain com metricas de saude da rede",
+             4000),
+            ("chimera7", ServiceCategory.DATA_PROCESSING,
+             "Obscura Deep Scrape",
+             "Scraping profundo via Obscura headless browser (Rust/V8/CDP)",
+             6000),
+        ]
+        for provider, category, name, desc, price in services:
+            self.marketplace.list_service(provider, category, name, desc, price)
+        logger.info(f"Marketplace seeded: {len(services)} servicos listados")
+
+    def _seed_oracle(self) -> None:
+        r"""Popula o oracle com precos iniciais."""
+        import random
+        base_prices = {"BTC": 67500.0, "ETH": 3450.0, "BAIT": 0.0012, "SOL": 178.0}
+        for symbol, base in base_prices.items():
+            price = base * (1 + random.uniform(-0.02, 0.02))
+            self.oracle.submit_price("chimera7_oracle", symbol, round(price, 2))
+        logger.info(f"Oracle seeded: {len(base_prices)} simbolos")
 
     def _register_genesis_agents(self) -> None:
         r"""Registra os agentes fundadores do ecossistema."""
@@ -214,6 +275,11 @@ class BAITDaemon:
     def get_status(self) -> dict:
         r"""Retorna status completo do daemon."""
         chain_valid = self.blockchain.validate_chain()
+        mp_data = self.marketplace.to_dict() if self.marketplace else {}
+        # Incluir listings ativos no status para o dashboard
+        if self.marketplace:
+            mp_data['services'] = self.marketplace.search()
+        or_data = self.oracle.to_dict() if self.oracle else {}
         return {
             "network": "b'AI'tcoin Mainnet",
             "chain_height": self.blockchain.height,
@@ -226,6 +292,8 @@ class BAITDaemon:
             "agents_registered": len(self.agent_registry.agents),
             "explorer_index": self.explorer_index.stats,
             "token_minted_bait": self.token.total_minted / 100_000_000,
+            "marketplace": mp_data,
+            "oracle": or_data,
             "timestamp": time.time(),
         }
 
@@ -243,16 +311,46 @@ async def run_daemon(num_blocks: int = 0, data_path: str = "~/.baitcoin/memory",
     daemon.initialize()
     daemon._register_genesis_agents()
 
+    # ═══ Injetar dependencias no API handler e iniciar servidor HTTP ═══
+    from baitcoin_api.server import BaitcoinAPIHandler
+    BaitcoinAPIHandler.blockchain = daemon.blockchain
+    BaitcoinAPIHandler.token = daemon.token
+    BaitcoinAPIHandler.faucet = None  # Faucet requer config extra
+    BaitcoinAPIHandler.staking_pool = daemon.staking_pool
+    BaitcoinAPIHandler.agent_registry = daemon.agent_registry
+    BaitcoinAPIHandler.marketplace = daemon.marketplace
+    BaitcoinAPIHandler.oracle = daemon.oracle
+    BaitcoinAPIHandler.zkml_verifier = None  # Inicializado pelo consensus
+    BaitcoinAPIHandler.p2p_node = None  # P2P requer rede real
+    BaitcoinAPIHandler.platform_faucets = None
+    BaitcoinAPIHandler.obscura_bridge = None
+
+    # Iniciar API HTTP em thread separada
+    import threading
+    from baitcoin_api.server import create_app
+    api_server = create_app(host='127.0.0.1', port=api_port)
+    api_thread = threading.Thread(target=api_server.serve_forever, daemon=True)
+    api_thread.start()
+    logger.info(f"API HTTP server iniciada na porta {api_port}")
+
+    # Sobrepor _get_status para usar daemon.get_status() (com marketplace + oracle)
+    def _get_status_with_marketplace(self):
+        self._send_json(daemon.get_status())
+    BaitcoinAPIHandler._get_status = _get_status_with_marketplace
+
     print()
     print("=" * 70)
-    print(f"  b'AI'tcoin Daemon v1.0 — AI-to-AI Autonomous Cryptocurrency")
+    print(f"  b'AI'tcoin Daemon v1.1 — AI-to-AI Autonomous Cryptocurrency")
     print("=" * 70)
     print(f"  Blockchain Height: {daemon.blockchain.height}")
     print(f"  Chain Valid: {daemon.blockchain.validate_chain()}")
     print(f"  Blocks Immutable: True (SHA-256d + prev_hash chain)")
     print(f"  Persistent Memory: WAL + Snapshots at {daemon.data_path}")
     print(f"  Explorer Index: {daemon.explorer_index.stats}")
-    print(f"  API Server: http://0.0.0.0:{api_port}")
+    mp = daemon.marketplace.to_dict() if daemon.marketplace else {}
+    print(f"  AI Marketplace: {mp.get('active', 0)} active / {mp.get('listings', 0)} total")
+    print(f"  Price Oracle: {daemon.oracle.to_dict() if daemon.oracle else 'N/A'}")
+    print(f"  API Server: http://127.0.0.1:{api_port}")
     print("=" * 70)
     print()
 
