@@ -180,7 +180,6 @@ jobs:
       - name: Update root .htaccess
         run: |
           cat > /tmp/root_htaccess << 'HT'
-          Options +ExecCGI
           AddHandler cgi-script .cgi
           <IfModule mod_rewrite.c>
             RewriteEngine On
