@@ -405,7 +405,13 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
     def _get_peers(self):
         if not self.p2p_node:
             return self._send_json({'error': 'not_initialized'}, 503)
-        self._send_json(self.p2p_node.get_status())
+        # P2PNetwork usa get_stats(), P2PNode usa get_status()
+        if hasattr(self.p2p_node, 'get_status'):
+            self._send_json(self.p2p_node.get_status())
+        elif hasattr(self.p2p_node, 'get_stats'):
+            self._send_json(self.p2p_node.get_stats())
+        else:
+            self._send_json({'peers': [], 'node_id': getattr(self.p2p_node, 'node_id', 'unknown')})
 
     def _get_faucet_balance(self, agent_id):
         if not self.faucet:

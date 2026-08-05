@@ -1542,6 +1542,34 @@
             <div class="dash-metric"><span class="dash-label">Presets</span><span class="dash-value">70</span></div>
           </div>
         </div>
+        <!-- Oracle Prices -->
+        <div class="dash-card">
+          <div class="dash-card-header">
+            <span class="module-icon gold" style="width:28px;height:28px;font-size:14px;">📊</span>
+            <span class="dash-card-title">Price Oracle</span>
+            <span class="module-status" id="dashOracleStatus">connecting</span>
+          </div>
+          <div class="dash-card-body">
+            <div class="dash-metric"><span class="dash-label">BTC</span><span class="dash-value" id="dashOracleBTC">--</span></div>
+            <div class="dash-metric"><span class="dash-label">ETH</span><span class="dash-value" id="dashOracleETH">--</span></div>
+            <div class="dash-metric"><span class="dash-label">BAIT</span><span class="dash-value" id="dashOracleBAIT">--</span></div>
+            <div class="dash-metric"><span class="dash-label">SOL</span><span class="dash-value" id="dashOracleSOL">--</span></div>
+          </div>
+        </div>
+        <!-- BeYour B'AI'nkr -->
+        <div class="dash-card">
+          <div class="dash-card-header">
+            <span class="module-icon orange" style="width:28px;height:28px;font-size:14px;">🏦</span>
+            <span class="dash-card-title">BeYour B'AI'nkr</span>
+            <span class="module-status" id="dashBankStatus">connecting</span>
+          </div>
+          <div class="dash-card-body">
+            <div class="dash-metric"><span class="dash-label">Total Staked</span><span class="dash-value" id="dashStaked">--</span></div>
+            <div class="dash-metric"><span class="dash-label">Stakers</span><span class="dash-value" id="dashStakers">--</span></div>
+            <div class="dash-metric"><span class="dash-label">Lending</span><span class="dash-value" id="dashLending">active</span></div>
+            <div class="dash-metric"><span class="dash-label">Faucet</span><span class="dash-value" id="dashFaucet">active</span></div>
+          </div>
+        </div>
       </div>
       <!-- AI Store Live Panel -->
       <div style="margin-top:24px;">
@@ -1587,7 +1615,7 @@
           <div class="label">Core Modules</div>
         </div>
         <div class="token-card">
-          <div class="value">52</div>
+          <div class="value">56</div>
           <div class="label">API Endpoints</div>
         </div>
       </div>
@@ -1768,10 +1796,26 @@
       setStatus('dashConsensusStatus', chainOk ? 'online' : 'offline');
       setStatus('dashAgentsStatus', (data.agents_registered || 0) > 0 ? 'online' : 'connecting');
 
-      // Module indicators
-      var live = chainOk;
+      // Oracle prices card
+      var orPrices = (data.oracle && data.oracle.prices) || {};
+      document.getElementById('dashOracleBTC').textContent = orPrices.BTC ? '$' + orPrices.BTC.toLocaleString() : '--';
+      document.getElementById('dashOracleETH').textContent = orPrices.ETH ? '$' + orPrices.ETH.toLocaleString() : '--';
+      document.getElementById('dashOracleBAIT').textContent = orPrices.BAIT ? orPrices.BAIT.toFixed(6) : '--';
+      document.getElementById('dashOracleSOL').textContent = orPrices.SOL ? '$' + orPrices.SOL.toLocaleString() : '--';
+      var orOk = Object.values(orPrices).some(function(p) { return p !== null && p !== undefined; });
+      setStatus('dashOracleStatus', orOk ? 'online' : 'connecting');
+
+      // BeYour B'AI'nkr card
+      var sk = data.staking || {};
+      document.getElementById('dashStaked').textContent = (sk.total_staked_bait || 0).toFixed(4) + ' BAIT';
+      document.getElementById('dashStakers').textContent = (sk.validators || 0);
+      var bankOk = (data.modules && data.modules.bank);
+      setStatus('dashBankStatus', bankOk ? 'online' : 'connecting');
+
+      // Module indicators — per-module status from daemon
+      var mods = data.modules || {};
       ['blockchain','zkml','pouw','schnorr','api','explorer','bank','agents','memory','wallet','p2p','tests','obscura','dev'].forEach(function(m) {
-        setIndicator('mod-' + m, live);
+        setIndicator('mod-' + m, !!mods[m]);
       });
 
       // Atualizar AI Store panel com servicos reais
@@ -1864,6 +1908,8 @@
         setStatus('dashTokenStatus', 'connecting');
         setStatus('dashConsensusStatus', 'connecting');
         setStatus('dashAgentsStatus', 'connecting');
+        setStatus('dashOracleStatus', 'connecting');
+        setStatus('dashBankStatus', 'connecting');
         document.getElementById('liveStatus').innerHTML = '<span class="pulse" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--red);margin-right:4px;vertical-align:middle;"></span>Reconnecting';
       });
     }
