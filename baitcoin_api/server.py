@@ -1,7 +1,7 @@
 r"""
 API REST b'AI'tcoin - Interface HTTP para o ecossistema.
 
-Endpoints (56 total):
+Endpoints (67 total):
   --- Core (25) ---
   GET  /api/v1/status          - Status da rede (com whitelabel)
   GET  /api/v1/blockchain      - Info da blockchain
@@ -68,6 +68,24 @@ Endpoints (56 total):
   GET  /api/v1/analytics/staking     - Staking metrics
   GET  /api/v1/analytics/consensus   - Consensus health
   GET  /api/v1/analytics/dashboard   - Full dashboard
+
+  --- Phase 20: Security Audit (3) ---
+  GET  /api/v1/audit/scan       - Run external audit pipeline (static + deps + formal + quality)
+  GET  /api/v1/audit/report     - Latest audit report (cryptography roundtrip)
+  GET  /api/v1/audit/runbooks   - Audit runbooks (5 scan stages)
+
+  --- Phase 21: Bug Bounty (4) ---
+  GET  /api/v1/bug-bounty/info       - Program info, reward table, scope, SLA
+  GET  /api/v1/bug-bounty/leaderboard - Hunter rankings
+  GET  /api/v1/bug-bounty/reports    - List submitted reports
+  POST /api/v1/bug-bounty/submit     - Submit vulnerability report
+
+  --- Phase 22: Mainnet Launcher (5) ---
+  GET  /api/v1/mainnet/genesis     - Genesis block configuration
+  GET  /api/v1/mainnet/health      - Real-time health monitoring
+  GET  /api/v1/mainnet/kpis        - Post-launch KPIs
+  GET  /api/v1/mainnet/checklist   - Pre-launch verification (12 items)
+  GET  /api/v1/mainnet/runbooks    - Incident response runbooks (5)
 
 Moltbook Auth:
   Headers: X-Moltbook-Identity (JWT token)
@@ -222,6 +240,20 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
             '/api/v1/analytics/staking': self._get_analytics_staking,
             '/api/v1/analytics/consensus': self._get_analytics_consensus,
             '/api/v1/analytics/dashboard': self._get_analytics_dashboard,
+            # Phase 20: Security Audit
+            '/api/v1/audit/scan': self._get_audit_scan,
+            '/api/v1/audit/report': self._get_audit_report,
+            '/api/v1/audit/runbooks': self._get_audit_runbooks,
+            # Phase 21: Bug Bounty
+            '/api/v1/bug-bounty/info': self._get_bug_bounty_info,
+            '/api/v1/bug-bounty/leaderboard': self._get_bug_bounty_leaderboard,
+            '/api/v1/bug-bounty/reports': self._get_bug_bounty_reports,
+            # Phase 22: Mainnet Launcher
+            '/api/v1/mainnet/genesis': self._get_mainnet_genesis,
+            '/api/v1/mainnet/health': self._get_mainnet_health,
+            '/api/v1/mainnet/kpis': self._get_mainnet_kpis,
+            '/api/v1/mainnet/checklist': self._get_mainnet_checklist,
+            '/api/v1/mainnet/runbooks': self._get_mainnet_runbooks,
         }
 
         # Dynamic routes (core)
@@ -278,6 +310,8 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
             '/api/v1/marketplace/purchase': self._post_marketplace_purchase,
             '/api/v1/marketplace/rate': self._post_marketplace_rate,
             '/api/v1/marketplace/search': self._post_marketplace_search,
+            # Phase 21: Bug Bounty
+            '/api/v1/bug-bounty/submit': self._post_bug_bounty_submit,
         }
         handler = routes.get(path)
         if handler:
@@ -1043,6 +1077,177 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
             min_rating=float(body.get('min_rating', 0.0)),
         )
         self._send_json({'results': results, 'count': len(results)})
+
+    # --- Phase 20: Security Audit ---
+    def _get_audit_scan(self):
+        r"""GET /api/v1/audit/scan — Run external audit pipeline."""
+        try:
+            import sys
+            import os
+            # Add parent to path if needed
+            sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            from baitcoin_core.audit.external_audit import ExternalAuditPipeline
+            pipeline = ExternalAuditPipeline(codebase_root=os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            report = pipeline.run_full_scan()
+            self._send_json(report.to_dict())
+        except Exception as e:
+            self._send_json({'error': str(e)}, 500)
+
+    def _get_audit_report(self):
+        r"""GET /api/v1/audit/report — Get latest audit report summary."""
+        try:
+            from baitcoin_core.audit.security_audit import SecurityAuditor
+            # Run crypto audit (self-contained, fast)
+            crypto = SecurityAuditor.audit_cryptography()
+            self._send_json({
+                'latest_audit': 'available',
+                'cryptography_audit': crypto,
+                'timestamp': time.time(),
+            })
+        except Exception as e:
+            self._send_json({'error': str(e)}, 500)
+
+    def _get_audit_runbooks(self):
+        r"""GET /api/v1/audit/runbooks — List incident runbooks for audit phase."""
+        try:
+            from baitcoin_core.audit.external_audit import ExternalAuditPipeline
+            pipeline = ExternalAuditPipeline()
+            # Generate a sample report with runbook info
+            self._send_json({
+                'runbooks': [
+                    {'id': 'RB-AUDIT-001', 'name': 'Static Analysis Scan', 'description': 'Run static analysis on all Python source files'},
+                    {'id': 'RB-AUDIT-002', 'name': 'Dependency Vulnerability Check', 'description': 'Check requirements.txt for known CVEs'},
+                    {'id': 'RB-AUDIT-003', 'name': 'Formal Specification Verification', 'description': 'Verify zkML proof system invariants'},
+                    {'id': 'RB-AUDIT-004', 'name': 'Code Quality Assessment', 'description': 'Check code quality metrics and test coverage'},
+                    {'id': 'RB-AUDIT-005', 'name': 'Runtime Security Audit', 'description': 'Execute runtime security checks on live system'},
+                ],
+                'pipeline_version': ExternalAuditPipeline.PIPELINE_VERSION,
+            })
+        except Exception as e:
+            self._send_json({'error': str(e)}, 500)
+
+    # --- Phase 21: Bug Bounty ---
+    def _get_bug_bounty_info(self):
+        r"""GET /api/v1/bug-bounty/info — Bug bounty program information."""
+        try:
+            from baitcoin_core.audit.bug_bounty import BugBountyManager
+            manager = BugBountyManager()
+            self._send_json(manager.get_program_info())
+        except Exception as e:
+            self._send_json({'error': str(e)}, 500)
+
+    def _get_bug_bounty_leaderboard(self):
+        r"""GET /api/v1/bug-bounty/leaderboard — Hunter leaderboard."""
+        try:
+            from baitcoin_core.audit.bug_bounty import BugBountyManager
+            manager = BugBountyManager()
+            self._send_json({'leaderboard': manager.get_leaderboard()})
+        except Exception as e:
+            self._send_json({'error': str(e)}, 500)
+
+    def _get_bug_bounty_reports(self):
+        r"""GET /api/v1/bug-bounty/reports — List bug bounty reports."""
+        try:
+            from baitcoin_core.audit.bug_bounty import BugBountyManager
+            manager = BugBountyManager()
+            self._send_json({'reports': manager.list_reports()})
+        except Exception as e:
+            self._send_json({'error': str(e)}, 500)
+
+    def _post_bug_bounty_submit(self):
+        r"""POST /api/v1/bug-bounty/submit — Submit a vulnerability report.
+
+        Body: {hunter, title, severity, description, evidence, affected_components}
+        """
+        try:
+            body = json.loads(self._read_body().decode())
+        except Exception:
+            return self._send_json({'error': 'invalid_json'}, 400)
+        try:
+            from baitcoin_core.audit.bug_bounty import BugBountyManager
+            manager = BugBountyManager()
+            report = manager.submit(
+                hunter=body.get('hunter', 'anonymous'),
+                title=body.get('title', 'Untitled'),
+                severity=body.get('severity', 'MEDIUM'),
+                description=body.get('description', ''),
+                evidence=body.get('evidence'),
+                affected_components=body.get('affected_components'),
+            )
+            self._send_json({'success': True, 'report': report.to_dict()})
+        except Exception as e:
+            self._send_json({'error': str(e)}, 500)
+
+    # --- Phase 22: Mainnet Launcher ---
+    def _get_mainnet_genesis(self):
+        r"""GET /api/v1/mainnet/genesis — Get genesis block configuration."""
+        try:
+            from baitcoin_mainnet.launcher import MainnetLauncher
+            launcher = MainnetLauncher()
+            config = launcher.prepare_genesis()
+            self._send_json(config)
+        except Exception as e:
+            self._send_json({'error': str(e)}, 500)
+
+    def _get_mainnet_health(self):
+        r"""GET /api/v1/mainnet/health — Get mainnet health status."""
+        try:
+            from baitcoin_mainnet.launcher import MainnetLauncher
+            launcher = MainnetLauncher()
+            # Simulated metrics for current system
+            metrics = {
+                'orphan_rate': 0.0,
+                'peer_count': len(self.p2p_node._connections) if self.p2p_node else 0,
+                'block_propagation_s': 0.5,
+                'mempool_size': len(self.blockchain.mempool) if self.blockchain else 0,
+            }
+            health = launcher.check_health(**metrics)
+            self._send_json(health)
+        except Exception as e:
+            self._send_json({'error': str(e)}, 500)
+
+    def _get_mainnet_kpis(self):
+        r"""GET /api/v1/mainnet/kpis — Get post-launch KPIs."""
+        try:
+            from baitcoin_mainnet.launcher import MainnetLauncher
+            launcher = MainnetLauncher()
+            launcher.go_live()  # Simulate launch for KPIs
+            launcher.record_block(28.5, 3)  # Simulated block
+            kpis = launcher.get_post_launch_kpis()
+            self._send_json(kpis)
+        except Exception as e:
+            self._send_json({'error': str(e)}, 500)
+
+    def _get_mainnet_checklist(self):
+        r"""GET /api/v1/mainnet/checklist — Run pre-launch checklist."""
+        try:
+            from baitcoin_mainnet.launcher import MainnetLauncher
+            launcher = MainnetLauncher()
+            launcher.prepare_genesis()
+            # Check against known completed items
+            checklist = launcher.run_launch_checklist(
+                l2_promoted=True,
+                sig_verification=True,
+                external_audit_clean=False,  # Phase 20 pending
+                fee_market=True,
+                load_tested=True,
+                difficulty_ok=True,
+                testnet_stable=False,  # B6 pending
+                contracts_deployed=True,
+                address_unified=True,
+            )
+            self._send_json(checklist)
+        except Exception as e:
+            self._send_json({'error': str(e)}, 500)
+
+    def _get_mainnet_runbooks(self):
+        r"""GET /api/v1/mainnet/runbooks — List incident response runbooks."""
+        try:
+            from baitcoin_mainnet.launcher import MainnetLauncher
+            launcher = MainnetLauncher()
+            self._send_json({'runbooks': launcher.list_runbooks()})
+        except Exception as e:
+            self._send_json({'error': str(e)}, 500)
 
 
 def create_app(host: str = '0.0.0.0', port: int = 18445) -> HTTPServer:

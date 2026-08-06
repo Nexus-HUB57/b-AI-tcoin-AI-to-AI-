@@ -136,7 +136,7 @@ class P2PNode:
         self._running = False
         for task in self._tasks:
             task.cancel()
-        for peer_id, (reader, writer) in self._connections.items():
+        for peer_id, (reader, writer) in list(self._connections.items()):
             writer.close()
             try:
                 await writer.wait_closed()

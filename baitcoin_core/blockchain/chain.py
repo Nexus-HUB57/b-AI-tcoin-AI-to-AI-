@@ -15,6 +15,7 @@ Cada bloco é armazenado de forma IMUTÁVEL e PERPÉTUA:
 import time
 import json
 import hashlib
+import threading
 from typing import List, Optional, Dict
 from baitcoin_core.blockchain.block import Block, BlockHeader, Transaction, TransactionOutput, TransactionInput
 from baitcoin_core.consensus.zkml_engine import ZkMLConsensus
@@ -70,6 +71,7 @@ class Blockchain:
         self.tx_verifier: Optional[TransactionVerifier] = None  # Phase A: Tx verification
         self._persistent = persistent
         self._memory_store = memory_store
+        self._mine_lock = threading.Lock()  # Lock para mineração competitiva segura
         self._create_genesis()
 
         # Reconstruir cadeia a partir do disco se persistente
@@ -301,15 +303,17 @@ class Blockchain:
     def mine_block(self, miner_agent: str, miner_pubkey: bytes) -> Block:
         r"""Minera um novo bloco com transações priorizadas por taxa.
 
-        Phase A improvements:
-        - Transactions selected by fee rate (FeeMarket)
-        - Difficulty adjustment every 2016 blocks (DifficultyAdjuster)
-        - Transaction verification before inclusion
-        - Fee collection from transactions
+        Thread-safe: usa lock para evitar race condition quando
+        múltiplos miners competem simultaneamente.
 
         Returns:
-            O bloco minerado.
+            O bloco minerado (mesmo se PoW falhar).
         """
+        with self._mine_lock:
+            return self._mine_block_internal(miner_agent, miner_pubkey)
+
+    def _mine_block_internal(self, miner_agent: str, miner_pubkey: bytes) -> Block:
+        r"""Implementação interna de mineração (já com lock adquirido)."""
         block_height = self.height + 1
         reward = self.get_block_reward(block_height)
 
