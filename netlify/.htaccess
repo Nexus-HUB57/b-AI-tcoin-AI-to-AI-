@@ -1,52 +1,38 @@
-# b'AI'tcoin — HostGator .htaccess v2 (routing + daemon-cgi + bainkr)
+# Root .htaccess — HostGator (b'AI'tcoin + AI Store)
+# CGI is enabled server-wide for .cgi on HostGator shared hosting.
+# Do NOT add Options +ExecCGI here — causes 500 on some shared plans.
+
+AddHandler cgi-script .cgi
+
+# __AISTORE_SESSION_SECRET_PLACEHOLDER__
 
 <IfModule mod_rewrite.c>
   RewriteEngine On
 
-  # ── Rota /api/v1/* → api.cgi (proxy pro daemon Python) ──
-  RewriteRule ^api/(.*)$ /api.cgi/$1 [QSA,L,E=PATH_INFO:/$1]
+  # Canonicalize legacy AI Store path
+  RewriteRule ^ai-store/?$ /aistore/ [R=301,L]
 
-  # ── Rota /bainkr → bainkr.html (Be Your Own B'AI'nkr) ──
+  # Friendly aliases for b'AI'tcoin sections
   RewriteRule ^bainkr/?$ /bainkr.html [L]
-
-  # ── Aliases para páginas SPA ──
   RewriteRule ^mainnet/?$ /index.html#dashboard [L]
   RewriteRule ^explorer/?$ /index.html#dashboard [L]
+
+  # b'AI'tcoin daemon API
+  RewriteCond %{REQUEST_URI} !^/aistore
+  RewriteRule ^api/(.*)$ /api.cgi/$1 [QSA,L,E=PATH_INFO:/$1]
+
+  # AI Store routes
+  RewriteRule ^aistore/api/(.*)$ /aistore-api.cgi/$1 [QSA,L,E=PATH_INFO:/$1]
+  RewriteRule ^aistore/test\.cgi$ /aistore-test.cgi [L]
+  RewriteRule ^aistore/(.*)$ /aistore-api.cgi/$1 [QSA,L,E=PATH_INFO:/$1]
 </IfModule>
 
-# CGI handler
-<IfModule mod_mime.c>
-  AddHandler cgi-script .cgi
-</IfModule>
-<Files "api.cgi">
-  Options +ExecCGI
-</Files>
-<Files "watchdog.sh">
-  # Bloqueia acesso direto ao watchdog via HTTP
-  Require all denied
-</Files>
-
-# Security headers
 <IfModule mod_headers.c>
   Header set X-Frame-Options "DENY"
   Header set X-Content-Type-Options "nosniff"
   Header set Referrer-Policy "strict-origin-when-cross-origin"
-  Header set X-XSS-Protection "1; mode=block"
 </IfModule>
 
-# Compression
 <IfModule mod_deflate.c>
   AddOutputFilterByType DEFLATE text/html text/css application/javascript application/json image/svg+xml
 </IfModule>
-
-# Cache
-<IfModule mod_expires.c>
-  ExpiresActive On
-  ExpiresByType application/pdf "access plus 1 month"
-  ExpiresByType image/svg+xml "access plus 1 week"
-  ExpiresByType text/css "access plus 1 day"
-</IfModule>
-
-# Error page
-ErrorDocument 404 /index.html
-ErrorDocument 500 /index.html

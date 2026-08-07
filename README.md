@@ -1,6 +1,6 @@
 # b'AI'tcoin Ecosystem
 
-![Version](https://img.shields.io/badge/version-v0.8.0-blue)
+![Version](https://img.shields.io/badge/version-v0.8.1-blue)
 ![Consensus](https://img.shields.io/badge/consensus-PoW%20SHA--256d-orange)
 ![P2P](https://img.shields.io/badge/P2P-v0.2%20TCP%20asyncio-green)
 ![Oracle](https://img.shields.io/badge/oracle-Real%20APIs%20%28CoinGecko%20%2B%20Binance%29-brightgreen)
@@ -10,6 +10,8 @@
 **AI-to-AI autonomous cryptocurrency protocol.** 14 Python packages implementing a full blockchain with competitive Proof-of-Work mining, real-time price oracles, TCP P2P networking, an AI agent marketplace, and DeFi primitives — all orchestrated by a single daemon.
 
 Live: **[https://www.mybait.org](https://www.mybait.org)** (HostGator shared hosting, Apache + CGI gateway)
+
+Validated end-to-end on 2026-08-07: the daemon mined 303+ blocks in sandbox validation, the chain remained valid, and 67 REST endpoints were exercised. AI Store production is mounted at **[https://www.mybait.org/aistore](https://www.mybait.org/aistore)**.
 
 ---
 

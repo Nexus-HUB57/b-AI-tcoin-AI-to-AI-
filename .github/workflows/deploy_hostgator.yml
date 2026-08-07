@@ -23,6 +23,7 @@ on:
       - 'config/**'
       - 'main_daemon.py'
       - 'requirements.txt'
+      - 'README.md'
   workflow_dispatch:
     inputs:
       deploy_target:
@@ -49,60 +50,87 @@ jobs:
       - name: Parse credentials
         env:
           HG_CREDS: ${{ secrets.CREDENCIAIS_HOSTGATOR }}
+          FTP_HOST_SECRET: ${{ secrets.FTP_HOST }}
+          FTP_USER_SECRET: ${{ secrets.FTP_USER }}
+          FTP_PASS_SECRET: ${{ secrets.FTP_PASS }}
+          FTP_PORT_SECRET: ${{ secrets.FTP_PORT }}
         run: |
-          # Use Python to parse JSON safely (avoids bash $ expansion in passwords)
-          eval $(python3 -c "
-          import os, json
-          c = json.loads(os.environ['HG_CREDS'])
-          print(f\"HOST={c.get('host','')}\")
-          print(f\"USER={c.get('user','')}\")
-          print(f\"PASS={c.get('password','')}\")
-          print(f\"PORT={c.get('port', 21)}\")
-          ")
-          if [ -z "$HOST" ] || [ -z "$USER" ] || [ -z "$PASS" ]; then
-            echo "::error::Missing host/user/password"; exit 1
-          fi
-          echo "HOST=$HOST" >> $GITHUB_ENV
-          echo "USER=$USER" >> $GITHUB_ENV
-          echo "PASS=$PASS" >> $GITHUB_ENV
-          echo "PORT=$PORT" >> $GITHUB_ENV
-          echo "[+] Parsed: $HOST:${PORT} user=${#USER}c"
+          python3 << 'PYEOF'
+          import json, os, re, sys
 
-      - name: Install lftp
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq lftp
+          def clean_val(v):
+              if not v:
+                  return ''
+              v = str(v).strip().strip('"').strip("'")
+              v = re.sub(r'^(Host|Port|User|Pass|Password|Senha|Servidor|Usuario|Usuário|Porta|Login|Username):\s*', '', v, flags=re.I)
+              return v.strip()
 
-      # ═══════════════════════════════════════════════════════════
-      # FRONTEND DEPLOY
-      # ═══════════════════════════════════════════════════════════
+          host = clean_val(os.environ.get('FTP_HOST_SECRET', ''))
+          user = clean_val(os.environ.get('FTP_USER_SECRET', ''))
+          pwd = clean_val(os.environ.get('FTP_PASS_SECRET', ''))
+          port = clean_val(os.environ.get('FTP_PORT_SECRET', '21')) or '21'
+          raw = os.environ.get('HG_CREDS', '').strip()
+
+          if not (host and user and pwd) and raw:
+              try:
+                  c = json.loads(raw)
+                  host = host or clean_val(c.get('host', c.get('hostname', c.get('servidor', ''))))
+                  user = user or clean_val(c.get('user', c.get('username', c.get('usuario', c.get('usuário', '')))))
+                  pwd = pwd or clean_val(c.get('password', c.get('pass', c.get('senha', ''))))
+                  port = clean_val(c.get('port', c.get('porta', port))) or port
+              except Exception:
+                  kv = {}
+                  for line in [l.strip() for l in raw.splitlines() if l.strip()]:
+                      for sep in (':', '='):
+                          if sep in line:
+                              k, v = line.split(sep, 1)
+                              kv[k.strip().lower()] = v.strip()
+                              break
+                  aliases = {
+                      'host': ['host', 'hostname', 'servidor', 'ftp'],
+                      'user': ['user', 'username', 'usuário', 'usuario', 'login'],
+                      'pwd': ['password', 'pass', 'senha'],
+                      'port': ['port', 'porta'],
+                  }
+                  def pick(keys):
+                      for k in keys:
+                          if k in kv and kv[k].strip():
+                              return clean_val(kv[k])
+                      return ''
+                  host = host or pick(aliases['host'])
+                  user = user or pick(aliases['user'])
+                  pwd = pwd or pick(aliases['pwd'])
+                  port = pick(aliases['port']) or port
+
+          port = re.sub(r'\D', '', str(port)) or '21'
+
+          if not host or not user or not pwd:
+              print('::error::Missing host/user/password after parsing')
+              sys.exit(1)
+
+          with open(os.environ['GITHUB_ENV'], 'a') as f:
+              f.write(f'HOST={host}\n')
+              f.write(f'USER={user}\n')
+              f.write(f'PASS={pwd}\n')
+              f.write(f'PORT={port}\n')
+
+          print(f'[+] Parsed: {host}:{port} user={len(user)}c')
+          PYEOF
+
       - name: Prepare frontend files
         if: "${{ github.event.inputs.deploy_target != 'api-only' }}"
         run: |
           mkdir -p deploy-frontend/
           cp netlify/index.html deploy-frontend/index.html
           cp netlify/.htaccess deploy-frontend/.htaccess
+          cp netlify/bainkr.html deploy-frontend/bainkr.html
           cp docs/whitepaper/bAIcoin_Whitepaper.pdf deploy-frontend/whitepaper.pdf
           echo "--- Frontend files ---"
           ls -la deploy-frontend/
 
-      - name: Deploy frontend to public_html/
-        if: "${{ github.event.inputs.deploy_target != 'api-only' }}"
-        run: |
-          lftp -u "$USER","$PASS" -p "$PORT" "$HOST" <<LFTP_EOF
-          set ftp:ssl-force true
-          set ssl:verify-certificate no
-          set net:timeout 30
-          mirror --reverse --overwrite --verbose --no-perms deploy-frontend/ public_html/
-          bye
-          LFTP_EOF
-          echo "=== Frontend deployed ==="
-
-      # ═══════════════════════════════════════════════════════════
-      # API DEPLOY — CGI Gateway
-      # ═══════════════════════════════════════════════════════════
       - name: Prepare API deploy package
         if: "${{ github.event.inputs.deploy_target != 'frontend-only' }}"
         run: |
-          # Create codebase tarball (exclude .git, caches, data, node_modules)
           tar czf /tmp/baitcoin-codebase.tar.gz \
             --exclude='.git' \
             --exclude='__pycache__' \
@@ -116,18 +144,19 @@ jobs:
 
           echo "[+] Codebase tarball: $(du -h /tmp/baitcoin-codebase.tar.gz | cut -f1)"
 
-          # Create setup script
           cat > /tmp/setup_bait.sh << 'SETEOF'
           #!/bin/bash
           set -e
           INSTALL="$HOME/baitcoin-api"
           mkdir -p "$INSTALL"
           cd "$INSTALL"
-          if [ -f /tmp/baitcoin-codebase.tar.gz ]; then
+          if [ -f "$HOME/public_html/codebase.tar.gz" ]; then
+            tar xzf "$HOME/public_html/codebase.tar.gz"
+          elif [ -f /tmp/baitcoin-codebase.tar.gz ]; then
             tar xzf /tmp/baitcoin-codebase.tar.gz
           fi
           if [ ! -d venv ]; then
-            python3 -m venv venv 2>/dev/null || python3.11 -m venv venv
+            python3 -m venv venv 2>/dev/null || python3.11 -m venv venv || python3.10 -m venv venv
           fi
           source venv/bin/activate
           pip install --quiet --upgrade pip
@@ -136,58 +165,158 @@ jobs:
           SETEOF
           chmod +x /tmp/setup_bait.sh
 
-      - name: Upload codebase and setup to server
-        if: "${{ github.event.inputs.deploy_target != 'frontend-only' }}"
+      - name: Deploy to HostGator
+        env:
+          HG_HOST: ${{ env.HOST }}
+          HG_PORT: ${{ env.PORT }}
+          HG_USER: ${{ env.USER }}
+          HG_PASS: ${{ env.PASS }}
         run: |
-          lftp -u "$USER","$PASS" -p "$PORT" "$HOST" <<LFTP_EOF
-          set ftp:ssl-force true
-          set ssl:verify-certificate no
-          set net:timeout 60
-          mkdir -p public_html
-          # Upload codebase tarball
-          lcd /tmp
-          put baitcoin-codebase.tar.gz -o public_html/codebase.tar.gz
-          # Upload setup script
-          put setup_bait.sh -o public_html/setup_bait.sh
-          chmod 755 public_html/setup_bait.sh
-          bye
-          LFTP_EOF
-          echo "[+] Codebase + setup uploaded"
+          pip install paramiko >/dev/null 2>&1 || true
+          python3 << 'PYEOF'
+          import ftplib, os, sys
 
-      - name: Deploy CGI gateway
-        if: "${{ github.event.inputs.deploy_target != 'frontend-only' }}"
-        run: |
-          lftp -u "$USER","$PASS" -p "$PORT" "$HOST" <<LFTP_EOF
-          set ftp:ssl-force true
-          set ssl:verify-certificate no
-          set net:timeout 30
-          mkdir -p public_html
-          put netlify/api.cgi -o public_html/api.cgi
-          chmod 755 public_html/api.cgi
-          bye
-          LFTP_EOF
-          echo "[+] CGI gateway deployed"
+          host = os.environ['HG_HOST']
+          port = int(os.environ.get('HG_PORT', '21') or '21')
+          user = os.environ['HG_USER']
+          pwd = os.environ['HG_PASS']
 
-      # ═══════════════════════════════════════════════════════════
-      # VERIFICATION
-      # ═══════════════════════════════════════════════════════════
+          def try_sftp(host, port_ssh, user, pwd, timeout=20):
+              try:
+                  import paramiko
+                  ssh = paramiko.SSHClient()
+                  ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+                  ssh.connect(host, port=port_ssh, username=user, password=pwd, timeout=timeout)
+                  sftp = ssh.open_sftp()
+                  print(f'SFTP connected to {host}:{port_ssh}')
+                  return sftp, ssh, 'sftp'
+              except Exception as e:
+                  print(f'SFTP {port_ssh} failed: {e}')
+                  return None, None, None
+
+          def try_ftps(host, port, user, pwd, timeout=20):
+              try:
+                  ftps = ftplib.FTP_TLS()
+                  ftps.connect(host, port, timeout=timeout)
+                  ftps.login(user, pwd)
+                  ftps.prot_p()
+                  print(f'FTPS connected to {host}:{port}')
+                  return ftps, 'ftps'
+              except Exception as e:
+                  print(f'FTPS failed: {e}')
+                  return None, None
+
+          def try_ftp(host, port, user, pwd, timeout=20):
+              try:
+                  ftp = ftplib.FTP()
+                  ftp.connect(host, port, timeout=timeout)
+                  ftp.login(user, pwd)
+                  print(f'FTP connected to {host}:{port}')
+                  return ftp, 'ftp'
+              except Exception as e:
+                  print(f'FTP failed: {e}')
+                  return None, None
+
+          def ensure_dir_sftp(sftp, path):
+              cur = ''
+              for part in [p for p in path.split('/') if p]:
+                  cur += '/' + part
+                  try:
+                      sftp.stat(cur)
+                  except Exception:
+                      try:
+                          sftp.mkdir(cur)
+                      except Exception:
+                          pass
+
+          def ensure_dir_ftp(ftp, path):
+              ftp.cwd('/')
+              for part in [p for p in path.split('/') if p]:
+                  try:
+                      ftp.cwd(part)
+                  except Exception:
+                      try:
+                          ftp.mkd(part)
+                      except Exception:
+                          pass
+                      ftp.cwd(part)
+              ftp.cwd('/')
+
+          conn = ssh = None
+          mode = None
+          for p in (22, 2222):
+              conn, ssh, mode = try_sftp(host, p, user, pwd)
+              if conn:
+                  break
+          if not conn:
+              conn, mode = try_ftps(host, port, user, pwd)
+          if not conn:
+              conn, mode = try_ftp(host, port, user, pwd)
+          if not conn:
+              print('ERROR: all deploy connection methods failed')
+              sys.exit(1)
+
+          uploads = []
+          if os.path.isdir('deploy-frontend'):
+              uploads += [
+                  ('deploy-frontend/index.html', 'public_html/index.html', 0o644),
+                  ('deploy-frontend/.htaccess', 'public_html/.htaccess', 0o644),
+                  ('deploy-frontend/bainkr.html', 'public_html/bainkr.html', 0o644),
+                  ('deploy-frontend/whitepaper.pdf', 'public_html/whitepaper.pdf', 0o644),
+              ]
+          if os.path.exists('netlify/api.cgi'):
+              uploads.append(('netlify/api.cgi', 'public_html/api.cgi', 0o755))
+          if os.path.exists('netlify/watchdog.sh'):
+              uploads.append(('netlify/watchdog.sh', 'public_html/watchdog.sh', 0o755))
+          if os.path.exists('/tmp/baitcoin-codebase.tar.gz'):
+              uploads.append(('/tmp/baitcoin-codebase.tar.gz', 'public_html/codebase.tar.gz', 0o644))
+          if os.path.exists('/tmp/setup_bait.sh'):
+              uploads.append(('/tmp/setup_bait.sh', 'public_html/setup_bait.sh', 0o755))
+
+          try:
+              if mode == 'sftp':
+                  ensure_dir_sftp(conn, '/public_html')
+                  for local, remote, chmodv in uploads:
+                      remote_abs = '/' + remote.lstrip('/')
+                      conn.put(local, remote_abs)
+                      try:
+                          conn.chmod(remote_abs, chmodv)
+                      except Exception:
+                          pass
+                      print(f'SFTP {local} -> {remote}')
+              else:
+                  ensure_dir_ftp(conn, 'public_html')
+                  for local, remote, chmodv in uploads:
+                      with open(local, 'rb') as f:
+                          conn.storbinary(f'STOR {remote}', f)
+                      try:
+                          conn.voidcmd(f'SITE CHMOD {oct(chmodv)[-3:]} {remote}')
+                      except Exception:
+                          pass
+                      print(f'{mode.upper()} {local} -> {remote}')
+                  try:
+                      conn.quit()
+                  except Exception:
+                      pass
+          finally:
+              if ssh:
+                  try:
+                      ssh.close()
+                  except Exception:
+                      pass
+
+          print('Deploy upload complete')
+          PYEOF
+
       - name: Verify deployment
-        if: "${{ github.event.inputs.deploy_target != 'api-only' }}"
         run: |
           echo "[+] Verifying frontend..."
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://www.mybait.org" 2>/dev/null || echo "000")
           echo "  Landing page: HTTP $STATUS"
-
-          STATUS_WP=$(curl -s -o /dev/null -w "%{http_code}" "https://www.mybait.org/whitepaper.pdf" 2>/dev/null || echo "000")
-          echo "  Whitepaper:   HTTP $STATUS_WP"
-
-      - name: Trigger API setup (first request)
-        if: "${{ github.event.inputs.deploy_target != 'frontend-only' }}"
-        run: |
-          echo "[+] Triggering API setup via CGI..."
-          echo "[+] First request to /api/api/v1/status will auto-start the daemon"
-          echo "[+] Note: The daemon needs ~10s to initialize on first hit"
-          echo "[+] Visit: https://www.mybait.org/api/api/v1/status"
+          STATUS_API=$(curl -s -o /dev/null -w "%{http_code}" "https://www.mybait.org/api/api/v1/status" 2>/dev/null || echo "000")
+          echo "  API status:   HTTP $STATUS_API"
+          STATUS_BAINKR=$(curl -s -o /dev/null -w "%{http_code}" "https://www.mybait.org/bainkr" 2>/dev/null || echo "000")
+          echo "  Bainkr page:  HTTP $STATUS_BAINKR"
 
       - name: Deploy summary
         run: |
@@ -196,6 +325,7 @@ jobs:
           echo "  b'AI'tcoin Deploy Complete"
           echo "========================================"
           echo "  Frontend:  https://www.mybait.org"
+          echo "  Bainkr:    https://www.mybait.org/bainkr"
           echo "  Whitepaper: https://www.mybait.org/whitepaper.pdf"
           echo "  API:        https://www.mybait.org/api/api/v1/status"
           echo "  Docs:       https://www.mybait.org/api/api/v1/dev/docs"
