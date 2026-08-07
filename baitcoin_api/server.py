@@ -383,7 +383,7 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
             'timestamp': time.time(),
             'blockchain_height': self.blockchain.height if self.blockchain else 0,
             'agents': len(self.agent_registry.agents) if self.agent_registry else 0,
-            'peers': len(self.p2p_node._connections) if self.p2p_node else 0,
+            'peers': len(self.p2p_node.get_peer_list()) if self.p2p_node else 0,
             'whitelabel': branding,
         })
 
@@ -1197,7 +1197,7 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
             # Simulated metrics for current system
             metrics = {
                 'orphan_rate': 0.0,
-                'peer_count': len(self.p2p_node._connections) if self.p2p_node else 0,
+                'peer_count': len(self.p2p_node.get_peer_list()) if self.p2p_node else 0,
                 'block_propagation_s': 0.5,
                 'mempool_size': len(self.blockchain.mempool) if self.blockchain else 0,
             }
