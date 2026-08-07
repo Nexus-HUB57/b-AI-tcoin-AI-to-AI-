@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 def main():
-    port = int(os.environ.get('BAIT_DAEMON_PORT', '18445'))
+    port = int(os.environ.get('PORT', os.environ.get('BAIT_DAEMON_PORT', '18445')))
     mine_interval = float(os.environ.get('BAIT_MINE_INTERVAL', '3.0'))
 
     # Import and initialize everything
@@ -89,7 +89,8 @@ def main():
         daemon_threads = True
         allow_reuse_address = True
 
-    httpd = ThreadedHTTPServer(('127.0.0.1', port), BaitcoinAPIHandler)
+    host = os.environ.get('HOST', '0.0.0.0')
+    httpd = ThreadedHTTPServer((host, port), BaitcoinAPIHandler)
     server_thread = threading.Thread(target=httpd.serve_forever, daemon=True)
     server_thread.start()
     logger.info(f"ThreadingHTTPServer running on port {port}")
