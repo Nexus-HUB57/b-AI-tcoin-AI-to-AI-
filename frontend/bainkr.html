@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- ═══ CORREÇÃO 3: Título da aba ═══ -->
+  <title>b'AI'tcoin Cryptocurrency</title>
+  <meta name="description" content="b'AI'tcoin (BAIT) — AI-to-AI Autonomous Cryptocurrency Protocol · PoW SHA-256d · Schnorr BIP-340 · 21M supply">
+  <!-- ═══ CORREÇÃO 1: Favicon 🪙 → 🤖 (robô) ═══ -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg:#0a0a0f; --bg-2:#111119; --card:rgba(255,255,255,0.03);
+      --border:rgba(255,255,255,0.08); --text:#e4e4e7; --text-muted:#71717a;
+      --brand:#f7931a; --brand-ai:#3b82f6; --red:#ef4444; --green:#22c55e;
+      --amber:#f59e0b;
+    }
+    html,body { background:var(--bg); color:var(--text); font-family:'Inter',-apple-system,sans-serif; min-height:100vh; }
+    a { color:inherit; text-decoration:none; }
+    /* ═══ HEADER ═══ */
+    header.top {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:18px 32px; border-bottom:1px solid var(--border);
+      background:rgba(10,10,15,0.8); backdrop-filter:blur(10px);
+      position:sticky; top:0; z-index:100;
+    }
+    .brand { display:flex; flex-direction:column; }
+    .brand-title { font-family:'Orbitron',sans-serif; font-weight:800; font-size:22px; letter-spacing:-.5px; color:var(--brand); }
+    .brand-ai { color:var(--brand-ai); }
+    .brand-sub { font-size:11px; color:var(--text-muted); margin-top:2px; }
+    nav.top-nav { display:flex; align-items:center; gap:8px; }
+    .nav-link {
+      display:inline-flex; align-items:center; gap:6px;
+      padding:8px 14px; border-radius:8px; font-size:14px; color:var(--text-muted);
+      transition:all .18s ease; font-weight:500;
+    }
+    .nav-link:hover { color:var(--text); background:rgba(255,255,255,0.04); }
+    .nav-link.active { color:var(--text); background:rgba(59,130,246,0.12); }
+    .nav-icon { font-size:15px; }
+    .version-pill {
+      margin-left:14px; padding:5px 12px; border:1px solid var(--border);
+      border-radius:999px; font-size:11px; font-family:'JetBrains Mono',monospace;
+      color:var(--text-muted); display:inline-flex; align-items:center; gap:6px;
+    }
+    .status-dot { width:8px; height:8px; border-radius:50%; background:var(--amber); animation:pulse 1.6s infinite; }
+    .status-dot.ok { background:var(--green); animation:none; }
+    .status-dot.err { background:var(--red); }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+    /* ═══ CARD DAEMON OFFLINE ═══ */
+    main { min-height:calc(100vh - 140px); display:flex; align-items:center; justify-content:center; padding:40px 20px; }
+    .status-card {
+      max-width:520px; width:100%; background:linear-gradient(180deg,rgba(239,68,68,0.06),rgba(239,68,68,0.02));
+      border:1px solid rgba(239,68,68,0.2); border-radius:20px; padding:48px 40px; text-align:center;
+    }
+    .status-card.online { background:linear-gradient(180deg,rgba(34,197,94,0.06),rgba(34,197,94,0.02)); border-color:rgba(34,197,94,0.2); }
+    .status-icon {
+      width:64px; height:64px; margin:0 auto 20px; border-radius:50%;
+      border:2px solid var(--red); display:flex; align-items:center; justify-content:center;
+      color:var(--red); font-size:28px; font-weight:800;
+    }
+    .status-card.online .status-icon { border-color:var(--green); color:var(--green); }
+    .status-title { font-size:22px; font-weight:700; margin-bottom:10px; }
+    .status-desc { color:var(--text-muted); font-size:14px; line-height:1.5; margin-bottom:20px; }
+    .status-actions { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:24px; }
+    .btn { padding:10px 20px; border-radius:8px; font-size:13px; font-weight:600; border:1px solid var(--border); background:var(--card); cursor:pointer; color:var(--text); transition:all .18s; }
+    .btn:hover { border-color:var(--brand-ai); background:rgba(59,130,246,0.08); }
+    .btn-primary { background:var(--brand-ai); border-color:var(--brand-ai); color:#fff; }
+    .btn-primary:hover { background:#2563eb; }
+    .metrics { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:24px; }
+    .metric { background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:10px; padding:14px 12px; }
+    .metric-label { font-size:10px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; }
+    .metric-value { font-size:16px; font-weight:700; margin-top:4px; font-family:'JetBrains Mono',monospace; }
+    .metric-value.small { font-size:13px; }
+    /* ═══ FOOTER ═══ */
+    footer.bottom {
+      padding:20px 32px; border-top:1px solid var(--border);
+      display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;
+      font-size:11px; color:var(--text-muted); font-family:'JetBrains Mono',monospace;
+    }
+    .foot-tags { display:flex; gap:16px; }
+    .foot-tags span::before { content:"·"; margin-right:14px; opacity:.4; }
+    .foot-tags span:first-child::before { content:""; margin:0; }
+    @media (max-width:720px) {
+      header.top { flex-direction:column; gap:14px; padding:14px 18px; }
+      nav.top-nav { flex-wrap:wrap; justify-content:center; }
+      .metrics { grid-template-columns:1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <div class="brand-title">b'<span class="brand-ai">AI</span>'tcoin</div>
+      <div class="brand-sub">AI-to-AI Autonomous Cryptocurrency</div>
+    </div>
+    <nav class="top-nav">
+      <a href="/aistore" class="nav-link"><span class="nav-icon">🛒</span>AI Store</a>
+      <!-- ═══ CORREÇÃO 4: Ícone casa 🏛 → 🤖 (robô) ═══ -->
+      <a href="/bainkr" class="nav-link active"><span class="nav-icon">🤖</span>B'AI'nkr</a>
+      <a href="/mainnet" class="nav-link"><span class="nav-icon">⛓️</span>Mainnet</a>
+      <a href="/explorer" class="nav-link"><span class="nav-icon">🔍</span>Explorer</a>
+      <span class="version-pill" id="versionPill">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="statusText">Reconnecting…</span>
+        <span style="opacity:.5">·</span>
+        <span>v0.8.0</span>
+      </span>
+    </nav>
+  </header>
+
+  <main>
+    <div class="status-card" id="statusCard">
+      <div class="status-icon" id="statusIcon">✕</div>
+      <div class="status-title" id="titleText">Verificando daemon…</div>
+      <div class="status-desc" id="descText">Contatando a API b'AI'tcoin…</div>
+      <div class="metrics" id="metrics" style="display:none;">
+        <div class="metric"><div class="metric-label">Chain Height</div><div class="metric-value" id="mHeight">—</div></div>
+        <div class="metric"><div class="metric-label">Agents</div><div class="metric-value" id="mAgents">—</div></div>
+        <div class="metric"><div class="metric-label">BTC Oracle</div><div class="metric-value small" id="mBtc">—</div></div>
+      </div>
+      <div class="status-actions" id="actions" style="display:none;">
+        <button class="btn btn-primary" id="btnRetry">↻ Tentar novamente</button>
+        <a href="/api/v1/dev/docs" class="btn">📚 API Docs</a>
+      </div>
+    </div>
+  </main>
+
+  <footer class="bottom">
+    <div>🪙 b'AI'tcoin (BAIT) — AI-to-AI Autonomous Cryptocurrency Protocol</div>
+    <div class="foot-tags">
+      <span>Schnorr/BIP-340</span><span>SHA-256d PoW</span><span>21M Supply</span>
+    </div>
+  </footer>
+
+  <script>
+    // ═══════════════════════════════════════════════════════════
+    //  Daemon Live-Poll — mantém a UI viva com auto-recovery
+    // ═══════════════════════════════════════════════════════════
+    const API_BASE = '';
+    const POLL_INTERVAL_MS = 8000;   // 8s durante offline
+    const POLL_INTERVAL_MS_OK = 30000; // 30s quando online (economia)
+    let currentInterval = POLL_INTERVAL_MS;
+    let timer = null;
+    let consecutiveFailures = 0;
+
+    const el = id => document.getElementById(id);
+
+    function setState(state, title, desc, data) {
+      const card = el('statusCard');
+      const icon = el('statusIcon');
+      const dot = el('statusDot');
+      const stTxt = el('statusText');
+      el('titleText').textContent = title;
+      el('descText').textContent = desc;
+      if (state === 'online') {
+        card.classList.add('online');
+        icon.textContent = '✓';
+        dot.classList.remove('err'); dot.classList.add('ok');
+        stTxt.textContent = 'Online';
+        el('metrics').style.display = 'grid';
+        el('actions').style.display = 'flex';
+        if (data) {
+          el('mHeight').textContent = data.chain_height ?? '—';
+          el('mAgents').textContent = data.agents_registered ?? '—';
+        }
+        // Documento title no browser (aba)
+        document.title = "b'AI'tcoin Cryptocurrency · Chain #" + (data?.chain_height ?? '—');
+      } else if (state === 'offline') {
+        card.classList.remove('online');
+        icon.textContent = '✕';
+        dot.classList.remove('ok'); dot.classList.add('err');
+        stTxt.textContent = 'Offline';
+        el('actions').style.display = 'flex';
+        document.title = "b'AI'tcoin Cryptocurrency";
+      } else { // connecting
+        card.classList.remove('online');
+        icon.textContent = '↻';
+        dot.classList.remove('ok','err');
+        stTxt.textContent = 'Reconnecting…';
+      }
+    }
+
+    async function fetchOracle(sym) {
+      try {
+        const r = await fetch(API_BASE + '/api/v1/oracle/' + sym, { cache:'no-store' });
+        if (!r.ok) return null;
+        const j = await r.json();
+        return j.price;
+      } catch(e) { return null; }
+    }
+
+    async function pollDaemon() {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(()=>controller.abort(), 20000);
+        const r = await fetch(API_BASE + '/api/v1/status', { cache:'no-store', signal:controller.signal });
+        clearTimeout(timeout);
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const data = await r.json();
+        consecutiveFailures = 0;
+        setState('online', 'Daemon Online', `Chain válida · ${data.chain_height} blocos minerados · ${data.agents_registered} agentes ativos`, data);
+        // Oracle em paralelo
+        const btc = await fetchOracle('BTC');
+        if (btc) el('mBtc').textContent = '$' + Number(btc).toLocaleString('en-US', {maximumFractionDigits:0});
+        // Ajusta polling para economia quando online
+        if (currentInterval !== POLL_INTERVAL_MS_OK) {
+          currentInterval = POLL_INTERVAL_MS_OK;
+          restartTimer();
+        }
+      } catch(e) {
+        consecutiveFailures++;
+        if (consecutiveFailures === 1) {
+          setState('connecting', 'Reconectando ao daemon…', 'Conectando ao daemon b'AI'tcoin local. Aguarde…');
+        } else if (consecutiveFailures >= 3) {
+          setState('offline', 'Daemon Offline',
+            'O daemon b'AI'tcoin não está respondendo. Verifique o status do servidor ou tente novamente.');
+        }
+        if (currentInterval !== POLL_INTERVAL_MS) {
+          currentInterval = POLL_INTERVAL_MS;
+          restartTimer();
+        }
+      }
+    }
+
+    function restartTimer() {
+      if (timer) clearInterval(timer);
+      timer = setInterval(pollDaemon, currentInterval);
+    }
+
+    el('btnRetry').addEventListener('click', () => {
+      setState('connecting', 'Reconectando ao daemon…', 'Aguardando resposta de /api/v1/status');
+      pollDaemon();
+    });
+
+    // Boot
+    pollDaemon();
+    restartTimer();
+
+    // Pausa polling quando aba oculta
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) { if (timer) { clearInterval(timer); timer=null; } }
+      else { pollDaemon(); restartTimer(); }
+    });
+  </script>
+</body>
+</html>
