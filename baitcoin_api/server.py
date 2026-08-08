@@ -208,6 +208,7 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
             '/api/v1/staking': self._get_staking,
             '/api/v1/agents': self._get_agents,
             '/api/v1/marketplace': self._get_marketplace,
+            '/api/v1/marketplace/products': self._get_marketplace_products,
             '/api/v1/p2p/peers': self._get_peers,
             '/api/v1/moltbook/auth-stats': self._get_moltbook_stats,
             '/api/v1/auth/status': self._get_auth_status_handler,
@@ -432,9 +433,73 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
         if not self.marketplace:
             return self._send_json({'error': 'not_initialized'}, 503)
         mp = self.marketplace.to_dict()
-        # Incluir listings ativos com detalhes
-        mp['services'] = self.marketplace.search() if hasattr(self.marketplace, 'search') else []
         self._send_json(mp)
+
+    def _get_marketplace_products(self):
+        r"""GET /api/v1/marketplace/products — Paginated product listing.
+
+        Query params:
+          page (int, default 1)
+          limit (int, default 50, max 100)
+          category (str: ml_inference|block_validation|oracle_data|market_analysis|data_processing|smart_contract)
+          max_price (int)
+          min_rating (float)
+          sort_by (str: rating|price|name|calls|created_at|revenue)
+          sort_order (str: asc|desc)
+          q (str: search query)
+        """
+        if not self.marketplace:
+            return self._send_json({'error': 'not_initialized'}, 503)
+
+        path, query = self._parse_path()
+
+        page = int(query.get('page', ['1'])[0])
+        limit = int(query.get('limit', ['50'])[0])
+        sort_by = query.get('sort_by', ['rating'])[0]
+        sort_order = query.get('sort_order', ['desc'])[0]
+        search_query = query.get('q', [''])[0]
+        max_price = None
+        if 'max_price' in query:
+            try:
+                max_price = int(query['max_price'][0])
+            except ValueError:
+                pass
+        min_rating = 0.0
+        if 'min_rating' in query:
+            try:
+                min_rating = float(query['min_rating'][0])
+            except ValueError:
+                pass
+
+        category = None
+        if 'category' in query:
+            from baitcoin_ai.marketplace.services import ServiceCategory
+            cat_str = query['category'][0]
+            try:
+                category = ServiceCategory(cat_str)
+            except ValueError:
+                return self._send_json({'error': 'invalid_category', 'valid': [c.value for c in ServiceCategory]}, 400)
+
+        if not hasattr(self.marketplace, 'search_paginated'):
+            # Fallback para versao antiga sem paginacao
+            results = self.marketplace.search(category=category, max_price=max_price, min_rating=min_rating)
+            return self._send_json({
+                'products': results[:limit],
+                'pagination': {'page': 1, 'limit': limit, 'total': len(results), 'total_pages': 1, 'has_next': False, 'has_prev': False},
+                'categories': {},
+            })
+
+        result = self.marketplace.search_paginated(
+            category=category,
+            max_price=max_price,
+            min_rating=min_rating,
+            page=page,
+            limit=limit,
+            sort_by=sort_by,
+            sort_order=sort_order,
+            search_query=search_query,
+        )
+        self._send_json(result)
 
     def _get_peers(self):
         if not self.p2p_node:
