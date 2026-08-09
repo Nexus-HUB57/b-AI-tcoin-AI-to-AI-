@@ -172,6 +172,7 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
         '/api/v1/obscura/fetch',
         '/api/v1/obscura/scrape',
         '/api/v1/dev/api-keys',
+        '/api/v1/bug-bounty/submit',
     }
 
     def log_message(self, format, *args):

@@ -281,7 +281,16 @@ class BlockchAInIndex:
             chain_height: Altura atual da cadeia (para confirmations).
         """
         with self._lock:
-            return self._index_block(block, chain_height)
+            # Skip if already indexed
+            block_hash = block.block_hash.hex()
+            if block_hash in self._block_by_hash:
+                return 0
+            txs_indexed = self._index_block(block, chain_height)
+            # Update metadata (was missing — caused empty listing + stale stats)
+            if block.index > self._last_indexed_height:
+                self._last_indexed_height = block.index
+            self._indexed_at = time.time()
+            return txs_indexed
 
     def _index_block(self, block, chain_height: int) -> int:
         r"""Indexa um bloco e todas as suas transacoes (interna, ja com lock)."""

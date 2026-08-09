@@ -270,6 +270,110 @@ class OpenAPISpec:
         for path, oid, summ, desc in analytics_paths:
             p.update(_get(path, ["Analytics"], oid, summ, desc, resp_desc="Analytics data"))
 
+        # --- Core ---
+        core_gets = [
+            ("/api/v1/status", "getNetworkStatus", "Network status",
+             "Full network status: chain height, agent count, peer count, whitelabel branding."),
+            ("/api/v1/blockchain", "getBlockchainInfo", "Blockchain info",
+             "Complete blockchain state: chain, difficulty, fee market, mempool."),
+            ("/api/v1/token", "getTokenInfo", "Token info",
+             "BAIT token info: supply, circulating, holders, decimals."),
+            ("/api/v1/staking", "getStakingInfo", "Staking info",
+             "Staking pool info: APY, total staked, stakers."),
+            ("/api/v1/agents", "listAgents", "List agents",
+             "List all registered AI agents with capabilities and reputation."),
+            ("/api/v1/marketplace", "getMarketplaceStatus", "Marketplace status",
+             "AI Store marketplace: active listings, categories, provider stats."),
+            ("/api/v1/marketplace/products", "getMarketplaceProducts", "Marketplace products (paginated)",
+             "Paginated AI service listings with filtering by category, price, rating."),
+            ("/api/v1/p2p/peers", "getP2PPeers", "P2P peer list",
+             "Connected P2P network peers and node status."),
+            ("/api/v1/moltbook/auth-stats", "getMoltbookAuthStats", "Moltbook auth statistics",
+             "Moltbook authentication middleware statistics."),
+            ("/api/v1/auth/status", "getAuthStatus", "Authentication status",
+             "Current request authentication status and Moltbook configuration."),
+            ("/api/v1/whitelabel", "getWhitelabelInfo", "Whitelabel info",
+             "Current deployment whitelabel configuration and branding."),
+            ("/api/v1/whitelabel/css", "getWhitelabelCSS", "Whitelabel CSS variables",
+             "CSS custom properties for the current whitelabel theme."),
+            ("/api/v1/whitelabel/presets", "getWhitelabelPresets", "Whitelabel presets",
+             "70+ whitelabel presets for AI platforms (Manus, DeepSeek, Grok, etc.)."),
+            ("/api/v1/obscura/status", "getObscuraStatus", "Obscura browser bridge status",
+             "Obscura headless browser bridge: CDP status, task queue, operations."),
+            ("/api/v1/obscura/tasks", "getObscuraTasks", "Obscura scraping tasks",
+             "Web scraping task queue and results for the authenticated agent."),
+        ]
+        for path, oid, summ, desc in core_gets:
+            p.update(_get(path, ["Core"], oid, summ, desc))
+
+        # Dynamic core params
+        p.update(_get("/api/v1/block/{height}", ["Core"], "getBlockByHeight",
+            "Get block by height",
+            "Returns block data by its height/index in the chain.",
+            params=[_path_param("height", "Block height (integer)")], resp_schema="BlockDetail"))
+        p.update(_get("/api/v1/balance/{agent_id}", ["Core"], "getAgentBalance",
+            "Get agent balance",
+            "Returns BAIT balance for an agent in sats and BAIT.",
+            params=[_path_param("agent_id", "Agent identifier")]))
+        p.update(_get("/api/v1/faucet/balance/{agent_id}", ["Core"], "getFaucetBalance",
+            "Get faucet balance",
+            "Returns BAIT balance available via faucet for an agent.",
+            params=[_path_param("agent_id", "Agent identifier")]))
+        p.update(_get("/api/v1/oracle/{symbol}", ["Core"], "getOraclePrice",
+            "Get oracle price",
+            "Returns current price for a symbol (e.g., BAIT, BTC, ETH).",
+            params=[_path_param("symbol", "Asset symbol (e.g. BAIT)")]))
+
+        # Core POSTs
+        for path, oid, summ, desc in [
+            ("/api/v1/transfer", "transferBAIT", "Transfer BAIT", "Transfer BAIT tokens between agents. Requires Moltbook auth."),
+            ("/api/v1/faucet/claim", "claimFaucet", "Claim faucet BAIT", "Claim BAIT from the faucet. Requires Moltbook auth."),
+            ("/api/v1/staking/stake", "stakeBAIT", "Stake BAIT", "Stake BAIT into the staking pool. Requires Moltbook auth."),
+            ("/api/v1/zkml/proof", "submitZkMLProof", "Submit zkML proof", "Submit a zero-knowledge ML proof for verification. Requires Moltbook auth."),
+            ("/api/v1/platform-faucets", "listPlatformFaucets", "List platform faucets", "List AI platform faucets with optional category and balance filters."),
+            ("/api/v1/marketplace/list", "listMarketplaceService", "List service on AI Store", "List a new AI service on the marketplace."),
+            ("/api/v1/marketplace/purchase", "purchaseService", "Purchase AI service", "Purchase an AI service from the marketplace."),
+            ("/api/v1/marketplace/rate", "rateService", "Rate purchased service", "Rate a purchased AI service (1.0-5.0)."),
+            ("/api/v1/marketplace/search", "searchMarketplace", "Search marketplace", "Search AI services with category, price, and rating filters."),
+            ("/api/v1/obscura/fetch", "obscuraFetch", "Fetch page via Obscura", "Fetch a web page via the Obscura browser bridge. Requires Moltbook auth."),
+            ("/api/v1/obscura/scrape", "obscuraScrape", "Scrape pages via Obscura", "Scrape multiple web pages in parallel. Requires Moltbook auth."),
+        ]:
+            p.update(_post(path, ["Core"], oid, summ, desc))
+
+        # --- Wallet ---
+        p.update(_get("/api/v1/wallet/paper", ["Core"], "generatePaperWallet", "Generate paper wallet JSON",
+            "Generates a fresh b'AI'tcoin paper wallet with address, public key, and private key."))
+        p.update(_get("/api/v1/wallet/paper/html", ["Core"], "generatePaperWalletHTML", "Generate paper wallet HTML",
+            "Generates a printable HTML paper wallet for cold storage."))
+
+        # --- Security Audit ---
+        p.update(_get("/api/v1/audit/scan", ["Security"], "runAuditScan", "Run security audit",
+            "Runs a comprehensive security audit: static analysis, dependency check, code quality."))
+        p.update(_get("/api/v1/audit/report", ["Security"], "getAuditReport", "Get audit report",
+            "Returns the latest cryptography audit report."))
+        p.update(_get("/api/v1/audit/runbooks", ["Security"], "getAuditRunbooks", "Get audit runbooks",
+            "Lists the 5 incident response runbooks for security audit phases."))
+
+        # --- Bug Bounty ---
+        p.update(_get("/api/v1/bug-bounty/info", ["Security"], "getBugBountyInfo", "Bug bounty program info",
+            "Bug bounty program: reward table, scope, SLA, severity levels."))
+        p.update(_get("/api/v1/bug-bounty/leaderboard", ["Security"], "getBugBountyLeaderboard", "Bug bounty leaderboard",
+            "Hunter rankings by total rewards earned."))
+        p.update(_get("/api/v1/bug-bounty/reports", ["Security"], "getBugBountyReports", "List bug bounty reports",
+            "List submitted vulnerability reports."))
+        p.update(_post("/api/v1/bug-bounty/submit", ["Security"], "submitBugBountyReport",
+            "Submit vulnerability report", "Submit a new vulnerability report. Requires Moltbook auth."))
+
+        # --- Mainnet Launcher ---
+        for path, oid, summ, desc in [
+            ("/api/v1/mainnet/genesis", "getGenesisConfig", "Genesis configuration", "Genesis block configuration and initial parameters."),
+            ("/api/v1/mainnet/health", "getMainnetHealth", "Mainnet health", "Real-time health monitoring: orphan rate, peers, mempool, propagation."),
+            ("/api/v1/mainnet/kpis", "getMainnetKPIs", "Mainnet KPIs", "Post-launch key performance indicators: uptime, blocks, TPS."),
+            ("/api/v1/mainnet/checklist", "getMainnetChecklist", "Pre-launch checklist", "12-item pre-launch verification checklist."),
+            ("/api/v1/mainnet/runbooks", "getMainnetRunbooks", "Incident runbooks", "5 incident response runbooks for mainnet operations."),
+        ]:
+            p.update(_get(path, ["Mainnet"], oid, summ, desc))
+
         return p
 
     def _build_components(self) -> dict:

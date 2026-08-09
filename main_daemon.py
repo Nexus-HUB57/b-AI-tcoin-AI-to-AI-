@@ -6357,6 +6357,16 @@ class BAITDaemon:
 
         block = self.blockchain.mine_block(agent_id, pubkey)
 
+        # Sync token module with on-chain coinbase reward (was missing — caused token=0 bug)
+        for tx in block.transactions:
+            if tx.is_coinbase:
+                reward_sats = sum(o.amount_sats for o in tx.outputs)
+                if reward_sats > 0:
+                    # Only mint if not already tracked (idempotent)
+                    current = self.token.balance_of(agent_id)
+                    expected = current + reward_sats
+                    self.token.mint(agent_id, reward_sats)
+
         # Atualizar indices do explorer incrementalmente
         self.explorer_index.index_new_block(block, self.blockchain.height)
         self.explorer_index.update_confirmations(self.blockchain.height)

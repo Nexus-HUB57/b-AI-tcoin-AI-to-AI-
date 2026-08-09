@@ -122,7 +122,7 @@ class OnChainAnalytics:
             },
             "inflation": {
                 "annual_reward_estimate_bait": round(annual_inflation, 2),
-                "annual_rate_pct": round((annual_inflation / max(_sats_to_bait(circulating), 1)) * 100, 4),
+                "annual_rate_pct": round((annual_inflation / max(circulating, 1)) * 100, 4) if circulating > 0 else 0.0,
             },
         }
 
