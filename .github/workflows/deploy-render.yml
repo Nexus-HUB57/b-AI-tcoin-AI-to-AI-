@@ -40,11 +40,15 @@ jobs:
           for f in ['frontend/bainkr.html', 'netlify/bainkr.html']:
               with open(f) as fh:
                   content = fh.read()
-              # Find single-quoted strings containing b'AI'tcoin
-              pattern = r"'[^']*b'AI'tcoin[^']*'"
-              matches = re.findall(pattern, content)
-              if matches:
-                  errors.append(f'{f}: JS syntax error - brand name in single-quoted strings')
+              # Extract only <script> blocks, then find single-line
+              # single-quoted strings containing the brand name
+              # (b'AI'tcoin breaks JS single-quoted string literals)
+              for m in re.finditer(r'<script[^>]*>(.*?)</script>', content, re.DOTALL):
+                  script = m.group(1)
+                  for line in script.split('\n'):
+                      # Match a JS single-quoted string on ONE line
+                      for sm in re.finditer(r"'[^'\n]*b'AI'tcoin[^'\n]*'", line):
+                          errors.append(f'{f} line: {sm.group()[:100]}')
           if errors:
               for e in errors:
                   print(f'ERROR: {e}')

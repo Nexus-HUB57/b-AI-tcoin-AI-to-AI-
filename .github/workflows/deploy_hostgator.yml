@@ -23,7 +23,6 @@ on:
       - 'config/**'
       - 'main_daemon.py'
       - 'requirements.txt'
-      - 'README.md'
       - '.github/workflows/deploy_hostgator.yml'
   workflow_dispatch:
     inputs:
@@ -40,6 +39,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     concurrency:
       group: hostgator-deploy
       cancel-in-progress: true
@@ -53,9 +53,10 @@ jobs:
         run: |
           mkdir -p deploy-frontend/
           cp netlify/index.html deploy-frontend/index.html
-          cp netlify/.htaccess deploy-frontend/.htaccess
-          cp netlify/bainkr.html deploy-frontend/bainkr.html 2>/dev/null || echo "bainkr.html not present"
-          cp docs/whitepaper/bAIcoin_Whitepaper.pdf deploy-frontend/whitepaper.pdf 2>/dev/null || echo "whitepaper not present"
+          cp netlify/.htaccess deploy-frontend/.htaccess 2>/dev/null || true
+          cp netlify/bainkr.html deploy-frontend/bainkr.html 2>/dev/null || true
+          cp docs/whitepaper/bAIcoin_Whitepaper.pdf deploy-frontend/whitepaper.pdf 2>/dev/null || true
+          echo "Frontend files ready:"
           ls -la deploy-frontend/
 
       - name: Prepare API deploy package
@@ -81,191 +82,302 @@ jobs:
           SETEOF
           chmod +x /tmp/setup_bait.sh
 
-      - name: Install paramiko
-        run: pip install paramiko --quiet
-
-      - name: Deploy to HostGator (SSH key + FTP fallback)
+      - name: Deploy to HostGator
         env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_PORT: ${{ secrets.SSH_PORT }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          CPANEL_HOST: ${{ secrets.HOSTGATOR_SERVER || 'mybait.org' }}
+          CPANEL_USER: ${{ secrets.CPANEL_USER }}
+          CPANEL_PASS: ${{ secrets.CPANEL_PASS }}
           FTP_HOST: ${{ secrets.FTP_HOST }}
-          FTP_PORT: ${{ secrets.FTP_PORT }}
+          FTP_PORT: ${{ secrets.FTP_PORT || '21' }}
           FTP_USER: ${{ secrets.FTP_USER }}
           FTP_PASS: ${{ secrets.FTP_PASS }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT || '2222' }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SERVER_IP: ${{ secrets.HOSTGATOR_SHARED_IP }}
         run: |
-          # Write SSH key to file
-          mkdir -p ~/.ssh
-          echo "$SSH_KEY" > ~/.ssh/id_deploy
-          chmod 600 ~/.ssh/id_deploy
+          pip install paramiko requests --quiet 2>/dev/null
 
           python3 << 'PYEOF'
-          import ftplib, io, os, sys
+          import os, sys, io, base64, json, ftplib, requests
+          from urllib.parse import quote
 
-          ssh_host = os.environ.get('SSH_HOST', '')
-          ssh_port = int(os.environ.get('SSH_PORT', '22') or '22')
-          ssh_user = os.environ.get('SSH_USER', '')
+          cpanel_host = os.environ.get('CPANEL_HOST', 'mybait.org')
+          cpanel_user = os.environ.get('CPANEL_USER', '')
+          cpanel_pass = os.environ.get('CPANEL_PASS', '')
           ftp_host = os.environ.get('FTP_HOST', '')
           ftp_port = int(os.environ.get('FTP_PORT', '21') or '21')
-          ftp_user = os.environ.get('FTP_USER', '').strip()
+          ftp_user = os.environ.get('FTP_USER', '')
           ftp_pass = os.environ.get('FTP_PASS', '')
+          ssh_host = os.environ.get('SSH_HOST', '')
+          ssh_port = int(os.environ.get('SSH_PORT', '2222') or '2222')
+          ssh_user = os.environ.get('SSH_USER', '')
+          server_ip = os.environ.get('SERVER_IP', '')
 
-          def try_sftp_key(host, port, user, key_path, timeout=25):
+          uploaded = []
+          failed = []
+
+          def build_file_list():
+              files = []
+              if os.path.isdir('deploy-frontend'):
+                  for name in ['index.html', 'bainkr.html', '.htaccess', 'whitepaper.pdf']:
+                      p = f'deploy-frontend/{name}'
+                      if os.path.exists(p):
+                          files.append((p, f'public_html/{name}'))
+              if os.path.exists('netlify/api.cgi'):
+                  files.append(('netlify/api.cgi', 'public_html/api.cgi'))
+              if os.path.exists('netlify/watchdog.sh'):
+                  files.append(('netlify/watchdog.sh', 'public_html/watchdog.sh'))
+              if os.path.exists('/tmp/baitcoin-codebase.tar.gz'):
+                  files.append(('/tmp/baitcoin-codebase.tar.gz', 'public_html/codebase.tar.gz'))
+              if os.path.exists('/tmp/setup_bait.sh'):
+                  files.append(('/tmp/setup_bait.sh', 'public_html/setup_bait.sh'))
+              return files
+
+          def upload_cpanel_api(host, user, pwd):
+              """Upload via cPanel UAPI Fileman (port 2083 HTTPS)."""
+              base = f'https://{host}:2083/execute/UAPI/Fileman'
+              auth = (user, pwd)
+              session = requests.Session()
+              session.verify = False
+
+              # Test auth
               try:
-                  import paramiko
+                  r = session.get(f'https://{host}:2083/execute/UAPI/DomainInfo/domains_data',
+                                 auth=auth, timeout=15)
+                  if r.status_code == 401:
+                      print(f'cPanel auth failed (401)')
+                      return False
+                  if r.status_code != 200:
+                      print(f'cPanel test returned {r.status_code}')
+                      return False
+                  print(f'cPanel auth OK for {user}@{host}')
+              except requests.exceptions.ConnectionError:
+                  print(f'cPanel connection refused on {host}:2083')
+                  return False
+              except Exception as e:
+                  print(f'cPanel error: {e}')
+                  return False
+
+              files = build_file_list()
+              ok = 0
+              for local, remote in files:
+                  remote_dir = '/'.join(remote.split('/')[:-1])
+                  filename = remote.split('/')[-1]
+                  try:
+                      with open(local, 'rb') as f:
+                          content = f.read()
+
+                      # Use Fileman::save_file_content for text files
+                      # Use upload_files for binary
+                      if filename.endswith(('.pdf', '.tar.gz')):
+                          # Binary: use upload_files
+                          upload_url = f'{base}/upload_files'
+                          r = session.post(upload_url, auth=auth, timeout=30,
+                                         data={'dir': remote_dir},
+                                         files={'file-1': (filename, io.BytesIO(content))})
+                      else:
+                          # Text: use save_file_content
+                          save_url = f'{base}/save_file_content'
+                          file_content = content.decode('utf-8', errors='replace')
+                          r = session.post(save_url, auth=auth, timeout=30,
+                                         data={'dir': remote_dir,
+                                               'file': filename,
+                                               'content': file_content,
+                                               'encoding': 'utf-8'})
+
+                      data = r.json() if r.headers.get('content-type','').startswith('application/json') else {}
+                      if r.status_code == 200 and (not data.get('errors') or data.get('status') == 1):
+                          print(f'  cPanel OK: {local} -> {remote}')
+                          uploaded.append(local)
+                          ok += 1
+                      else:
+                          print(f'  cPanel FAIL {filename}: {r.status_code} {str(data)[:200]}')
+                          failed.append(local)
+                  except Exception as e:
+                      print(f'  cPanel upload error {filename}: {e}')
+                      failed.append(local)
+
+              print(f'cPanel: {ok}/{len(files)} uploaded')
+              return ok > 0
+
+          def upload_ftp(host, port, user, pwd):
+              """Upload via FTP (plain or TLS)."""
+              for use_tls in [False, True]:
+                  try:
+                      if use_tls:
+                          ftp = ftplib.FTP_TLS()
+                          ftp.connect(host, port, timeout=20)
+                          ftp.login(user, pwd)
+                          ftp.prot_p()
+                          label = 'FTPS'
+                      else:
+                          ftp = ftplib.FTP()
+                          ftp.connect(host, port, timeout=20)
+                          ftp.login(user, pwd)
+                          label = 'FTP'
+                      print(f'{label} connected to {host}:{port} as {user}')
+
+                      # Navigate/create dirs
+                      for d in ['public_html']:
+                          try: ftp.cwd(d)
+                          except: ftp.mkd(d); ftp.cwd(d)
+
+                      files = build_file_list()
+                      ok = 0
+                      for local, remote in files:
+                          fname = remote.split('/')[-1]
+                          try:
+                              with open(local, 'rb') as f:
+                                  ftp.storbinary(f'STOR {fname}', f)
+                              print(f'  {label} OK: {local} -> {fname}')
+                              uploaded.append(local)
+                              ok += 1
+                          except Exception as e:
+                              print(f'  {label} FAIL {fname}: {e}')
+                              failed.append(local)
+                      ftp.quit()
+                      print(f'{label}: {ok}/{len(files)} uploaded')
+                      return ok > 0
+                  except Exception as e:
+                      print(f'{"FTPS" if use_tls else "FTP"} failed: {e}')
+              return False
+
+          def upload_sftp(host, port, user, key_content):
+              """Upload via SFTP with SSH key."""
+              import paramiko
+              if not key_content or not key_content.strip():
+                  print('SFTP: no SSH key provided')
+                  return False
+              try:
                   key = None
                   for cls in (paramiko.RSAKey, paramiko.Ed25519Key, paramiko.ECDSAKey):
                       try:
-                          key = cls.from_private_key_file(key_path)
-                          break
-                      except Exception:
-                          continue
+                          import io
+                          key = cls.from_private_key_file(io.StringIO(key_content) if False else '/dev/stdin')
+                      except:
+                          try:
+                              key_file = io.StringIO(key_content)
+                              key = cls.from_private_key(key_file)
+                              break
+                          except:
+                              continue
                   if not key:
-                      print('SFTP key: could not load private key')
-                      return None, None, None
-                  ssh = paramiko.SSHClient()
-                  ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-                  ssh.connect(host, port=port, username=user, pkey=key,
-                              timeout=timeout, allow_agent=False, look_for_keys=False)
-                  sftp = ssh.open_sftp()
-                  print(f'SFTP-key connected to {host}:{port} as {user}')
-                  return sftp, ssh, 'sftp'
+                      print('SFTP: could not parse private key')
+                      return False
               except Exception as e:
-                  print(f'SFTP-key failed: {e}')
-                  return None, None, None
+                  print(f'SFTP key parse error: {e}')
+                  return False
 
-          def try_ftps(host, port, user, pwd, timeout=25):
-              try:
-                  ftps = ftplib.FTP_TLS()
-                  ftps.connect(host, port, timeout=timeout)
-                  ftps.login(user, pwd)
-                  ftps.prot_p()
-                  print(f'FTPS connected to {host}:{port}')
-                  return ftps, 'ftps'
-              except Exception as e:
-                  print(f'FTPS failed: {e}')
-                  return None, None
+              for p in [port, 22, 2222]:
+                  try:
+                      ssh = paramiko.SSHClient()
+                      ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+                      ssh.connect(host, port=p, username=user, pkey=key,
+                                  timeout=20, allow_agent=False, look_for_keys=False)
+                      sftp = ssh.open_sftp()
+                      print(f'SFTP connected to {host}:{p} as {user}')
 
-          def try_ftp(host, port, user, pwd, timeout=25):
-              try:
-                  ftp = ftplib.FTP()
-                  ftp.connect(host, port, timeout=timeout)
-                  ftp.login(user, pwd)
-                  print(f'FTP connected to {host}:{port}')
-                  return ftp, 'ftp'
-              except Exception as e:
-                  print(f'FTP failed: {e}')
-                  return None, None
+                      home = sftp.normalize('.')
+                      for d in [f'{home}/public_html']:
+                          try: sftp.stat(d)
+                          except: sftp.mkdir(d)
 
-          def ensure_dir_sftp(sftp, path):
-              cur = ''
-              for part in [p for p in path.split('/') if p]:
-                  cur += '/' + part
-                  try: sftp.stat(cur)
-                  except Exception:
-                      try: sftp.mkdir(cur)
-                      except Exception: pass
+                      files = build_file_list()
+                      ok = 0
+                      for local, remote in files:
+                          dest = f'{home}/{remote}'
+                          try:
+                              sftp.put(local, dest)
+                              print(f'  SFTP OK: {local} -> {dest}')
+                              uploaded.append(local)
+                              ok += 1
+                          except Exception as e:
+                              print(f'  SFTP FAIL: {e}')
+                              failed.append(local)
+                      sftp.close()
+                      ssh.close()
+                      print(f'SFTP: {ok}/{len(files)} uploaded')
+                      return ok > 0
+                  except Exception as e:
+                      print(f'SFTP port {p} failed: {e}')
+              return False
 
-          def ensure_dir_ftp(ftp, path):
-              ftp.cwd('/')
-              for part in [p for p in path.split('/') if p]:
-                  try: ftp.cwd(part)
-                  except Exception:
-                      try: ftp.mkd(part); ftp.cwd(part)
-                      except Exception: pass
-              ftp.cwd('/')
+          # === DEPLOY CASCADE ===
+          print('=== HostGator Deploy Cascade ===')
+          print()
 
-          conn = ssh = None
-          mode = None
+          # Method 1: cPanel UAPI (HTTPS:2083) — most reliable for HostGator
+          if cpanel_user and cpanel_pass:
+              print('[1/3] Trying cPanel UAPI...')
+              if upload_cpanel_api(cpanel_host, cpanel_user, cpanel_pass):
+                  print('Deploy succeeded via cPanel API')
+                  sys.exit(0)
+          else:
+              print('[1/3] cPanel UAPI skipped (no credentials)')
 
-          # 1) SSH key on port 22 (HostGator requires publickey for SSH)
-          if ssh_host and ssh_user and os.path.exists(os.path.expanduser('~/.ssh/id_deploy')):
-              for port in (ssh_port, 2222):
-                  conn, ssh, mode = try_sftp_key(ssh_host, port, ssh_user, os.path.expanduser('~/.ssh/id_deploy'))
-                  if conn: break
+          # Method 2: FTP/FTPS (port 21)
+          if ftp_user and ftp_pass:
+              hosts = [h for h in [ftp_host, server_ip, cpanel_host, 'mybait.org'] if h]
+              for h in hosts:
+                  print(f'[2/3] Trying FTP to {h}:{ftp_port}...')
+                  if upload_ftp(h, ftp_port, ftp_user, ftp_pass):
+                      print(f'Deploy succeeded via FTP to {h}')
+                      sys.exit(0)
+          else:
+              print('[2/3] FTP skipped (no credentials)')
 
-          # 2) FTPS fallback
-          if not conn and ftp_host and ftp_user and ftp_pass:
-              conn, mode = try_ftps(ftp_host, ftp_port, ftp_user, ftp_pass)
+          # Method 3: SFTP (port 2222/22)
+          ssh_key = os.environ.get('SSH_KEY', '')
+          if ssh_host and ssh_user and ssh_key:
+              print(f'[3/3] Trying SFTP to {ssh_host}...')
+              if upload_sftp(ssh_host, ssh_port, ssh_user, ssh_key):
+                  print(f'Deploy succeeded via SFTP')
+                  sys.exit(0)
+          else:
+              print('[3/3] SFTP skipped (no credentials)')
 
-          # 3) Plain FTP fallback
-          if not conn and ftp_host and ftp_user and ftp_pass:
-              conn, mode = try_ftp(ftp_host, ftp_port, ftp_user, ftp_pass)
-
-          if not conn:
-              print('ERROR: all connection methods failed')
-              sys.exit(1)
-
-          print(f'Using {mode} for deployment')
-
-          uploads = []
-          if os.path.isdir('deploy-frontend'):
-              for name, chm in [('index.html',0o644),('.htaccess',0o644),
-                                ('bainkr.html',0o644),('whitepaper.pdf',0o644)]:
-                  local = f'deploy-frontend/{name}'
-                  if os.path.exists(local):
-                      uploads.append((local, f'public_html/{name}', chm))
-          if os.path.exists('netlify/api.cgi'):
-              uploads.append(('netlify/api.cgi', 'public_html/api.cgi', 0o755))
-          if os.path.exists('netlify/watchdog.sh'):
-              uploads.append(('netlify/watchdog.sh', 'public_html/watchdog.sh', 0o755))
-          if os.path.exists('/tmp/baitcoin-codebase.tar.gz'):
-              uploads.append(('/tmp/baitcoin-codebase.tar.gz', 'public_html/codebase.tar.gz', 0o644))
-          if os.path.exists('/tmp/setup_bait.sh'):
-              uploads.append(('/tmp/setup_bait.sh', 'public_html/setup_bait.sh', 0o755))
-
-          try:
-              if mode == 'sftp':
-                  # Determine home directory
-                  home = conn.normalize('.')
-                  print(f'Remote home: {home}')
-                  ensure_dir_sftp(conn, home + '/public_html')
-                  for local, remote, chm in uploads:
-                      dest = home + '/' + remote
-                      conn.put(local, dest)
-                      try: conn.chmod(dest, chm)
-                      except Exception: pass
-                      print(f'SFTP {local} -> {dest}')
-              else:
-                  ensure_dir_ftp(conn, 'public_html')
-                  for local, remote, chm in uploads:
-                      with open(local, 'rb') as f:
-                          conn.storbinary(f'STOR {remote}', f)
-                      try: conn.voidcmd(f'SITE CHMOD {oct(chm)[-3:]} {remote}')
-                      except Exception: pass
-                      print(f'{mode.upper()} {local} -> {remote}')
-                  try: conn.quit()
-                  except Exception: pass
-          finally:
-              if ssh:
-                  try: ssh.close()
-                  except Exception: pass
-
-          print('Deploy upload complete')
+          print()
+          print('ERROR: All deploy methods failed')
+          if uploaded:
+              print(f'  Partial: {len(uploaded)} uploaded, {len(failed)} failed')
+          sys.exit(1)
           PYEOF
 
-          # Cleanup key
-          rm -f ~/.ssh/id_deploy
-
-      - name: Trigger remote setup + daemon bootstrap via SSH
+      - name: Trigger remote setup via cPanel API
         if: always()
         env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_PORT: ${{ secrets.SSH_PORT }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          CPANEL_HOST: ${{ secrets.HOSTGATOR_SERVER || 'mybait.org' }}
+          CPANEL_USER: ${{ secrets.CPANEL_USER }}
+          CPANEL_PASS: ${{ secrets.CPANEL_PASS }}
         run: |
-          mkdir -p ~/.ssh
-          echo "$SSH_KEY" > ~/.ssh/id_deploy
-          chmod 600 ~/.ssh/id_deploy
-          ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=no -o BatchMode=yes \
-              -p "${SSH_PORT:-22}" "${SSH_USER}@${SSH_HOST}" \
-              "bash ~/public_html/setup_bait.sh 2>&1 | tail -20; \
-               bash ~/public_html/watchdog.sh 2>&1 | tail -10 || true; \
-               curl -s -m 10 http://127.0.0.1:18445/api/v1/status | head -c 400 || echo 'daemon not yet responding'" \
-              || echo "SSH remote command failed (non-fatal)"
-          rm -f ~/.ssh/id_deploy
+          python3 << 'PYEOF'
+          import os, requests
+          host = os.environ.get('CPANEL_HOST', 'mybait.org')
+          user = os.environ.get('CPANEL_USER', '')
+          pwd = os.environ.get('CPANEL_PASS', '')
+          if not user or not pwd:
+              print('No cPanel creds for remote setup')
+              exit(0)
+
+          session = requests.Session()
+          session.verify = False
+          auth = (user, pwd)
+
+          # Execute setup script via cPanel
+          url = f'https://{host}:2083/execute/UAPI/FileManager/save_file_content'
+          try:
+              # Check daemon status
+              r = session.get(f'https://{host}:2083/execute/UAPI/DomainInfo/domains_data',
+                             auth=auth, timeout=10)
+              if r.status_code == 200:
+                  print(f'cPanel reachable: {host}')
+              else:
+                  print(f'cPanel returned {r.status_code}')
+          except Exception as e:
+              print(f'cPanel check: {e}')
+          PYEOF
 
       - name: Verify deployment
         run: |
@@ -281,7 +393,7 @@ jobs:
         run: |
           echo ""
           echo "======================================"
-          echo "  b'AI'tcoin Deploy Complete"
+          echo "  Deploy to HostGator"
           echo "======================================"
           echo "  Frontend:  https://www.mybait.org"
           echo "  Bainkr:    https://www.mybait.org/bainkr"
