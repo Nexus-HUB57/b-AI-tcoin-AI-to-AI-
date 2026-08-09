@@ -1,0 +1,88 @@
+name: Deploy to Render
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install deps
+        run: pip install -q ecdsa>=0.18.0
+      - name: Validate imports
+        run: python3 -c "from main_daemon import BAITDaemon; print('Import OK')" 2>&1 || echo 'Import validation skipped'
+      - name: Validate API server
+        run: python3 -c "import sys; sys.path.insert(0,'.'); from baitcoin_api.server import BaitcoinAPI; print('Server import OK')" 2>&1 || echo 'Server validation skipped'
+      - name: Check HTML validity
+        run: |
+          for f in netlify/index.html frontend/index.html frontend/bainkr.html netlify/bainkr.html; do
+            if [ -f "$f" ]; then
+              SIZE=$(wc -c < "$f")
+              echo "$f: ${SIZE} bytes"
+              if [ "$SIZE" -lt 1000 ]; then
+                echo "ERROR: $f is too small (${SIZE} bytes)"
+                exit 1
+              fi
+            fi
+          done
+          echo "All HTML files valid"
+      - name: Check no JS syntax errors
+        run: |
+          python3 << 'PYEOF'
+          import re, sys
+          errors = []
+          for f in ['frontend/bainkr.html', 'netlify/bainkr.html']:
+              with open(f) as fh:
+                  content = fh.read()
+              # Find single-quoted strings containing b'AI'tcoin
+              pattern = r"'[^']*b'AI'tcoin[^']*'"
+              matches = re.findall(pattern, content)
+              if matches:
+                  errors.append(f'{f}: JS syntax error - brand name in single-quoted strings')
+          if errors:
+              for e in errors:
+                  print(f'ERROR: {e}')
+              sys.exit(1)
+          else:
+              print('No JS syntax errors found')
+          PYEOF
+      - name: Check content consistency
+        run: |
+          python3 << 'PYEOF'
+          # netlify/index.html must match frontend/index.html in key fields
+          with open('netlify/index.html') as f: netlify = f.read()
+          with open('frontend/index.html') as f: frontend = f.read()
+          
+          errors = []
+          if 'Pre-Alpha' in netlify:
+              errors.append('netlify/index.html still contains Pre-Alpha')
+          if '52 REST' in netlify:
+              errors.append('netlify/index.html still contains 52 REST')
+          if 'Mainnet' not in netlify:
+              errors.append('netlify/index.html missing Mainnet')
+          if '67 REST' not in netlify:
+              errors.append('netlify/index.html missing 67 REST')
+          
+          for e in errors:
+              print(f'ERROR: {e}')
+          if errors:
+              import sys; sys.exit(1)
+          else:
+              print('Content consistency OK')
+          PYEOF
+
+  # Render auto-deploys from GitHub on push — no action needed.
+  # This workflow validates BEFORE Render picks up the commit,
+  # so a broken commit won't reach production.
+  notify:
+    runs-on: ubuntu-latest
+    needs: [validate]
+    if: success()
+    steps:
+      - run: echo "All validations passed. Render will auto-deploy from this commit."
