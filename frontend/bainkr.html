@@ -215,10 +215,10 @@
       } catch(e) {
         consecutiveFailures++;
         if (consecutiveFailures === 1) {
-          setState('connecting', 'Reconectando ao daemon…', 'Conectando ao daemon b'AI'tcoin local. Aguarde…');
+          setState('connecting', 'Reconectando ao daemon…', `Conectando ao daemon b'AI'tcoin local. Aguarde…`);
         } else if (consecutiveFailures >= 3) {
           setState('offline', 'Daemon Offline',
-            'O daemon b'AI'tcoin não está respondendo. Verifique o status do servidor ou tente novamente.');
+            `O daemon b'AI'tcoin não está respondendo. Verifique o status do servidor ou tente novamente.`);
         }
         if (currentInterval !== POLL_INTERVAL_MS) {
           currentInterval = POLL_INTERVAL_MS;
