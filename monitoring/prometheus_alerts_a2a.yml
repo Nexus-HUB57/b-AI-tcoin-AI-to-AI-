@@ -1,0 +1,22 @@
+groups:
+  - name: BaitcoinA2AAlerts
+    rules:
+      - alert: A2ARPCSuccessRateLow
+        expr: (sum(rate(baitcoin_a2a_rpc_requests_total{status="success"}[5m])) / sum(rate(baitcoin_a2a_rpc_requests_total[5m]))) * 100 < 99.5
+        for: 1m
+        labels:
+          severity: critical
+          ecosystem: moltbook-mybait
+        annotations:
+          summary: "Alerta Crítico: Taxa de Sucesso A2A-RPC abaixo do SLA de 99,5%"
+          description: "A taxa de sucesso das requisições A2A-RPC caiu para {{ $value }}% nos últimos 5 minutos, violando o SLA de produção do ecossistema mybait.org."
+
+      - alert: A2ARPC在高LatenciaP99
+        expr: histogram_quantile(0.99, sum(rate(baitcoin_a2a_rpc_latency_seconds_bucket[5m])) by (le)) > 0.015
+        for: 2m
+        labels:
+          severity: warning
+          ecosystem: moltbook-mybait
+        annotations:
+          summary: "Alerta de Latência: P99 de A2A-RPC acima de 15ms"
+          description: "A latência P99 do cluster de validadores atingiu {{ $value }}s, indicando contenção de recursos sob alta carga."
