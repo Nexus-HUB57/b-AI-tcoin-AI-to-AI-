@@ -6357,6 +6357,16 @@ class BAITDaemon:
 
         block = self.blockchain.mine_block(agent_id, pubkey)
 
+        # FIX: só processar bloco se foi efetivamente adicionado à cadeia
+        # (mine_block retorna o bloco mesmo se PoW falhou)
+        if block.index > self.blockchain.height:
+            return {
+                "block_height": block.index,
+                "validator": agent_id,
+                "chain_height": self.blockchain.height,
+                "note": "PoW failed — block not added to chain",
+            }
+
         # Sync token module with on-chain coinbase reward (was missing — caused token=0 bug)
         for tx in block.transactions:
             if tx.is_coinbase:

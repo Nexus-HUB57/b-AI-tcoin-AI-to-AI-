@@ -137,27 +137,30 @@ async function pull(){
     const s=await fetch(API+'/status').then(r=>r.json());
     document.getElementById('s-height').textContent=fmt(s.chain_height);
     document.getElementById('s-valid').textContent='chain valid '+(s.chain_valid?'✓':'✗');
-    const supply=(s.total_bait_minted||0);
+    const supply=(s.token_minted_bait||0);
     document.getElementById('s-supply').textContent=fmt(supply);
     document.getElementById('s-utxo').textContent=fmt(s.utxo_count);
     document.getElementById('s-mempool').textContent='mempool: '+(s.mempool_size||0);
     document.getElementById('s-agents').textContent=s.agents_registered||0;
     document.getElementById('s-market').textContent=(s.marketplace&&s.marketplace.active)||0;
     document.getElementById('live').textContent='MAINNET · h='+s.chain_height;
-  }catch(e){}
+  }catch(e){console.warn('status fetch error:',e)}
   try{
     const b=await fetch(API+'/explorer/blocks?limit=8').then(r=>r.json());
-    const rows=(b.blocks||[]).map(x=>`<tr><td><a href="/blockchain#b-${x.block_height}" style="color:#f59e0b">${x.block_height}</a></td><td class="hash"><a href="/api/api/v1/block/${x.block_height}" target="_blank">${(x.hash||'').slice(0,32)}…</a></td><td>${x.validator||'—'}</td><td>${x.nonce||0}</td><td style="color:#8b5cf6">50 BAIT</td></tr>`).join('');
-    document.getElementById('blk-body').innerHTML=rows||'<tr><td colspan="5" style="text-align:center;color:#64748b">sem blocos</td></tr>';
-  }catch(e){}
+    if(b.error){throw new Error(b.error)}
+    const rows=(b.blocks||[]).map(x=>`<tr><td><a href="/blockchain#b-${x.block_height}" style="color:#f59e0b">${x.block_height}</a></td><td class="hash"><a href="/api/api/v1/block/${x.block_height}" target="_blank">${(x.hash||'').slice(0,32)}…</a></td><td>${x.validator||'—'}</td><td>${x.nonce||0}</td><td style="color:#8b5cf6">${x.reward_bait||50} BAIT</td></tr>`).join('');
+    document.getElementById('blk-body').innerHTML=rows||'<tr><td colspan="5" style="text-align:center;color:#f59e0b">API retornou 0 blocos — mineracao em andamento</td></tr>';
+  }catch(e){document.getElementById('blk-body').innerHTML='<tr><td colspan="5" style="text-align:center;color:#ef4444">Falha ao carregar blocos — tentando novamente em 7s</td></tr>';console.warn('blocks fetch error:',e)}
   try{
     const st=await fetch(API+'/status').then(r=>r.json());
     const svcs=(st.marketplace&&st.marketplace.services)||[];
     if(svcs.length){
       const rows=svcs.map(s=>`<tr><td>${s.name||s.id}</td><td class="hash">${s.price_sats||0}</td><td>${s.category||'—'}</td></tr>`).join('');
       document.getElementById('mkt-body').innerHTML=rows;
+    }else{
+      document.getElementById('mkt-body').innerHTML='<tr><td colspan="3" style="text-align:center;color:#64748b">marketplace com '+((st.marketplace&&st.marketplace.active)||0)+' listings ativos</td></tr>';
     }
-  }catch(e){}
+  }catch(e){console.warn('marketplace fetch error:',e)}
 }
 pull();setInterval(pull,7000);
 </script>
