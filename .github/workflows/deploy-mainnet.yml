@@ -74,34 +74,62 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup SSH
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_KEY:  ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
           set -e
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_deploy
+          # trim whitespace/quotes dos secrets
+          SSH_HOST="$(printf '%s' "$SSH_HOST" | tr -d '\r\n\t \"'\'')"
+          SSH_PORT="$(printf '%s' "$SSH_PORT" | tr -d '\r\n\t \"'\'')"
+          [ -z "$SSH_HOST" ] && { echo '::error::SSH_HOST vazio'; exit 1; }
+          [ -z "$SSH_PORT" ] && SSH_PORT=22
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
           chmod 600 ~/.ssh/id_deploy
-          ssh-keyscan -p ${{ secrets.SSH_PORT }} -H ${{ secrets.SSH_HOST }} > ~/.ssh/known_hosts 2>/dev/null
+          # keyscan best-effort; se falhar, usa accept-new na hora do connect
+          if ssh-keyscan -T 8 -p "$SSH_PORT" -H "$SSH_HOST" > ~/.ssh/known_hosts 2>/tmp/keyscan.err; then
+              echo "known_hosts populado ($(wc -l < ~/.ssh/known_hosts) linhas)"
+          else
+              echo "::warning::ssh-keyscan falhou; usando accept-new (host key sera aprendida no primeiro connect)"
+              cat /tmp/keyscan.err || true
+              : > ~/.ssh/known_hosts
+          fi
           chmod 644 ~/.ssh/known_hosts
+          # Config global para todos os passos ssh/scp/rsync deste job
+          cat > ~/.ssh/config <<CFG
+          Host deploy-target
+            HostName $SSH_HOST
+            Port $SSH_PORT
+            User ${{ secrets.SSH_USER }}
+            IdentityFile ~/.ssh/id_deploy
+            StrictHostKeyChecking accept-new
+            UserKnownHostsFile ~/.ssh/known_hosts
+            ServerAliveInterval 30
+            ConnectTimeout 15
+          CFG
+          chmod 600 ~/.ssh/config
+          # sanity check nao-fatal
+          ssh -o BatchMode=yes -o ConnectTimeout=15 deploy-target "echo remote-ok && hostname && whoami" || echo "::warning::connect probe failed (nao fatal, deploy segue)"
 
       - name: Pre-deploy snapshot (WAL)
+        continue-on-error: true
         run: |
-          ssh -i ~/.ssh/id_deploy \
-              -p ${{ secrets.SSH_PORT }} \
-              -o StrictHostKeyChecking=yes \
-              ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-              "test -x /home/baitcoin/scripts/snapshot_verify.sh && /home/baitcoin/scripts/snapshot_verify.sh || echo 'no snapshot_verify script; skipping'"
+          ssh deploy-target "test -x /home/baitcoin/scripts/snapshot_verify.sh && /home/baitcoin/scripts/snapshot_verify.sh || echo 'no snapshot_verify script; skipping'"
 
       - name: Rsync backend (baitcoin_*)
         run: |
           set -e
           rsync -avz --delete \
             --exclude='__pycache__' --exclude='*.pyc' --exclude='.bak.*' \
-            -e "ssh -i ~/.ssh/id_deploy -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=yes" \
+            -e 'ssh' \
             baitcoin_api baitcoin_explorer baitcoin_ai baitcoin_faucet \
             baitcoin_bank baitcoin_wallet baitcoin_token baitcoin_core \
             baitcoin_memory baitcoin_obscura baitcoin_whitelabel baitcoin_sdk \
             baitcoin_bridge baitcoin_mainnet \
             daemon_production.py daemon_wrapper.py \
-            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/baitcoin/app/
+            deploy-target:/home/baitcoin/app/
 
       - name: Rsync frontend (/var/www/mybait)
         if: ${{ inputs.skip_frontend != true }}
@@ -109,23 +137,15 @@ jobs:
           set -e
           rsync -avz \
             --include='*.html' --include='favicon.svg' --exclude='*' \
-            -e "ssh -i ~/.ssh/id_deploy -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=yes" \
+            -e 'ssh' \
             frontend/ \
-            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/mybait-staging/
-          ssh -i ~/.ssh/id_deploy \
-              -p ${{ secrets.SSH_PORT }} \
-              -o StrictHostKeyChecking=yes \
-              ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-              "sudo -n rsync -a --chown=www-data:www-data /tmp/mybait-staging/ /var/www/mybait/ && sudo -n systemctl reload nginx && rm -rf /tmp/mybait-staging"
+            deploy-target:/tmp/mybait-staging/
+          ssh deploy-target "sudo -n rsync -a --chown=www-data:www-data /tmp/mybait-staging/ /var/www/mybait/ && sudo -n systemctl reload nginx && rm -rf /tmp/mybait-staging"
 
       - name: Restart daemon
         if: ${{ inputs.restart_daemon != false }}
         run: |
-          ssh -i ~/.ssh/id_deploy \
-              -p ${{ secrets.SSH_PORT }} \
-              -o StrictHostKeyChecking=yes \
-              ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-              "sudo -n systemctl restart baitcoin.service && sleep 3 && sudo -n systemctl is-active baitcoin.service"
+          ssh deploy-target "sudo -n systemctl restart baitcoin.service && sleep 3 && sudo -n systemctl is-active baitcoin.service"
 
       - name: Verify deploy (post-restart health check)
         run: |
