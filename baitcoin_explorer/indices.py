@@ -231,12 +231,19 @@ class BlockchAInIndex:
 
     @property
     def stats(self) -> dict:
-        r"""Estatisticas dos indices."""
+        r"""Estatisticas dos indices.
+
+        FIX: contadores agora derivam dos dicionarios reais para eliminar drift
+        (o antigo _total_blocks/_total_txs podia ficar acima de last_indexed_height).
+        """
+        real_blocks = len(self._block_by_height)
+        real_txs = len(self._tx_by_hash)
+        real_last = max(self._block_by_height.keys()) if self._block_by_height else self._last_indexed_height
         return {
-            "indexed_blocks": self._total_blocks,
-            "indexed_transactions": self._total_txs,
+            "indexed_blocks": real_blocks,
+            "indexed_transactions": real_txs,
             "indexed_addresses": len(self._address_info),
-            "last_indexed_height": self._last_indexed_height,
+            "last_indexed_height": real_last,
             "indexed_at": self._indexed_at,
         }
 
@@ -451,15 +458,21 @@ class BlockchAInIndex:
     def get_latest_blocks(self, limit: int = 10, offset: int = 0) -> List[BlockInfo]:
         r"""Retorna os ultimos blocos (descendente por altura).
 
+        FIX: usa max(_block_by_height) como fonte de verdade em vez de
+        _last_indexed_height (que ficava stale entre rebuilds e producia
+        lista vazia mesmo com blocos indexados).
+
         Args:
             limit: Maximo de blocos a retornar (max 100).
             offset: Pular N blocos do topo.
         """
         limit = min(max(limit, 1), 100)
         with self._lock:
-            max_h = self._last_indexed_height
-            heights = list(range(max_h - offset, (max_h - offset - limit), -1))
-            return [self._block_by_height[h] for h in heights if h in self._block_by_height]
+            if not self._block_by_height:
+                return []
+            sorted_heights = sorted(self._block_by_height.keys(), reverse=True)
+            page = sorted_heights[offset:offset + limit]
+            return [self._block_by_height[h] for h in page if h in self._block_by_height]
 
     def get_tx(self, tx_hash: str) -> Optional[TxInfo]:
         r"""Retorna TxInfo por hash, ou None."""

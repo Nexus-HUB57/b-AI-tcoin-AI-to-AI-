@@ -54,6 +54,9 @@ class PriceOracle:
         self.feeds: Dict[str, List[PricePoint]] = defaultdict(list)
         self.oracles: Dict[str, float] = {}  # agent_id -> reputation_weight
         self.reports: List[OracleReport] = []
+        # FIX: persiste ultimo preco valido por simbolo, para publicar em /status
+        # em vez de retornar None quando o feed expirar ou faltar quorum.
+        self._last_valid_price: Dict[str, PricePoint] = {}
 
     def register_oracle(self, agent_id: str, reputation: float = 50.0) -> None:
         """Registra agente como oracle."""
@@ -79,19 +82,31 @@ class PriceOracle:
         return True
 
     def get_price(self, symbol: str) -> Optional[float]:
-        """Retorna preço agregado (mediana ponderada)."""
+        """Retorna preço agregado (mediana ponderada).
+
+        FIX: quando nao ha quorum ativo mas existe ultimo preco valido
+        cacheado, retorna esse ultimo valor em vez de None — evita que
+        /status.oracle.prices publique null e a UI mostre '—' para sempre.
+        """
         symbol = symbol.upper()
         points = self._get_valid_points(symbol)
-        if len(points) < self.MIN_SOURCES:
-            return None
-
-        # Mediana ponderada por reputação
-        weighted = []
-        for p in points:
-            weight = self.oracles.get(p.source, 1.0)
-            weighted.extend([p.price] * int(weight))
-        weighted.sort()
-        return weighted[len(weighted) // 2]
+        if len(points) >= self.MIN_SOURCES:
+            weighted = []
+            for p in points:
+                weight = self.oracles.get(p.source, 1.0)
+                weighted.extend([p.price] * int(weight))
+            weighted.sort()
+            price = weighted[len(weighted) // 2]
+            # cacheia ultimo valor valido para fallback
+            self._last_valid_price[symbol] = PricePoint(
+                symbol=symbol, price=price, timestamp=time.time(), source="aggregate"
+            )
+            return price
+        # sem quorum: retorna ultimo valor conhecido se disponivel
+        last = self._last_valid_price.get(symbol)
+        if last is not None:
+            return last.price
+        return None
 
     def _get_valid_points(self, symbol: str) -> List[PricePoint]:
         """Filtra pontos válidos (recentes, de oracles registrados)."""

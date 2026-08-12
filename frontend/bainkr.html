@@ -1,251 +1,256 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- ═══ CORREÇÃO 3: Título da aba ═══ -->
-  <title>b'AI'tcoin Cryptocurrency</title>
-  <meta name="description" content="b'AI'tcoin (BAIT) — AI-to-AI Autonomous Cryptocurrency Protocol · PoW SHA-256d · Schnorr BIP-340 · 21M supply">
-  <!-- ═══ CORREÇÃO 1: Favicon 🪙 → 🤖 (robô) ═══ -->
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
-  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <style>
-    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-    :root {
-      --bg:#0a0a0f; --bg-2:#111119; --card:rgba(255,255,255,0.03);
-      --border:rgba(255,255,255,0.08); --text:#e4e4e7; --text-muted:#71717a;
-      --brand:#f7931a; --brand-ai:#3b82f6; --red:#ef4444; --green:#22c55e;
-      --amber:#f59e0b;
-    }
-    html,body { background:var(--bg); color:var(--text); font-family:'Inter',-apple-system,sans-serif; min-height:100vh; }
-    a { color:inherit; text-decoration:none; }
-    /* ═══ HEADER ═══ */
-    header.top {
-      display:flex; align-items:center; justify-content:space-between;
-      padding:18px 32px; border-bottom:1px solid var(--border);
-      background:rgba(10,10,15,0.8); backdrop-filter:blur(10px);
-      position:sticky; top:0; z-index:100;
-    }
-    .brand { display:flex; flex-direction:column; }
-    .brand-title { font-family:'Orbitron',sans-serif; font-weight:800; font-size:22px; letter-spacing:-.5px; color:var(--brand); }
-    .brand-ai { color:var(--brand-ai); }
-    .brand-sub { font-size:11px; color:var(--text-muted); margin-top:2px; }
-    nav.top-nav { display:flex; align-items:center; gap:8px; }
-    .nav-link {
-      display:inline-flex; align-items:center; gap:6px;
-      padding:8px 14px; border-radius:8px; font-size:14px; color:var(--text-muted);
-      transition:all .18s ease; font-weight:500;
-    }
-    .nav-link:hover { color:var(--text); background:rgba(255,255,255,0.04); }
-    .nav-link.active { color:var(--text); background:rgba(59,130,246,0.12); }
-    .nav-icon { font-size:15px; }
-    .version-pill {
-      margin-left:14px; padding:5px 12px; border:1px solid var(--border);
-      border-radius:999px; font-size:11px; font-family:'JetBrains Mono',monospace;
-      color:var(--text-muted); display:inline-flex; align-items:center; gap:6px;
-    }
-    .status-dot { width:8px; height:8px; border-radius:50%; background:var(--amber); animation:pulse 1.6s infinite; }
-    .status-dot.ok { background:var(--green); animation:none; }
-    .status-dot.err { background:var(--red); }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
-    /* ═══ CARD DAEMON OFFLINE ═══ */
-    main { min-height:calc(100vh - 140px); display:flex; align-items:center; justify-content:center; padding:40px 20px; }
-    .status-card {
-      max-width:520px; width:100%; background:linear-gradient(180deg,rgba(239,68,68,0.06),rgba(239,68,68,0.02));
-      border:1px solid rgba(239,68,68,0.2); border-radius:20px; padding:48px 40px; text-align:center;
-    }
-    .status-card.online { background:linear-gradient(180deg,rgba(34,197,94,0.06),rgba(34,197,94,0.02)); border-color:rgba(34,197,94,0.2); }
-    .status-icon {
-      width:64px; height:64px; margin:0 auto 20px; border-radius:50%;
-      border:2px solid var(--red); display:flex; align-items:center; justify-content:center;
-      color:var(--red); font-size:28px; font-weight:800;
-    }
-    .status-card.online .status-icon { border-color:var(--green); color:var(--green); }
-    .status-title { font-size:22px; font-weight:700; margin-bottom:10px; }
-    .status-desc { color:var(--text-muted); font-size:14px; line-height:1.5; margin-bottom:20px; }
-    .status-actions { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:24px; }
-    .btn { padding:10px 20px; border-radius:8px; font-size:13px; font-weight:600; border:1px solid var(--border); background:var(--card); cursor:pointer; color:var(--text); transition:all .18s; }
-    .btn:hover { border-color:var(--brand-ai); background:rgba(59,130,246,0.08); }
-    .btn-primary { background:var(--brand-ai); border-color:var(--brand-ai); color:#fff; }
-    .btn-primary:hover { background:#2563eb; }
-    .metrics { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:24px; }
-    .metric { background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:10px; padding:14px 12px; }
-    .metric-label { font-size:10px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; }
-    .metric-value { font-size:16px; font-weight:700; margin-top:4px; font-family:'JetBrains Mono',monospace; }
-    .metric-value.small { font-size:13px; }
-    /* ═══ FOOTER ═══ */
-    footer.bottom {
-      padding:20px 32px; border-top:1px solid var(--border);
-      display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;
-      font-size:11px; color:var(--text-muted); font-family:'JetBrains Mono',monospace;
-    }
-    .foot-tags { display:flex; gap:16px; }
-    .foot-tags span::before { content:"·"; margin-right:14px; opacity:.4; }
-    .foot-tags span:first-child::before { content:""; margin:0; }
-    @media (max-width:720px) {
-      header.top { flex-direction:column; gap:14px; padding:14px 18px; }
-      nav.top-nav { flex-wrap:wrap; justify-content:center; }
-      .metrics { grid-template-columns:1fr 1fr; }
-    }
-  </style>
-</head>
-<body>
-  <header class="top">
-    <div class="brand">
-      <div class="brand-title">b'<span class="brand-ai">AI</span>'tcoin</div>
-      <div class="brand-sub">AI-to-AI Autonomous Cryptocurrency</div>
-    </div>
-    <nav class="top-nav">
-      <a href="/aistore" class="nav-link"><span class="nav-icon">🛒</span>AI Store</a>
-      <!-- ═══ CORREÇÃO 4: Ícone casa 🏛 → 🤖 (robô) ═══ -->
-      <a href="/bainkr" class="nav-link active"><span class="nav-icon">🤖</span>B'AI'nkr</a>
-      <a href="/mainnet" class="nav-link"><span class="nav-icon">⛓️</span>Mainnet</a>
-      <a href="/explorer" class="nav-link"><span class="nav-icon">🔍</span>Explorer</a>
-      <span class="version-pill" id="versionPill">
-        <span class="status-dot" id="statusDot"></span>
-        <span id="statusText">Reconnecting…</span>
-        <span style="opacity:.5">·</span>
-        <span>v0.8.0</span>
-      </span>
-    </nav>
-  </header>
+<html lang="pt-BR"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<title>B'AI'nkr — Banco Autônomo · Login por carteira</title>
+<style>
+:root{--bg:#050810;--fg:#e6edf7;--emerald:#10b981;--amber:#f59e0b;--violet:#8b5cf6;--border:rgba(255,255,255,.08);--card:rgba(255,255,255,.03)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'SF Mono','Consolas',monospace;background:var(--bg);color:var(--fg);min-height:100vh;background-image:radial-gradient(circle at 30% 20%,rgba(139,92,246,.08),transparent 50%),radial-gradient(circle at 70% 80%,rgba(245,158,11,.06),transparent 50%)}
+a{color:inherit;text-decoration:none}
+header{border-bottom:1px solid var(--border);backdrop-filter:blur(20px);position:sticky;top:0;z-index:100;background:rgba(5,8,16,.85)}
+.nav{max-width:1300px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.brand{font-size:18px;font-weight:800;background:linear-gradient(90deg,#f59e0b,#8b5cf6);-webkit-background-clip:text;background-clip:text;color:transparent}
+.nav a.link{padding:6px 10px;border-radius:8px;font-size:13px;color:#9ca3af}
+.nav a.link:hover{color:#fff;background:rgba(255,255,255,.05)}
+.hero{max-width:1300px;margin:0 auto;padding:36px 24px 12px;text-align:center}
+.hero h1{font-size:clamp(28px,4vw,44px);font-weight:900}
+.hero h1 span{background:linear-gradient(90deg,#f59e0b,#8b5cf6);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{color:#94a3b8;font-size:14px;max-width:720px;margin:8px auto 0}
+main{max-width:1300px;margin:0 auto;padding:16px 24px 60px}
+.login{background:linear-gradient(135deg,rgba(139,92,246,.08),rgba(245,158,11,.05));border:1px solid rgba(139,92,246,.3);border-radius:16px;padding:24px;margin-bottom:24px}
+.login h2{font-size:20px;font-weight:800;margin-bottom:14px;color:#8b5cf6}
+.login .row{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:12px}
+@media(max-width:640px){.login .row{grid-template-columns:1fr}}
+.login label{display:block;font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#94a3b8;margin-bottom:6px}
+.login input{width:100%;padding:11px 14px;border-radius:10px;border:1px solid var(--border);background:rgba(0,0,0,.4);color:#e6edf7;font-family:inherit;font-size:12px}
+.btn{padding:11px 22px;border-radius:10px;background:var(--violet);color:#fff;font-weight:800;font-size:13px;border:none;cursor:pointer;font-family:inherit}
+.btn-amber{background:var(--amber);color:#1a1204}
+.btn-alt{padding:10px 18px;border-radius:10px;background:transparent;color:#10b981;border:1px solid #10b981;font-weight:700;font-size:12px;cursor:pointer;font-family:inherit;display:inline-block}
+.btn-mini{padding:8px 14px;border-radius:8px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:inherit}
+.session{background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.35);border-radius:12px;padding:18px;margin-top:14px;display:none}
+.session.on{display:block}
+.session h3{color:#10b981;font-size:15px;margin-bottom:10px}
+.session .kv{display:flex;gap:12px;padding:6px 0;font-size:11px;flex-wrap:wrap;border-bottom:1px solid rgba(255,255,255,.04)}
+.session .kv:last-child{border-bottom:none}
+.session .k{color:#64748b;text-transform:uppercase;letter-spacing:1px;min-width:110px}
+.session .v{color:#e6edf7;word-break:break-all;font-family:'SF Mono',monospace}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:24px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px}
+.card .label{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#64748b;margin-bottom:6px}
+.card .value{font-size:22px;font-weight:800;color:var(--amber);font-variant-numeric:tabular-nums}
+.card .sub{font-size:11px;color:#94a3b8;margin-top:4px}
+.products{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.product{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px}
+.product h3{font-size:15px;margin-bottom:6px;color:#e6edf7}
+.product .desc{font-size:11px;color:#94a3b8;margin-bottom:12px;line-height:1.5}
+.product .badge{display:inline-block;padding:3px 8px;font-size:9px;border-radius:4px;background:rgba(139,92,246,.15);color:#8b5cf6;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.product .row2{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+.product .apy{color:#10b981;font-weight:700;font-size:14px}
+.section{margin-bottom:32px}
+.section h2{font-size:18px;font-weight:800;margin-bottom:12px}
+.toast{position:fixed;bottom:20px;right:20px;padding:12px 18px;border-radius:10px;background:#10b981;color:#062018;font-weight:700;font-size:12px;opacity:0;transition:all .3s;z-index:1000}
+.toast.on{opacity:1}
+footer{border-top:1px solid var(--border);padding:24px;text-align:center;color:#64748b;font-size:11px;margin-top:20px}
+</style></head><body>
+<header><div class="nav">
+  <span class="brand">🏦 B'AI'nkr</span>
+  <a class="link" href="/">Home</a>
+  <a class="link" href="/blockchain">🔗 Blockch'AI'n</a>
+  <a class="link" href="/aistore/">🛒 AI Store</a>
+  <a class="link" href="/bainkr">🏦 B'AI'nkr</a>
+  <a class="link" href="/faucet">🚰 Faucet</a>
+  <a class="link" href="/sdk">🧰 SDK</a>
+  <a class="link" href="/obscura">🕸️ Obscura</a>
+</div></header>
 
-  <main>
-    <div class="status-card" id="statusCard">
-      <div class="status-icon" id="statusIcon">✕</div>
-      <div class="status-title" id="titleText">Verificando daemon…</div>
-      <div class="status-desc" id="descText">Contatando a API b'AI'tcoin…</div>
-      <div class="metrics" id="metrics" style="display:none;">
-        <div class="metric"><div class="metric-label">Chain Height</div><div class="metric-value" id="mHeight">—</div></div>
-        <div class="metric"><div class="metric-label">Agents</div><div class="metric-value" id="mAgents">—</div></div>
-        <div class="metric"><div class="metric-label">BTC Oracle</div><div class="metric-value small" id="mBtc">—</div></div>
-      </div>
-      <div class="status-actions" id="actions" style="display:none;">
-        <button class="btn btn-primary" id="btnRetry">↻ Tentar novamente</button>
-        <a href="/api/v1/dev/docs" class="btn">📚 API Docs</a>
+<section class="hero">
+  <h1>🏦 <span>B'AI'nkr</span> — Banco Autônomo dos Agentes AI</h1>
+  <p>Staking · Lending P2P · Vaults · Faucet · Wallet · Oracle · sessão persistente por carteira.</p>
+</section>
+
+<main>
+  <div class="login">
+    <h2>🔐 Login por Carteira</h2>
+    <div class="row">
+      <div><label>Endereço BAIT</label><input id="li-addr" placeholder="b'1..." autocomplete="off"></div>
+      <div><label>agent_id</label><input id="li-agent" placeholder="chimera7" autocomplete="off"></div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn" id="btn-login">🔓 Entrar</button>
+      <button class="btn btn-amber" id="btn-gen">🔑 Gerar nova carteira</button>
+      <button class="btn-alt" id="btn-logout">🚪 Logout</button>
+    </div>
+
+    <div class="session" id="session">
+      <h3>✅ Sessão Ativa</h3>
+      <div class="kv"><div class="k">Endereço</div><div class="v" id="s-addr">—</div></div>
+      <div class="kv"><div class="k">Agent ID</div><div class="v" id="s-agent">—</div></div>
+      <div class="kv"><div class="k">Saldo Token</div><div class="v" id="s-bal" style="color:#10b981">—</div></div>
+      <div class="kv"><div class="k">Saldo Faucet</div><div class="v" id="s-fauc" style="color:#f59e0b">—</div></div>
+      <div class="kv"><div class="k">Reputação</div><div class="v" id="s-rep">—</div></div>
+      <div class="kv"><div class="k">Public Key</div><div class="v" id="s-pub">—</div></div>
+      <div class="kv" id="s-pk-row" style="display:none"><div class="k">⚠️ Private Key</div><div class="v" id="s-priv" style="color:#f59e0b"></div></div>
+      <div style="margin-top:12px">
+        <button class="btn-mini btn-amber" type="button" id="btn-quick-faucet" style="background:#f59e0b;color:#1a1204">🚰 Pegar 10 BAIT agora</button>
+        <a class="btn-mini" id="s-explorer-link" href="/blockchain" style="background:#10b981;color:#062018;text-decoration:none;padding:8px 14px;border-radius:8px;display:inline-block">🔍 Ver no explorer</a>
       </div>
     </div>
-  </main>
+  </div>
 
-  <footer class="bottom">
-    <div>🪙 b'AI'tcoin (BAIT) — AI-to-AI Autonomous Cryptocurrency Protocol</div>
-    <div class="foot-tags">
-      <span>Schnorr/BIP-340</span><span>SHA-256d PoW</span><span>21M Supply</span>
+  <div class="section">
+    <h2>📊 Banco em Números <span style="font-size:11px;font-weight:400;color:#64748b">· live via /staking · /validators · /p2p/status</span></h2>
+    <div class="grid">
+      <div class="card"><div class="label">Total Staked</div><div class="value" id="k-staked">—</div><div class="sub" id="k-apy">APY 7.0%</div></div>
+      <div class="card"><div class="label">Validators</div><div class="value" id="k-vals">—</div><div class="sub" id="k-stake">stake pool</div></div>
+      <div class="card"><div class="label">Blocos Produzidos</div><div class="value" id="k-prod">—</div><div class="sub" id="k-top">top validator</div></div>
+      <div class="card"><div class="label">Slashed</div><div class="value" style="color:#10b981">0</div><div class="sub">nenhum slashing</div></div>
+      <div class="card"><div class="label">P2P Peers</div><div class="value" id="k-peers">—</div><div class="sub">bait_mainnet_001</div></div>
+      <div class="card"><div class="label">Rewards Distribuídos</div><div class="value" id="k-rewards">—</div><div class="sub">acumulado</div></div>
     </div>
-  </footer>
+  </div>
 
-  <script>
-    // ═══════════════════════════════════════════════════════════
-    //  Daemon Live-Poll — mantém a UI viva com auto-recovery
-    // ═══════════════════════════════════════════════════════════
-    const API_BASE = '';
-    const POLL_INTERVAL_MS = 8000;   // 8s durante offline
-    const POLL_INTERVAL_MS_OK = 30000; // 30s quando online (economia)
-    let currentInterval = POLL_INTERVAL_MS;
-    let timer = null;
-    let consecutiveFailures = 0;
+  <div class="section">
+    <h2>🏦 Produtos Financeiros</h2>
+    <div class="products">
+      <div class="product"><span class="badge">STAKING</span><h3>Staking Pool</h3><div class="desc">Delegue BAIT para validators e receba rewards proporcionais aos blocos produzidos.</div><div class="row2"><span class="apy">7.00% APY</span><a class="btn-mini" href="/api/api/v1/staking" target="_blank" style="background:#8b5cf6;color:#fff;padding:8px 14px;border-radius:8px;text-decoration:none">API</a></div></div>
+      <div class="product"><span class="badge">LENDING</span><h3>Empréstimo P2P</h3><div class="desc">Empreste BAIT com colateral 150%. Liquidação automática por preço on-chain.</div><div class="row2"><span class="apy">~12% APR</span><span style="color:#64748b;font-size:11px">colateral 150%</span></div></div>
+      <div class="product"><span class="badge">VAULTS</span><h3>Yield Vaults</h3><div class="desc">5 estratégias auto-executadas: conservador, moderado, agressivo, arbitragem, market making.</div><div class="row2"><span class="apy">4–18% APY</span><span style="color:#64748b;font-size:11px">5 estratégias</span></div></div>
+      <div class="product"><span class="badge">FAUCET</span><h3>Faucet de BAIT</h3><div class="desc">10 BAIT por solicitação, cooldown 24h. Onboarding real de agentes e devs.</div><div class="row2"><span class="apy">+10 BAIT</span><a class="btn-mini" style="background:#f59e0b;color:#1a1204;padding:8px 14px;border-radius:8px;text-decoration:none" href="/faucet">Abrir Faucet</a></div></div>
+      <div class="product"><span class="badge">WALLET</span><h3>Paper Wallet</h3><div class="desc">Geração offline de chaves Schnorr BIP-340, HTML imprimível, cold storage real.</div><div class="row2"><span class="apy">Schnorr</span><a class="btn-mini" href="/api/api/v1/wallet/paper/html" target="_blank" style="background:#10b981;color:#062018;padding:8px 14px;border-radius:8px;text-decoration:none">Gerar</a></div></div>
+      <div class="product"><span class="badge">ORACLE</span><h3>Price Oracle</h3><div class="desc">CoinGecko + Binance, mediana agregada, refresh 240s. Usado por lending e vaults.</div><div class="row2"><span class="apy">Live</span><a class="btn-mini" href="/api/api/v1/oracle/BTC" target="_blank" style="background:#8b5cf6;color:#fff;padding:8px 14px;border-radius:8px;text-decoration:none">Preços</a></div></div>
+    </div>
+  </div>
+</main>
 
-    const el = id => document.getElementById(id);
+<div class="toast" id="toast">ok</div>
 
-    function setState(state, title, desc, data) {
-      const card = el('statusCard');
-      const icon = el('statusIcon');
-      const dot = el('statusDot');
-      const stTxt = el('statusText');
-      el('titleText').textContent = title;
-      el('descText').textContent = desc;
-      if (state === 'online') {
-        card.classList.add('online');
-        icon.textContent = '✓';
-        dot.classList.remove('err'); dot.classList.add('ok');
-        stTxt.textContent = 'Online';
-        el('metrics').style.display = 'grid';
-        el('actions').style.display = 'flex';
-        if (data) {
-          el('mHeight').textContent = data.chain_height ?? '—';
-          el('mAgents').textContent = data.agents_registered ?? '—';
-        }
-        // Documento title no browser (aba)
-        document.title = "b'AI'tcoin Cryptocurrency · Chain #" + (data?.chain_height ?? '—');
-      } else if (state === 'offline') {
-        card.classList.remove('online');
-        icon.textContent = '✕';
-        dot.classList.remove('ok'); dot.classList.add('err');
-        stTxt.textContent = 'Offline';
-        el('actions').style.display = 'flex';
-        document.title = "b'AI'tcoin Cryptocurrency";
-      } else { // connecting
-        card.classList.remove('online');
-        icon.textContent = '↻';
-        dot.classList.remove('ok','err');
-        stTxt.textContent = 'Reconnecting…';
-      }
-    }
+<footer>B'AI'nkr · powered by <code>baitcoin_bank</code> + <code>baitcoin_wallet</code> · sessão local via localStorage v6 · dados live via /api/api/v1</footer>
 
-    async function fetchOracle(sym) {
-      try {
-        const r = await fetch(API_BASE + '/api/v1/oracle/' + sym, { cache:'no-store' });
-        if (!r.ok) return null;
-        const j = await r.json();
-        return j.price;
-      } catch(e) { return null; }
-    }
+<script>
+"use strict";
+const API='/api/api/v1';
+const SESS_KEY='bainkr_session_v6';
 
-    async function pollDaemon() {
-      try {
-        const controller = new AbortController();
-        const timeout = setTimeout(()=>controller.abort(), 20000);
-        const r = await fetch(API_BASE + '/api/v1/status', { cache:'no-store', signal:controller.signal });
-        clearTimeout(timeout);
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        const data = await r.json();
-        consecutiveFailures = 0;
-        setState('online', 'Daemon Online', `Chain válida · ${data.chain_height} blocos minerados · ${data.agents_registered} agentes ativos`, data);
-        // Oracle em paralelo
-        const btc = await fetchOracle('BTC');
-        if (btc) el('mBtc').textContent = '$' + Number(btc).toLocaleString('en-US', {maximumFractionDigits:0});
-        // Ajusta polling para economia quando online
-        if (currentInterval !== POLL_INTERVAL_MS_OK) {
-          currentInterval = POLL_INTERVAL_MS_OK;
-          restartTimer();
-        }
-      } catch(e) {
-        consecutiveFailures++;
-        if (consecutiveFailures === 1) {
-          setState('connecting', 'Reconectando ao daemon…', `Conectando ao daemon b'AI'tcoin local. Aguarde…`);
-        } else if (consecutiveFailures >= 3) {
-          setState('offline', 'Daemon Offline',
-            `O daemon b'AI'tcoin não está respondendo. Verifique o status do servidor ou tente novamente.`);
-        }
-        if (currentInterval !== POLL_INTERVAL_MS) {
-          currentInterval = POLL_INTERVAL_MS;
-          restartTimer();
-        }
-      }
-    }
+function toast(msg, color){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.style.background=color||'#10b981';
+  t.style.color=(color==='#ef4444'||color==='#f59e0b')?'#fff':'#062018';
+  t.className='toast on';
+  setTimeout(()=>{t.className='toast'},3500);
+}
+function fmt(n){if(n==null)return'—';if(typeof n!=='number')return String(n);return n.toFixed(4)}
+function getSession(){try{return JSON.parse(localStorage.getItem(SESS_KEY)||'null')}catch(e){return null}}
+function saveSession(s){localStorage.setItem(SESS_KEY, JSON.stringify(s));}
+function clearSession(){localStorage.removeItem(SESS_KEY);}
+async function safeJSON(url,opts){try{const r=await fetch(url,opts||{cache:'no-store'});if(!r.ok)return null;return await r.json();}catch(e){return null;}}
 
-    function restartTimer() {
-      if (timer) clearInterval(timer);
-      timer = setInterval(pollDaemon, currentInterval);
-    }
+async function loadBank(){
+  const s=await safeJSON(API+'/staking');
+  if(s){
+    document.getElementById('k-staked').textContent=(s.total_staked_bait||0).toFixed(2)+' BAIT';
+    document.getElementById('k-apy').textContent='APY '+((s.apy||7).toFixed ? (s.apy||7).toFixed(2) : (s.apy||7))+'%';
+    document.getElementById('k-rewards').textContent=(s.total_rewards_distributed||0).toFixed(4);
+  }
+  const v=await safeJSON(API+'/validators');
+  if(v){
+    document.getElementById('k-vals').textContent=v.validator_count||v.count||0;
+    document.getElementById('k-stake').textContent=(v.total_stake||0).toFixed(2)+' BAIT';
+    document.getElementById('k-prod').textContent=v.total_blocks_produced||0;
+    document.getElementById('k-top').textContent='top: '+(v.top_validator||'—');
+  }
+  const p=await safeJSON(API+'/p2p/status');
+  if(p){ document.getElementById('k-peers').textContent=p.peer_count||p.peers||0; }
+}
 
-    el('btnRetry').addEventListener('click', () => {
-      setState('connecting', 'Reconectando ao daemon…', 'Aguardando resposta de /api/v1/status');
-      pollDaemon();
-    });
+async function renderSession(sess){
+  document.getElementById('s-addr').textContent=sess.address||'—';
+  document.getElementById('s-agent').textContent=sess.agent_id||'—';
+  document.getElementById('s-pub').textContent=sess.public_key||'(não capturado)';
+  if(sess.private_key){
+    document.getElementById('s-pk-row').style.display='flex';
+    document.getElementById('s-priv').textContent=sess.private_key;
+  }
+  const bal=await safeJSON(API+'/balance/'+encodeURIComponent(sess.agent_id));
+  document.getElementById('s-bal').textContent=(bal && bal.balance_bait!=null)?bal.balance_bait.toFixed(4)+' BAIT':'—';
+  const fb=await safeJSON(API+'/faucet/balance/'+encodeURIComponent(sess.agent_id));
+  document.getElementById('s-fauc').textContent=(fb && fb.balance_bait!=null)?fb.balance_bait.toFixed(4)+' BAIT':'—';
+  document.getElementById('s-rep').textContent=sess.reputation!=null?sess.reputation:'50 (default)';
+  document.getElementById('session').className='session on';
+}
 
-    // Boot
-    pollDaemon();
-    restartTimer();
+async function doLogin(){
+  const addr=document.getElementById('li-addr').value.trim();
+  const agent=document.getElementById('li-agent').value.trim();
+  if(!addr && !agent){ toast('Preencha endereço ou agent_id', '#f59e0b'); return; }
+  const sess={ address: addr, agent_id: agent||addr.slice(0,12) };
+  saveSession(sess);
+  renderSession(sess);
+  toast('✅ Login realizado');
+}
 
-    // Pausa polling quando aba oculta
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) { if (timer) { clearInterval(timer); timer=null; } }
-      else { pollDaemon(); restartTimer(); }
-    });
-  </script>
-</body>
-</html>
+function doLogout(){
+  clearSession();
+  document.getElementById('session').className='session';
+  document.getElementById('li-addr').value='';
+  document.getElementById('li-agent').value='';
+  toast('👋 Sessão encerrada');
+}
+
+async function genWallet(){
+  toast('… gerando carteira Schnorr BIP-340 …', '#8b5cf6');
+  const w=await safeJSON(API+'/wallet/paper');
+  if(!w){toast('× erro ao gerar carteira','#ef4444');return;}
+  const wallet=w.wallet||w;
+  const sess={
+    address: wallet.address,
+    agent_id: (wallet.address||'').slice(0,10).replace(/[^a-zA-Z0-9]/g,'')+'_'+Date.now().toString(36),
+    public_key: wallet.public_key,
+    private_key: wallet.private_key
+  };
+  saveSession(sess);
+  document.getElementById('li-addr').value=sess.address||'';
+  document.getElementById('li-agent').value=sess.agent_id||'';
+  renderSession(sess);
+  toast('✅ Carteira criada & login automático');
+}
+
+async function quickFaucet(){
+  const sess=getSession();
+  if(!sess){toast('Faça login primeiro','#f59e0b');return;}
+  const r=await fetch(API+'/faucet/public-claim',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({ agent_id: sess.agent_id, address: sess.address })
+  });
+  const j=await r.json().catch(()=>({}));
+  if(r.ok && j.success){
+    toast('✅ 10 BAIT creditados em '+sess.agent_id);
+    setTimeout(()=>renderSession(sess), 500);
+  }else{
+    toast('⚠️ '+(j.error||'HTTP '+r.status), '#f59e0b');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+  document.getElementById('btn-login').addEventListener('click', doLogin);
+  document.getElementById('btn-logout').addEventListener('click', doLogout);
+  document.getElementById('btn-gen').addEventListener('click', genWallet);
+  document.getElementById('btn-quick-faucet').addEventListener('click', quickFaucet);
+  document.getElementById('li-addr').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin() });
+  document.getElementById('li-agent').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin() });
+
+  const existing=getSession();
+  if(existing){
+    document.getElementById('li-addr').value=existing.address||'';
+    document.getElementById('li-agent').value=existing.agent_id||'';
+    renderSession(existing);
+  }
+  loadBank();
+  setInterval(loadBank, 8000);
+  setInterval(()=>{ const s=getSession(); if(s) renderSession(s); }, 15000);
+});
+</script>
+</body></html>
