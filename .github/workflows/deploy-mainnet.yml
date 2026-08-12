@@ -1,14 +1,9 @@
 name: Deploy Mainnet (mybait.org)
 
 # Sincroniza main -> servidor de producao (mybait.org)
-# Elimina o gap estrutural "hot-patch SSH nunca chega ao repo".
-#
 # Usa os secrets ja configurados no repo (nomes convencionais):
-#   SSH_HOST          ex: 143.95.213.237
-#   SSH_PORT          ex: 22022
-#   SSH_USER          ex: baitcoin
-#   SSH_PRIVATE_KEY   chave privada OpenSSH (id_ed25519 ou id_rsa)
-# known_hosts eh gerado on-the-fly com ssh-keyscan (evita 6o secret).
+#   SSH_HOST, SSH_PORT, SSH_USER, SSH_PRIVATE_KEY
+# known_hosts eh gerado on-the-fly com ssh-keyscan (best-effort).
 
 on:
   push:
@@ -73,52 +68,74 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup SSH
+      - name: Setup SSH (write key + config)
+        shell: bash
         env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_PORT: ${{ secrets.SSH_PORT }}
-          SSH_KEY:  ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_HOST_RAW: ${{ secrets.SSH_HOST }}
+          SSH_PORT_RAW: ${{ secrets.SSH_PORT }}
+          SSH_USER_RAW: ${{ secrets.SSH_USER }}
+          SSH_KEY_RAW:  ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
-          set -e
-          mkdir -p ~/.ssh && chmod 700 ~/.ssh
-          # trim whitespace/quotes dos secrets
-          SSH_HOST="$(printf '%s' "$SSH_HOST" | tr -d '\r\n\t \"'\'')"
-          SSH_PORT="$(printf '%s' "$SSH_PORT" | tr -d '\r\n\t \"'\'')"
-          [ -z "$SSH_HOST" ] && { echo '::error::SSH_HOST vazio'; exit 1; }
-          [ -z "$SSH_PORT" ] && SSH_PORT=22
-          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
+          set +e
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+
+          # trim aggressive de whitespace/CR/LF/aspas
+          H=$(printf '%s' "$SSH_HOST_RAW" | tr -d '\r\n\t "'\''' | tr -d ' ')
+          P=$(printf '%s' "$SSH_PORT_RAW" | tr -d '\r\n\t "'\''' | tr -d ' ')
+          U=$(printf '%s' "$SSH_USER_RAW" | tr -d '\r\n\t "'\''' | tr -d ' ')
+
+          if [ -z "$H" ]; then echo "::error::SSH_HOST vazio"; exit 1; fi
+          if [ -z "$U" ]; then echo "::error::SSH_USER vazio"; exit 1; fi
+          [ -z "$P" ] && P=22
+
+          # grava chave privada tal como esta no secret + newline final (idempotente)
+          printf '%s\n' "$SSH_KEY_RAW" > ~/.ssh/id_deploy
           chmod 600 ~/.ssh/id_deploy
-          # keyscan best-effort; se falhar, usa accept-new na hora do connect
-          if ssh-keyscan -T 8 -p "$SSH_PORT" -H "$SSH_HOST" > ~/.ssh/known_hosts 2>/tmp/keyscan.err; then
-              echo "known_hosts populado ($(wc -l < ~/.ssh/known_hosts) linhas)"
-          else
-              echo "::warning::ssh-keyscan falhou; usando accept-new (host key sera aprendida no primeiro connect)"
-              cat /tmp/keyscan.err || true
-              : > ~/.ssh/known_hosts
+
+          # valida chave sem vazar conteudo
+          if ! ssh-keygen -y -f ~/.ssh/id_deploy > /dev/null 2>&1; then
+              echo "::error::SSH_PRIVATE_KEY invalida ou corrompida"
+              exit 1
           fi
-          chmod 644 ~/.ssh/known_hosts
-          # Config global para todos os passos ssh/scp/rsync deste job
-          cat > ~/.ssh/config <<CFG
-          Host deploy-target
-            HostName $SSH_HOST
-            Port $SSH_PORT
-            User ${{ secrets.SSH_USER }}
-            IdentityFile ~/.ssh/id_deploy
-            StrictHostKeyChecking accept-new
-            UserKnownHostsFile ~/.ssh/known_hosts
-            ServerAliveInterval 30
-            ConnectTimeout 15
-          CFG
+
+          # ssh_config gravado linha-a-linha (evita heredoc + expansao YAML)
+          {
+            echo "Host deploy-target"
+            echo "  HostName $H"
+            echo "  Port $P"
+            echo "  User $U"
+            echo "  IdentityFile $HOME/.ssh/id_deploy"
+            echo "  IdentitiesOnly yes"
+            echo "  StrictHostKeyChecking accept-new"
+            echo "  UserKnownHostsFile $HOME/.ssh/known_hosts"
+            echo "  ServerAliveInterval 30"
+            echo "  ConnectTimeout 15"
+            echo "  LogLevel ERROR"
+          } > ~/.ssh/config
           chmod 600 ~/.ssh/config
-          # sanity check nao-fatal
-          ssh -o BatchMode=yes -o ConnectTimeout=15 deploy-target "echo remote-ok && hostname && whoami" || echo "::warning::connect probe failed (nao fatal, deploy segue)"
+
+          # known_hosts best-effort
+          : > ~/.ssh/known_hosts
+          ssh-keyscan -T 8 -p "$P" -H "$H" >> ~/.ssh/known_hosts 2>/tmp/keyscan.err && \
+              echo "  known_hosts populado ($(wc -l < ~/.ssh/known_hosts) linhas)" || \
+              { echo "::warning::ssh-keyscan best-effort falhou (accept-new no config resolve)"; cat /tmp/keyscan.err 2>/dev/null | head -3 || true; }
+          chmod 644 ~/.ssh/known_hosts
+
+          # probe nao-fatal (mostra hostname/whoami se conectar)
+          ssh -o BatchMode=yes -o ConnectTimeout=15 deploy-target 'echo remote-ok && hostname && whoami' 2>&1 | head -5 || \
+              echo "::warning::probe SSH falhou (steps seguintes ainda vao tentar)"
+
+          echo "  Setup SSH OK — host=$H port=$P user=$U"
 
       - name: Pre-deploy snapshot (WAL)
         continue-on-error: true
+        shell: bash
         run: |
           ssh deploy-target "test -x /home/baitcoin/scripts/snapshot_verify.sh && /home/baitcoin/scripts/snapshot_verify.sh || echo 'no snapshot_verify script; skipping'"
 
       - name: Rsync backend (baitcoin_*)
+        shell: bash
         run: |
           set -e
           rsync -avz --delete \
@@ -133,6 +150,7 @@ jobs:
 
       - name: Rsync frontend (/var/www/mybait)
         if: ${{ inputs.skip_frontend != true }}
+        shell: bash
         run: |
           set -e
           rsync -avz \
@@ -144,10 +162,12 @@ jobs:
 
       - name: Restart daemon
         if: ${{ inputs.restart_daemon != false }}
+        shell: bash
         run: |
           ssh deploy-target "sudo -n systemctl restart baitcoin.service && sleep 3 && sudo -n systemctl is-active baitcoin.service"
 
       - name: Verify deploy (post-restart health check)
+        shell: bash
         run: |
           set -e
           echo "Aguardando API subir (max 90s)..."
@@ -180,6 +200,7 @@ jobs:
 
       - name: Summary
         if: always()
+        shell: bash
         run: |
           echo "### Deploy mybait.org (${{ github.sha }})" >> $GITHUB_STEP_SUMMARY
           echo "- backend syncado em /home/baitcoin/app/" >> $GITHUB_STEP_SUMMARY
