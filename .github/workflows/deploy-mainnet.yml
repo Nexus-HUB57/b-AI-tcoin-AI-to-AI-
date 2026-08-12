@@ -3,12 +3,12 @@ name: Deploy Mainnet (mybait.org)
 # Sincroniza main -> servidor de producao (mybait.org)
 # Elimina o gap estrutural "hot-patch SSH nunca chega ao repo".
 #
-# Requer 3 secrets configurados em Settings -> Secrets and variables -> Actions:
-#   MAINNET_SSH_HOST     ex: 143.95.213.237
-#   MAINNET_SSH_PORT     ex: 22022
-#   MAINNET_SSH_USER     ex: baitcoin
-#   MAINNET_SSH_KEY      chave privada OpenSSH (id_ed25519 ou id_rsa)
-#   MAINNET_KNOWN_HOSTS  saida de: ssh-keyscan -p 22022 143.95.213.237
+# Usa os secrets ja configurados no repo (nomes convencionais):
+#   SSH_HOST          ex: 143.95.213.237
+#   SSH_PORT          ex: 22022
+#   SSH_USER          ex: baitcoin
+#   SSH_PRIVATE_KEY   chave privada OpenSSH (id_ed25519 ou id_rsa)
+# known_hosts eh gerado on-the-fly com ssh-keyscan (evita 6o secret).
 
 on:
   push:
@@ -77,17 +77,17 @@ jobs:
         run: |
           set -e
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
-          echo "${{ secrets.MAINNET_SSH_KEY }}" > ~/.ssh/id_deploy
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_deploy
           chmod 600 ~/.ssh/id_deploy
-          echo "${{ secrets.MAINNET_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          ssh-keyscan -p ${{ secrets.SSH_PORT }} -H ${{ secrets.SSH_HOST }} > ~/.ssh/known_hosts 2>/dev/null
           chmod 644 ~/.ssh/known_hosts
 
       - name: Pre-deploy snapshot (WAL)
         run: |
           ssh -i ~/.ssh/id_deploy \
-              -p ${{ secrets.MAINNET_SSH_PORT }} \
+              -p ${{ secrets.SSH_PORT }} \
               -o StrictHostKeyChecking=yes \
-              ${{ secrets.MAINNET_SSH_USER }}@${{ secrets.MAINNET_SSH_HOST }} \
+              ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
               "test -x /home/baitcoin/scripts/snapshot_verify.sh && /home/baitcoin/scripts/snapshot_verify.sh || echo 'no snapshot_verify script; skipping'"
 
       - name: Rsync backend (baitcoin_*)
@@ -95,13 +95,13 @@ jobs:
           set -e
           rsync -avz --delete \
             --exclude='__pycache__' --exclude='*.pyc' --exclude='.bak.*' \
-            -e "ssh -i ~/.ssh/id_deploy -p ${{ secrets.MAINNET_SSH_PORT }} -o StrictHostKeyChecking=yes" \
+            -e "ssh -i ~/.ssh/id_deploy -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=yes" \
             baitcoin_api baitcoin_explorer baitcoin_ai baitcoin_faucet \
             baitcoin_bank baitcoin_wallet baitcoin_token baitcoin_core \
             baitcoin_memory baitcoin_obscura baitcoin_whitelabel baitcoin_sdk \
             baitcoin_bridge baitcoin_mainnet \
             daemon_production.py daemon_wrapper.py \
-            ${{ secrets.MAINNET_SSH_USER }}@${{ secrets.MAINNET_SSH_HOST }}:/home/baitcoin/app/
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/baitcoin/app/
 
       - name: Rsync frontend (/var/www/mybait)
         if: ${{ inputs.skip_frontend != true }}
@@ -109,22 +109,22 @@ jobs:
           set -e
           rsync -avz \
             --include='*.html' --include='favicon.svg' --exclude='*' \
-            -e "ssh -i ~/.ssh/id_deploy -p ${{ secrets.MAINNET_SSH_PORT }} -o StrictHostKeyChecking=yes" \
+            -e "ssh -i ~/.ssh/id_deploy -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=yes" \
             frontend/ \
-            ${{ secrets.MAINNET_SSH_USER }}@${{ secrets.MAINNET_SSH_HOST }}:/tmp/mybait-staging/
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/mybait-staging/
           ssh -i ~/.ssh/id_deploy \
-              -p ${{ secrets.MAINNET_SSH_PORT }} \
+              -p ${{ secrets.SSH_PORT }} \
               -o StrictHostKeyChecking=yes \
-              ${{ secrets.MAINNET_SSH_USER }}@${{ secrets.MAINNET_SSH_HOST }} \
+              ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
               "sudo -n rsync -a --chown=www-data:www-data /tmp/mybait-staging/ /var/www/mybait/ && sudo -n systemctl reload nginx && rm -rf /tmp/mybait-staging"
 
       - name: Restart daemon
         if: ${{ inputs.restart_daemon != false }}
         run: |
           ssh -i ~/.ssh/id_deploy \
-              -p ${{ secrets.MAINNET_SSH_PORT }} \
+              -p ${{ secrets.SSH_PORT }} \
               -o StrictHostKeyChecking=yes \
-              ${{ secrets.MAINNET_SSH_USER }}@${{ secrets.MAINNET_SSH_HOST }} \
+              ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
               "sudo -n systemctl restart baitcoin.service && sleep 3 && sudo -n systemctl is-active baitcoin.service"
 
       - name: Verify deploy (post-restart health check)
