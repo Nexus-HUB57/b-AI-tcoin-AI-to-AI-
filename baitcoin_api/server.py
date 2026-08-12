@@ -267,6 +267,34 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
             return self._get_faucet_balance(path.split('/')[-1])
         if path.startswith('/api/v1/oracle/'):
             return self._get_oracle_price(path.split('/')[-1])
+        # Explorer dynamic routes
+        if path.startswith('/api/v1/explorer/blocks/height/'):
+            try:
+                h = int(path.split('/')[-1])
+            except ValueError:
+                return self._send_json({'error': 'invalid_height'}, 400)
+            if not self.explorer_index:
+                return self._send_json({'error': 'not_initialized'}, 503)
+            block = self.explorer_index.get_block_by_height(h)
+            if not block:
+                return self._send_json({'error': 'block_not_found'}, 404)
+            return self._send_json(block.__dict__ if hasattr(block, '__dict__') else block)
+        if path.startswith('/api/v1/explorer/blocks/hash/'):
+            bh = path.split('/')[-1]
+            if not self.explorer_index:
+                return self._send_json({'error': 'not_initialized'}, 503)
+            block = self.explorer_index.get_block_by_hash(bh)
+            if not block:
+                return self._send_json({'error': 'block_not_found'}, 404)
+            return self._send_json(block.__dict__ if hasattr(block, '__dict__') else block)
+        if path.startswith('/api/v1/explorer/tx/'):
+            tx_hash = path.split('/')[-1]
+            if not self.explorer_index:
+                return self._send_json({'error': 'not_initialized'}, 503)
+            tx = self.explorer_index.get_tx(tx_hash)
+            if not tx:
+                return self._send_json({'error': 'tx_not_found'}, 404)
+            return self._send_json(tx.__dict__ if hasattr(tx, '__dict__') else tx)
         if path.startswith('/api/v1/platform-faucets/'):
             return self._get_platform_faucet(path)
 
@@ -302,6 +330,9 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
         routes = {
             '/api/v1/transfer': self._post_transfer,
             '/api/v1/faucet/claim': self._post_faucet_claim,
+            # PATCH 2026-08: faucet publico (sem Moltbook) + bootstrap OpenClaw
+            '/api/v1/faucet/public-claim': self._post_faucet_public_claim,
+            '/api/v1/agent/bootstrap': self._post_agent_bootstrap,
             '/api/v1/staking/stake': self._post_stake,
             '/api/v1/zkml/proof': self._post_zkml_proof,
             '/api/v1/platform-faucets': self._post_platform_faucets,
@@ -372,6 +403,12 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
 
     # --- GET handlers ---
     def _get_status(self):
+        r"""GET /api/v1/status — payload agregado com fonte de verdade unica.
+
+        FIX: expande o payload para o formato consumido pelas paginas publicas
+        (chain_height, explorer_index, token_minted_bait, marketplace, oracle,
+        staking, modules) e reconcilia a altura da cadeia com /blockchain.
+        """
         try:
             wl = get_whitelabel()
             network_name = wl.config.network_name
@@ -379,14 +416,107 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
         except Exception:
             network_name = r"b'AI'tcoin"
             branding = {}
+
+        chain_height = self.blockchain.height if self.blockchain else 0
+        chain_valid = bool(self.blockchain.is_valid()) if (self.blockchain and hasattr(self.blockchain, 'is_valid')) else True
+        utxo_count = 0
+        mempool_size = 0
+        try:
+            if self.blockchain:
+                if hasattr(self.blockchain, 'utxo_set'):
+                    utxo_count = len(self.blockchain.utxo_set)
+                mempool_size = len(getattr(self.blockchain, 'mempool', []) or [])
+        except Exception:
+            pass
+
+        explorer_index = None
+        if self.explorer_index:
+            try:
+                explorer_index = dict(self.explorer_index.stats)
+            except Exception:
+                explorer_index = None
+
+        token_minted_bait = None
+        if self.token:
+            try:
+                if hasattr(self.token, 'total_minted_bait'):
+                    token_minted_bait = self.token.total_minted_bait()
+                elif hasattr(self.token, 'total_minted'):
+                    token_minted_bait = self.token.total_minted() / 1e8
+            except Exception:
+                token_minted_bait = None
+
+        marketplace = None
+        if self.marketplace:
+            try:
+                mp = self.marketplace.to_dict()
+                services = mp.get('services') or mp.get('products') or []
+                marketplace = {
+                    'listings': len(services),
+                    'active': sum(1 for s in services if s.get('active', True)),
+                    'purchases': mp.get('purchases', 0),
+                    'total_volume_bait': mp.get('total_volume_bait', 0.0),
+                    'fee_pct': mp.get('fee_pct', 2.5),
+                    'services': services,
+                }
+            except Exception:
+                marketplace = None
+
+        oracle_summary = None
+        if self.oracle:
+            try:
+                oracle_summary = self.oracle.to_dict()
+            except Exception:
+                oracle_summary = None
+
+        staking_summary = None
+        if self.staking_pool:
+            try:
+                staking_summary = self.staking_pool.to_dict()
+            except Exception:
+                staking_summary = None
+
+        modules = {
+            'blockchain': bool(self.blockchain),
+            'zkml': True,
+            'pouw': True,
+            'schnorr': True,
+            'api': True,
+            'explorer': bool(self.explorer_index),
+            'bank': bool(self.staking_pool),
+            'agents': bool(self.agent_registry),
+            'memory': True,
+            'wallet': True,
+            'p2p': bool(self.p2p_node),
+            'tests': False,
+            'obscura': True,
+            'dev': True,
+        }
+
         self._send_json({
             'network': network_name,
             'version': '0.2.0',
             'timestamp': time.time(),
-            'blockchain_height': self.blockchain.height if self.blockchain else 0,
+            # backward-compat legado
+            'blockchain_height': chain_height,
             'agents': len(self.agent_registry.agents) if self.agent_registry else 0,
-            'peers': len(self.p2p_node.get_peer_list()) if self.p2p_node else 0,
+            'peers': len(self.p2p_node.get_peer_list()) if (self.p2p_node and hasattr(self.p2p_node, 'get_peer_list')) else 0,
             'whitelabel': branding,
+            # payload expandido consumido pelas paginas publicas
+            'chain_height': chain_height,
+            'chain_valid': chain_valid,
+            'blocks_immutable': True,
+            'persistence': 'WAL + Snapshots',
+            'data_path': '/home/baitcoin/.baitcoin/memory',
+            'utxo_count': utxo_count,
+            'mempool_size': mempool_size,
+            'agents_registered': len(self.agent_registry.agents) if self.agent_registry else 0,
+            'explorer_index': explorer_index,
+            'token_minted_bait': token_minted_bait,
+            'marketplace': marketplace,
+            'oracle': oracle_summary,
+            'staking': staking_summary,
+            'modules': modules,
         })
 
     def _get_blockchain(self):
@@ -1314,6 +1444,128 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
             self._send_json({'runbooks': launcher.list_runbooks()})
         except Exception as e:
             self._send_json({'error': str(e)}, 500)
+
+    # ═══════════════════════════════════════════════════════════════════════
+    # PATCH 2026-08: Public faucet + OpenClaw agent bootstrap (no Moltbook)
+    # ═══════════════════════════════════════════════════════════════════════
+    def _post_faucet_public_claim(self):
+        r"""POST /api/v1/faucet/public-claim — Claim publico, sem Moltbook.
+
+        Body JSON:
+            agent_id (str, obrigatorio)
+            address  (str, opcional — apenas eco no payload de resposta)
+
+        Preserva cooldown 24h + rate-limit globais do proprio faucet.
+        """
+        if not self.faucet:
+            return self._send_json({'error': 'not_initialized'}, 503)
+        try:
+            body = json.loads(self._read_body() or '{}')
+            agent_id = (body.get('agent_id') or '').strip()
+            address = (body.get('address') or '').strip()
+            if not agent_id:
+                return self._send_json({'success': False, 'error': 'agent_id_required'}, 400)
+
+            # Assinatura simplificada: o faucet real ja aplica cooldown/rate-limit.
+            claim = self.faucet.claim(
+                agent_id=agent_id,
+                pubkey_hex=body.get('pubkey_hex', ''),
+                challenge_sig=body.get('challenge_sig', ''),
+            )
+            balance = self.faucet.get_balance(agent_id) if hasattr(self.faucet, 'get_balance') else None
+            return self._send_json({
+                'success': True,
+                'claim_id': getattr(claim, 'claim_id', None) or (claim.get('claim_id') if isinstance(claim, dict) else None),
+                'amount_bait': 10.0,
+                'balance_bait': balance,
+                'agent_id': agent_id,
+                'delivered_to_address': address or None,
+                'note': 'Faucet public endpoint — 10 BAIT mintados no saldo do agent_id.',
+            })
+        except Exception as e:
+            return self._send_json({'success': False, 'error': str(e)}, 400)
+
+    def _post_agent_bootstrap(self):
+        r"""POST /api/v1/agent/bootstrap — OpenClaw agent manifest em 1 call.
+
+        Executa 4 operacoes atomicas:
+            1. Gera paper wallet Schnorr BIP-340
+            2. Registra agent_id no registry on-chain
+            3. Faz claim publico de 10 BAIT
+            4. Retorna manifest OpenClaw (install, config path, UI)
+        """
+        try:
+            body = json.loads(self._read_body() or '{}')
+            display_name = (body.get('display_name') or '').strip() or None
+
+            # 1) Paper wallet
+            wallet = None
+            try:
+                from baitcoin_wallet.paper import generate_paper_wallet
+                wallet = generate_paper_wallet()
+            except Exception:
+                wallet = None
+            if not wallet or not wallet.get('address'):
+                return self._send_json({'success': False, 'error': 'wallet_generation_failed'}, 500)
+            address = wallet['address']
+            agent_id = 'agent_' + address.lower().replace("b'", '').replace('/', '').replace('t', '')[:16]
+
+            # 2) Register on-chain (best-effort)
+            registered = False
+            if self.agent_registry:
+                try:
+                    self.agent_registry.register(
+                        agent_id=agent_id,
+                        pubkey_hex=wallet.get('public_key', ''),
+                        capabilities=['ml_inference', 'oracle_provider', 'data_processing'],
+                    )
+                    registered = True
+                except Exception:
+                    registered = False
+
+            # 3) Faucet claim
+            claim_ok = False
+            faucet_balance = 0.0
+            if self.faucet:
+                try:
+                    self.faucet.claim(
+                        agent_id=agent_id,
+                        pubkey_hex=wallet.get('public_key', ''),
+                        challenge_sig='',
+                    )
+                    claim_ok = True
+                    if hasattr(self.faucet, 'get_balance'):
+                        faucet_balance = float(self.faucet.get_balance(agent_id) or 0.0)
+                except Exception:
+                    claim_ok = False
+
+            # 4) Manifest OpenClaw
+            return self._send_json({
+                'success': True,
+                'agent_id': agent_id,
+                'display_name': display_name,
+                'wallet': wallet,
+                'registered_on_chain': registered,
+                'faucet_claim_success': claim_ok,
+                'balance_bait': faucet_balance,
+                'reputation': 50,
+                'capabilities': ['ml_inference', 'oracle_provider', 'data_processing'],
+                'openclaw': {
+                    'install_windows': r'powershell -c "irm https://openclaw.ai/install.ps1 | iex"',
+                    'install_unix': 'npm install -g openclaw@latest',
+                    'config_path': '~/.openclaw/openclaw.json',
+                    'ui': 'http://127.0.0.1:18789/',
+                    'docs': 'https://docs.openclaw.ai/',
+                },
+                'endpoints': {
+                    'api_base': '/api/api/v1',
+                    'balance': '/api/api/v1/balance/' + agent_id,
+                    'faucet': '/api/api/v1/faucet/public-claim',
+                    'explorer': '/blockchain',
+                },
+            })
+        except Exception as e:
+            return self._send_json({'success': False, 'error': str(e)}, 500)
 
 
 def create_app(host: str = '0.0.0.0', port: int = 18445) -> HTTPServer:

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Blockch'AI'n — Explorer da Mainnet b'AI'tcoin</title>
+<style>
+:root{--bg:#050810;--fg:#e6edf7;--emerald:#10b981;--amber:#f59e0b;--violet:#8b5cf6;--border:rgba(255,255,255,.08);--card:rgba(255,255,255,.03)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'SF Mono','Consolas',monospace;background:var(--bg);color:var(--fg);min-height:100vh;background-image:radial-gradient(circle at 20% 30%,rgba(16,185,129,.08),transparent 50%),radial-gradient(circle at 80% 70%,rgba(139,92,246,.06),transparent 50%)}
+a{color:inherit;text-decoration:none}
+header{border-bottom:1px solid var(--border);backdrop-filter:blur(20px);position:sticky;top:0;z-index:100;background:rgba(5,8,16,.85)}
+.nav{max-width:1400px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.brand{font-size:18px;font-weight:800;background:linear-gradient(90deg,#10b981,#8b5cf6);-webkit-background-clip:text;background-clip:text;color:transparent}
+.nav a.link{padding:6px 10px;border-radius:8px;font-size:13px;color:#9ca3af}
+.nav a.link:hover{color:#fff;background:rgba(255,255,255,.05)}
+.live-pill{margin-left:auto;display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:99px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);font-size:11px;color:#10b981}
+.dot{width:8px;height:8px;border-radius:50%;background:#10b981;box-shadow:0 0 12px #10b981;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.hero{max-width:1400px;margin:0 auto;padding:36px 24px 12px}
+.hero h1{font-size:clamp(28px,4vw,44px);font-weight:900;margin-bottom:8px}
+.hero h1 span{background:linear-gradient(90deg,#10b981,#8b5cf6);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{color:#94a3b8;font-size:14px;max-width:820px}
+.searchbar{max-width:1400px;margin:16px auto 0;padding:0 24px;display:flex;gap:8px;flex-wrap:wrap}
+.searchbar input{flex:1;min-width:280px;padding:12px 16px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:#e6edf7;font-family:inherit;font-size:13px}
+.searchbar input:focus{outline:none;border-color:var(--emerald)}
+.searchbar button{padding:12px 20px;border-radius:10px;border:none;background:var(--emerald);color:#062018;font-weight:700;cursor:pointer;font-family:inherit}
+main{max-width:1400px;margin:0 auto;padding:20px 24px 60px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:24px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px}
+.card .label{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#64748b;margin-bottom:6px}
+.card .value{font-size:24px;font-weight:800;color:var(--emerald);font-variant-numeric:tabular-nums}
+.card .sub{font-size:11px;color:#94a3b8;margin-top:4px}
+.section{margin-bottom:32px}
+.section h2{font-size:18px;font-weight:800;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+.section h2 .pager{display:flex;gap:6px}
+.section h2 button{padding:6px 12px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:#94a3b8;font-family:inherit;font-size:11px;cursor:pointer}
+.section h2 button:hover{border-color:var(--emerald);color:#fff}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;font-size:12px}
+th{text-align:left;padding:10px 12px;border-bottom:1px solid var(--border);color:#64748b;font-weight:600;text-transform:uppercase;font-size:10px;letter-spacing:1px}
+td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04);color:#cbd5e1;cursor:pointer}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(16,185,129,.03)}
+.hash{font-family:'SF Mono',monospace;color:#10b981;font-size:11px;word-break:break-all}
+.tag{padding:2px 6px;font-size:10px;border-radius:4px;background:rgba(139,92,246,.15);color:#8b5cf6}
+.detail{background:linear-gradient(135deg,rgba(16,185,129,.06),rgba(139,92,246,.05));border:1px solid rgba(16,185,129,.3);border-radius:16px;padding:24px;margin-bottom:24px;display:none}
+.detail.on{display:block}
+.detail h3{color:#10b981;font-size:16px;margin-bottom:12px}
+.detail .row{display:grid;grid-template-columns:180px 1fr;gap:12px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px}
+.detail .k{color:#64748b;text-transform:uppercase;font-size:10px;letter-spacing:1px}
+.detail .v{color:#cbd5e1;word-break:break-all;font-family:'SF Mono',monospace}
+footer{border-top:1px solid var(--border);padding:24px;text-align:center;color:#64748b;font-size:11px;margin-top:20px}
+</style></head><body>
+<header><div class="nav">
+  <span class="brand">🔗 Blockch'AI'n</span>
+  <a class="link" href="/">Home</a>
+  <a class="link" href="/blockchain">🔗 Blockch'AI'n</a>
+  <a class="link" href="/aistore/">🛒 AI Store</a>
+  <a class="link" href="/bainkr">🏦 B'AI'nkr</a>
+  <a class="link" href="/faucet">🚰 Faucet</a>
+  <a class="link" href="/sdk">🧰 SDK</a>
+  <a class="link" href="/obscura">🕸️ Obscura</a>
+  <a class="link" href="/api/api/v1/status">📊 API</a>
+  <a class="link" href="/whitepaper.pdf">📄 Whitepaper</a>
+  <span class="live-pill"><span class="dot"></span><span id="live">MAINNET · h=…</span></span>
+</div></header>
+
+<section class="hero">
+  <h1>🔗 <span>Blockch'AI'n</span> — Explorer da Mainnet</h1>
+  <p>Explorer público da mainnet b'AI'tcoin. Consulte blocos por altura, hash, transações, endereços e agentes. PoW SHA-256d real, Schnorr BIP-340, WAL+snapshots.</p>
+</section>
+
+<div class="searchbar">
+  <input id="q" placeholder="Buscar por altura (ex: 3902), hash de bloco, hash de tx, endereço b'/t..., agente…">
+  <button onclick="doSearch()">🔎 Buscar</button>
+</div>
+
+<main>
+  <div class="grid">
+    <div class="card"><div class="label">Altura</div><div class="value" id="h">—</div><div class="sub" id="hv">chain valid</div></div>
+    <div class="card"><div class="label">Total Blocks</div><div class="value" id="tb">—</div><div class="sub">indexados</div></div>
+    <div class="card"><div class="label">Total TXs</div><div class="value" id="tt">—</div><div class="sub">confirmadas</div></div>
+    <div class="card"><div class="label">UTXO Set</div><div class="value" id="uu">—</div><div class="sub" id="mm">mempool: 0</div></div>
+    <div class="card"><div class="label">Supply</div><div class="value" id="ss">—</div><div class="sub">sats mintados</div></div>
+    <div class="card"><div class="label">Último Bloco</div><div class="value" id="lb" style="font-size:14px">—</div><div class="sub" id="lbv">validator</div></div>
+  </div>
+
+  <div class="detail" id="detail"></div>
+
+  <div class="section">
+    <h2>🧱 Últimos Blocos <span class="pager"><button onclick="loadBlocks(0)">« início</button><button onclick="loadBlocks(offset-20)">‹ anterior</button><button onclick="loadBlocks(offset+20)">próximo ›</button></span></h2>
+    <table><thead><tr><th>#</th><th>Hash</th><th>Validador</th><th>Nonce</th><th>Bits</th><th>TXs</th><th>Timestamp</th></tr></thead><tbody id="blk-body"><tr><td colspan="7" style="text-align:center;color:#64748b">carregando…</td></tr></tbody></table>
+  </div>
+
+  <div class="section">
+    <h2>💸 Últimas Transações</h2>
+    <table><thead><tr><th>Tx Hash</th><th>Tipo</th><th>Agente</th><th>Bloco</th><th>Timestamp</th></tr></thead><tbody id="tx-body"><tr><td colspan="5" style="text-align:center;color:#64748b">carregando…</td></tr></tbody></table>
+  </div>
+
+  <div class="section">
+    <h2>🤖 Agentes Registrados</h2>
+    <table><thead><tr><th>Agente</th><th>Reputação</th><th>Trust</th><th>Capabilities</th></tr></thead><tbody id="ag-body"><tr><td colspan="4" style="text-align:center;color:#64748b">carregando…</td></tr></tbody></table>
+  </div>
+</main>
+
+<footer>Blockch'AI'n · powered by <code>baitcoin_explorer</code> · dados live · /api/api/v1/explorer/*</footer>
+
+<script>
+"use strict";
+const API='/api/api/v1';
+let offset=0;
+function fmt(n){if(n==null)return'—';if(typeof n!=='number')return String(n);if(n>=1e12)return(n/1e12).toFixed(2)+'T';if(n>=1e9)return(n/1e9).toFixed(2)+'B';if(n>=1e6)return(n/1e6).toFixed(2)+'M';if(n>=1e3)return(n/1e3).toFixed(1)+'K';return String(n)}
+function ts(t){if(!t)return'—';const d=new Date(t*1000);return d.toISOString().replace('T',' ').slice(0,19)}
+async function safeJSON(url){try{const r=await fetch(url,{cache:'no-store'});if(!r.ok)return null;return await r.json();}catch(e){return null;}}
+
+async function loadHeader(){
+  const s=await safeJSON(API+'/status');
+  const b=await safeJSON(API+'/blockchain');
+  const height = (b&&typeof b.height==='number') ? b.height : (s && (s.chain_height||s.blockchain_height));
+  document.getElementById('h').textContent=fmt(height);
+  document.getElementById('hv').textContent='chain valid '+((s&&s.chain_valid)?'✓':'—');
+  document.getElementById('uu').textContent=fmt(s && s.utxo_count);
+  document.getElementById('mm').textContent='mempool: '+((s && s.mempool_size)||0);
+  document.getElementById('live').textContent='MAINNET · h='+(height==null?'—':height);
+  // ⚠️ FIX: usa explorer_index (payload real), com fallback para explorer (legado)
+  const idx = (s && (s.explorer_index || s.explorer)) || null;
+  if(idx){
+    document.getElementById('tb').textContent=fmt(idx.indexed_blocks!=null?idx.indexed_blocks:height);
+    document.getElementById('tt').textContent=fmt(idx.indexed_transactions||0);
+  }else{
+    document.getElementById('tb').textContent=fmt(height);
+    document.getElementById('tt').textContent='—';
+  }
+  if(b){
+    document.getElementById('ss').textContent=fmt(b.total_supply_sats||0);
+    document.getElementById('lb').textContent=(b.last_block_hash||'').slice(0,24)+'…';
+  }
+}
+
+async function loadBlocks(off){
+  if(off<0)off=0;offset=off;
+  const b=await safeJSON(API+'/explorer/blocks?limit=20&offset='+off);
+  if(b && Array.isArray(b.blocks) && b.blocks.length){
+    const rows=b.blocks.map(x=>`<tr onclick="showBlock(${x.block_height})"><td><strong style="color:#f59e0b">${x.block_height}</strong></td><td class="hash">${(x.hash||'').slice(0,32)}…</td><td>${x.validator||'—'}</td><td>${x.nonce||0}</td><td style="color:#8b5cf6">${x.bits||'—'}</td><td>${x.tx_count||1}</td><td style="color:#64748b">${ts(x.timestamp)}</td></tr>`).join('');
+    document.getElementById('blk-body').innerHTML=rows;
+    const lb=b.blocks[0];
+    if(lb){document.getElementById('lbv').textContent='val: '+(lb.validator||'—');}
+    return;
+  }
+  // fallback: usa /block/<h> para as últimas 20 alturas
+  const s=await safeJSON(API+'/blockchain');
+  const height = s && typeof s.height==='number' ? s.height : null;
+  if(height==null){ document.getElementById('blk-body').innerHTML='<tr><td colspan="7" style="text-align:center;color:#f59e0b">Explorer indisponível. Aguarde…</td></tr>'; return; }
+  const rows=[];
+  for(let i=0;i<20 && (height-off-i)>=0;i++){
+    const one=await safeJSON(API+'/block/'+(height-off-i));
+    if(!one) continue;
+    const hdr=one.header||{};
+    rows.push(`<tr onclick="showBlock(${height-off-i})"><td><strong style="color:#f59e0b">${height-off-i}</strong></td><td class="hash">${((one.hash||hdr.hash)||'').slice(0,32)}…</td><td>${one.validator||hdr.agent_validator||'—'}</td><td>${one.nonce!=null?one.nonce:(hdr.nonce||0)}</td><td style="color:#8b5cf6">${one.bits||hdr.bits||'—'}</td><td>${one.tx_count||(one.transactions||[]).length||1}</td><td style="color:#64748b">${ts(one.timestamp||hdr.timestamp)}</td></tr>`);
+  }
+  document.getElementById('blk-body').innerHTML=rows.join('')||'<tr><td colspan="7" style="text-align:center;color:#f59e0b">sem blocos disponíveis</td></tr>';
+}
+
+async function loadTxs(){
+  const t=await safeJSON(API+'/explorer/txs/latest?limit=15');
+  if(t && Array.isArray(t.transactions) && t.transactions.length){
+    document.getElementById('tx-body').innerHTML=t.transactions.map(x=>`<tr onclick="showTx('${x.tx_id}')"><td class="hash">${(x.tx_id||'').slice(0,32)}…</td><td><span class="tag">${x.tx_type||'—'}</span></td><td>${x.agent_id||'—'}</td><td><a style="color:#f59e0b" href="#" onclick="event.stopPropagation();showBlock(${x.block_height});return false">#${x.block_height||'—'}</a></td><td style="color:#64748b">${ts(x.timestamp)}</td></tr>`).join('');
+  }else{
+    document.getElementById('tx-body').innerHTML='<tr><td colspan="5" style="text-align:center;color:#f59e0b">endpoint /txs/latest temporariamente indisponível — chain válida, blocos continuam sendo minerados.</td></tr>';
+  }
+}
+
+async function loadAgents(){
+  const a=await safeJSON(API+'/agents');
+  if(a && Array.isArray(a.agents) && a.agents.length){
+    document.getElementById('ag-body').innerHTML=a.agents.map(x=>`<tr><td><strong style="color:#8b5cf6">${x.agent_id||x.id}</strong></td><td>${x.reputation||0}</td><td><span class="tag">${x.trust||'standard'}</span></td><td style="color:#94a3b8">${(x.capabilities||[]).join(', ')}</td></tr>`).join('');
+  }else{
+    document.getElementById('ag-body').innerHTML='<tr><td colspan="4" style="text-align:center;color:#f59e0b">endpoint /agents temporariamente indisponível</td></tr>';
+  }
+}
+
+async function showBlock(h){
+  const d=document.getElementById('detail');
+  d.className='detail on';d.innerHTML='<h3>Carregando bloco #'+h+'…</h3>';
+  let b=null, flat=false;
+  b=await safeJSON(API+'/explorer/blocks/height/'+h); if(b && b.hash){ flat=true; }
+  if(!flat){ b=await safeJSON(API+'/block/'+h); }
+  if(!b){ d.innerHTML='<h3>Erro ao carregar bloco #'+h+'</h3>'; return; }
+  const hdr = b.header || {};
+  const prev = b.prev_hash || b.prev_block_hash || hdr.prev_block_hash;
+  const merk = b.merkle_root || hdr.merkle_root;
+  const nonc = (b.nonce != null ? b.nonce : hdr.nonce);
+  const bits = b.bits || hdr.bits;
+  const time = b.timestamp || hdr.timestamp;
+  const val  = b.validator || hdr.agent_validator;
+  const txct = b.tx_count != null ? b.tx_count : (b.transactions||[]).length;
+  const zkml = (b.consensus && b.consensus.zkml_proof_hash) || hdr.zkml_proof_hash;
+  const pouw = (b.consensus && b.consensus.pouw_work_hash) || hdr.pouw_work_hash;
+  const tens = (b.consensus && b.consensus.tensor_commitment) || hdr.tensor_commitment;
+  d.innerHTML='<h3>🧱 Bloco #'+h+'</h3>'+
+    row('Hash', b.hash || hdr.hash)+
+    row('Prev Block Hash', prev||'—')+
+    row('Merkle Root', merk||'—')+
+    row('Nonce', nonc!=null?nonc:'—')+
+    row('Bits', bits||'—')+
+    row('Timestamp', time?ts(time)+' <span style=color:#64748b>('+time+')</span>':'—')+
+    row('Validator', val||'—')+
+    row('TX Count', txct)+
+    row('Reward', (b.reward_bait!=null?b.reward_bait+' BAIT':'50 BAIT'))+
+    row('Size', (b.size_bytes!=null?b.size_bytes+' bytes':'—'))+
+    row('zkML Proof Hash', zkml||'—')+
+    row('PoUW Work Hash', pouw||'—')+
+    row('Tensor Commitment', tens||'—')+
+    row('API', `<a href="${API}/block/${h}" target="_blank" style=color:#10b981>${API}/block/${h}</a>`);
+  d.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+async function showTx(id){
+  const d=document.getElementById('detail');
+  d.className='detail on';d.innerHTML='<h3>Carregando transação…</h3>';
+  const t=await safeJSON(API+'/explorer/tx/'+id);
+  if(!t){ d.innerHTML='<h3>Erro ao carregar tx '+id+'</h3>'; return; }
+  d.innerHTML='<h3>💸 Transação</h3>'+
+    row('Tx ID', t.tx_id||id)+
+    row('Tipo', '<span class="tag">'+(t.tx_type||'—')+'</span>'+(t.is_coinbase?' <span class="tag" style="background:rgba(245,158,11,.15);color:#f59e0b">coinbase</span>':''))+
+    row('Agente', t.agent_id||'—')+
+    row('Block Height', t.block_height!=null?'<a href="#" onclick="showBlock('+t.block_height+');return false" style=color:#f59e0b>#'+t.block_height+'</a>':'—')+
+    row('Confirmations', t.confirmations!=null?t.confirmations:'—')+
+    row('Timestamp', t.timestamp?ts(t.timestamp):'—')+
+    row('Total Input', (t.total_input_bait!=null?t.total_input_bait+' BAIT':'0'))+
+    row('Total Output', (t.total_output_bait!=null?t.total_output_bait+' BAIT':'—'))+
+    row('Fee', (t.fee_bait!=null?t.fee_bait+' BAIT':'0'));
+  d.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function row(k,v){return `<div class="row"><div class="k">${k}</div><div class="v">${v==null?'—':v}</div></div>`}
+
+async function doSearch(){
+  const q=document.getElementById('q').value.trim();
+  if(!q)return;
+  if(/^\d+$/.test(q)){return showBlock(parseInt(q));}
+  if(/^[0-9a-fA-F]{64}$/.test(q)){
+    const d=document.getElementById('detail');d.className='detail on';d.innerHTML='<h3>Buscando…</h3>';
+    const r=await safeJSON(API+'/explorer/blocks/hash/'+q);
+    if(r && r.block_height!=null){return showBlock(r.block_height);}
+    const rt=await safeJSON(API+'/explorer/tx/'+q);
+    if(rt && rt.tx_id){return showTx(rt.tx_id);}
+    d.innerHTML='<h3>Nada encontrado para '+q+'</h3>';return;
+  }
+  const r=await safeJSON(API+'/explorer/search?q='+encodeURIComponent(q));
+  const d=document.getElementById('detail');d.className='detail on';
+  d.innerHTML='<h3>Resultados para "'+q+'"</h3><pre style="color:#cbd5e1;font-size:11px;overflow:auto;max-height:400px">'+JSON.stringify(r||{error:'nada encontrado'},null,2)+'</pre>';
+}
+
+document.getElementById('q').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch()});
+if(location.hash.startsWith('#b-')){setTimeout(()=>showBlock(parseInt(location.hash.slice(3))),500);}
+loadHeader();loadBlocks(0);loadTxs();loadAgents();
+setInterval(()=>{loadHeader();if(offset===0)loadBlocks(0);loadTxs();},7000);
+</script>
+</body></html>

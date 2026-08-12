@@ -56,10 +56,10 @@ footer{border-top:1px solid var(--border);padding:24px;text-align:center;color:#
 </style></head><body>
 <header><div class="nav">
   <span class="brand">🤖 b'AI'tcoin</span>
-  <a class="link" href="/?v=3">Home</a>
+  <a class="link" href="/?v=8">Home</a>
   <a class="link" href="/blockchain">🔗 Blockch'AI'n</a>
   <a class="link" href="/aistore/">🛒 AI Store</a>
-  <a class="link" href="/bainkr?v=3">🏦 B'AI'nkr</a>
+  <a class="link" href="/bainkr">🏦 B'AI'nkr</a>
   <a class="link" href="/faucet">🚰 Faucet</a>
   <a class="link" href="/sdk">🧰 SDK</a>
   <a class="link" href="/obscura">🕸️ Obscura</a>
@@ -85,14 +85,14 @@ footer{border-top:1px solid var(--border);padding:24px;text-align:center;color:#
 
 <main>
   <div class="section">
-    <h2>📊 Blockchain <small>· dados live via /api/api/v1/status</small></h2>
+    <h2>📊 Blockchain <small>· dados live via /api/api/v1/status + /blockchain</small></h2>
     <div class="grid" id="stats">
       <div class="card"><div class="label">Block Height</div><div class="value" id="s-height">—</div><div class="sub" id="s-valid">chain valid</div></div>
       <div class="card"><div class="label">Total Supply</div><div class="value" id="s-supply">—</div><div class="sub">BAIT mintados</div></div>
       <div class="card"><div class="label">UTXO Set</div><div class="value" id="s-utxo">—</div><div class="sub" id="s-mempool">mempool: 0</div></div>
       <div class="card"><div class="label">Active Agents</div><div class="value" id="s-agents">—</div><div class="sub">chimera7 · oracle · defi</div></div>
       <div class="card"><div class="label">Marketplace</div><div class="value" id="s-market">—</div><div class="sub">serviços ativos</div></div>
-      <div class="card"><div class="label">Persistence</div><div class="value" style="font-size:14px;color:#8b5cf6">WAL + Snapshots</div><div class="sub">.baitcoin/memory</div></div>
+      <div class="card"><div class="label">Oracle (BTC)</div><div class="value" id="s-btc" style="font-size:18px">—</div><div class="sub" id="s-oracle">CoinGecko + Binance</div></div>
     </div>
   </div>
 
@@ -123,41 +123,98 @@ footer{border-top:1px solid var(--border);padding:24px;text-align:center;color:#
 
   <div class="section">
     <h2>🛒 Marketplace de Agentes <small>· fee 2.5%</small></h2>
-    <table id="mkt-table"><thead><tr><th>Serviço</th><th>Preço (sats)</th><th>Categoria</th></tr></thead><tbody id="mkt-body"><tr><td colspan="3" style="text-align:center;color:#64748b">carregando…</td></tr></tbody></table>
+    <table id="mkt-table"><thead><tr><th>Serviço</th><th>Provedor</th><th>Preço (sats)</th><th>Categoria</th></tr></thead><tbody id="mkt-body"><tr><td colspan="4" style="text-align:center;color:#64748b">carregando…</td></tr></tbody></table>
   </div>
 </main>
 
 <footer>b'AI'tcoin Mainnet · SHA-256d PoW · Schnorr BIP-340 · WAL Snapshots · TLS Let's Encrypt · 14 módulos core em produção</footer>
 
 <script>
+"use strict";
 const API='/api/api/v1';
-function fmt(n){if(n==null)return'—';if(n>=1e9)return(n/1e9).toFixed(2)+'B';if(n>=1e6)return(n/1e6).toFixed(2)+'M';if(n>=1e3)return(n/1e3).toFixed(1)+'K';return String(n)}
+function fmt(n){if(n==null)return'—';if(typeof n!=='number')return String(n);if(n>=1e12)return(n/1e12).toFixed(2)+'T';if(n>=1e9)return(n/1e9).toFixed(2)+'B';if(n>=1e6)return(n/1e6).toFixed(2)+'M';if(n>=1e3)return(n/1e3).toFixed(1)+'K';return String(n)}
+function pickHeight(s,b){
+  // Fonte de verdade única: prefere /blockchain.height se disponível; senão usa /status.chain_height ou blockchain_height
+  if(b && typeof b.height==='number') return b.height;
+  if(s && typeof s.chain_height==='number') return s.chain_height;
+  if(s && typeof s.blockchain_height==='number') return s.blockchain_height;
+  return null;
+}
+function pickSupplyBait(s,b){
+  // Prefere token_minted_bait (payload novo); senão converte total_supply_sats/1e8
+  if(s && typeof s.token_minted_bait==='number') return s.token_minted_bait;
+  if(b && typeof b.total_supply_sats==='number') return b.total_supply_sats/1e8;
+  return null;
+}
+function pickAgents(s){
+  if(s && typeof s.agents_registered==='number') return s.agents_registered;
+  if(s && typeof s.agents==='number') return s.agents;
+  return 0;
+}
+function pickMarket(s){
+  if(s && s.marketplace && typeof s.marketplace.active==='number') return s.marketplace.active;
+  if(s && s.marketplace && Array.isArray(s.marketplace.services)) return s.marketplace.services.length;
+  return 0;
+}
+function pickExplorer(s){
+  return (s && (s.explorer_index || s.explorer)) || null;
+}
+async function safeJSON(url){
+  try{ const r=await fetch(url,{cache:'no-store'}); if(!r.ok) return null; return await r.json(); }catch(e){ return null; }
+}
 async function pull(){
-  try{
-    const s=await fetch(API+'/status').then(r=>r.json());
-    document.getElementById('s-height').textContent=fmt(s.chain_height);
-    document.getElementById('s-valid').textContent='chain valid '+(s.chain_valid?'✓':'✗');
-    const supply=(s.total_bait_minted||0);
-    document.getElementById('s-supply').textContent=fmt(supply);
-    document.getElementById('s-utxo').textContent=fmt(s.utxo_count);
-    document.getElementById('s-mempool').textContent='mempool: '+(s.mempool_size||0);
-    document.getElementById('s-agents').textContent=s.agents_registered||0;
-    document.getElementById('s-market').textContent=(s.marketplace&&s.marketplace.active)||0;
-    document.getElementById('live').textContent='MAINNET · h='+s.chain_height;
-  }catch(e){}
-  try{
-    const b=await fetch(API+'/explorer/blocks?limit=8').then(r=>r.json());
-    const rows=(b.blocks||[]).map(x=>`<tr><td><a href="/blockchain#b-${x.block_height}" style="color:#f59e0b">${x.block_height}</a></td><td class="hash"><a href="/api/api/v1/block/${x.block_height}" target="_blank">${(x.hash||'').slice(0,32)}…</a></td><td>${x.validator||'—'}</td><td>${x.nonce||0}</td><td style="color:#8b5cf6">50 BAIT</td></tr>`).join('');
-    document.getElementById('blk-body').innerHTML=rows||'<tr><td colspan="5" style="text-align:center;color:#64748b">sem blocos</td></tr>';
-  }catch(e){}
-  try{
-    const st=await fetch(API+'/status').then(r=>r.json());
-    const svcs=(st.marketplace&&st.marketplace.services)||[];
-    if(svcs.length){
-      const rows=svcs.map(s=>`<tr><td>${s.name||s.id}</td><td class="hash">${s.price_sats||0}</td><td>${s.category||'—'}</td></tr>`).join('');
-      document.getElementById('mkt-body').innerHTML=rows;
+  const s = await safeJSON(API+'/status');
+  const b = await safeJSON(API+'/blockchain');
+  const height = pickHeight(s,b);
+  document.getElementById('s-height').textContent = height==null?'—':fmt(height);
+  document.getElementById('s-valid').textContent = 'chain valid '+((s&&s.chain_valid)?'✓':'—');
+  const supply = pickSupplyBait(s,b);
+  document.getElementById('s-supply').textContent = supply==null?'—':fmt(supply);
+  document.getElementById('s-utxo').textContent = fmt(s && s.utxo_count);
+  document.getElementById('s-mempool').textContent = 'mempool: '+((s && s.mempool_size)||0);
+  document.getElementById('s-agents').textContent = pickAgents(s);
+  document.getElementById('s-market').textContent = pickMarket(s);
+  const btcPrice = s && s.oracle && s.oracle.prices && s.oracle.prices.BTC;
+  document.getElementById('s-btc').textContent = (btcPrice==null?'—':('$'+Number(btcPrice).toLocaleString('en-US',{maximumFractionDigits:2})));
+  document.getElementById('live').textContent = 'MAINNET · h='+(height==null?'—':height);
+
+  // Últimos blocos: tenta /explorer/blocks; se falhar, degrada usando /block/<h-i>
+  let blocks = null;
+  const eb = await safeJSON(API+'/explorer/blocks?limit=8');
+  if(eb && Array.isArray(eb.blocks) && eb.blocks.length){
+    blocks = eb.blocks;
+  }else if(height!=null){
+    blocks = [];
+    for(let i=0;i<8 && (height-i)>=0;i++){
+      const one = await safeJSON(API+'/block/'+(height-i));
+      if(one){
+        const hdr = one.header || {};
+        blocks.push({
+          block_height: one.block_height!=null?one.block_height:(height-i),
+          hash: one.hash || hdr.hash || '',
+          validator: one.validator || hdr.agent_validator || '—',
+          nonce: one.nonce!=null?one.nonce:hdr.nonce,
+        });
+      }
     }
-  }catch(e){}
+  }
+  if(blocks && blocks.length){
+    document.getElementById('blk-body').innerHTML = blocks.map(x=>{
+      const h = x.block_height!=null?x.block_height:'—';
+      const hash = (x.hash||'').slice(0,32);
+      return `<tr><td><a href="/blockchain#b-${h}" style="color:#f59e0b">${h}</a></td><td class="hash"><a href="/api/api/v1/block/${h}" target="_blank">${hash}…</a></td><td>${x.validator||'—'}</td><td>${x.nonce||0}</td><td style="color:#8b5cf6">50 BAIT</td></tr>`;
+    }).join('');
+  }else{
+    document.getElementById('blk-body').innerHTML = '<tr><td colspan="5" style="text-align:center;color:#f59e0b">Explorer temporariamente indisponível. Cadeia válida ‧ altura '+(height==null?'—':height)+'. Retentando em 7s…</td></tr>';
+  }
+
+  // Marketplace: usa status.marketplace.services (payload live)
+  const svcs = (s && s.marketplace && Array.isArray(s.marketplace.services)) ? s.marketplace.services : [];
+  if(svcs.length){
+    document.getElementById('mkt-body').innerHTML = svcs.map(x=>`<tr><td>${x.name||x.id}</td><td style="color:#8b5cf6">${x.provider||'—'}</td><td class="hash">${x.price_sats||0}</td><td>${x.category||'—'}</td></tr>`).join('');
+  }else{
+    document.getElementById('mkt-body').innerHTML = '<tr><td colspan="4" style="text-align:center;color:#64748b">nenhum serviço ativo no marketplace</td></tr>';
+  }
 }
 pull();setInterval(pull,7000);
 </script>

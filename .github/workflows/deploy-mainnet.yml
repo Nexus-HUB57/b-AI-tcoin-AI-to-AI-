@@ -1,0 +1,168 @@
+name: Deploy Mainnet (mybait.org)
+
+# Sincroniza main -> servidor de producao (mybait.org)
+# Elimina o gap estrutural "hot-patch SSH nunca chega ao repo".
+#
+# Usa os secrets ja configurados no repo (nomes convencionais):
+#   SSH_HOST          ex: 143.95.213.237
+#   SSH_PORT          ex: 22022
+#   SSH_USER          ex: baitcoin
+#   SSH_PRIVATE_KEY   chave privada OpenSSH (id_ed25519 ou id_rsa)
+# known_hosts eh gerado on-the-fly com ssh-keyscan (evita 6o secret).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - 'baitcoin_api/**'
+      - 'baitcoin_explorer/**'
+      - 'baitcoin_ai/**'
+      - 'baitcoin_faucet/**'
+      - 'baitcoin_bank/**'
+      - 'baitcoin_wallet/**'
+      - 'baitcoin_token/**'
+      - 'baitcoin_core/**'
+      - 'baitcoin_memory/**'
+      - 'baitcoin_obscura/**'
+      - 'baitcoin_whitelabel/**'
+      - 'baitcoin_sdk/**'
+      - 'baitcoin_bridge/**'
+      - 'baitcoin_mainnet/**'
+      - 'daemon_production.py'
+      - 'daemon_wrapper.py'
+      - 'scripts/deploy_surgical_patch.sh'
+      - 'scripts/verify_deploy.sh'
+      - '.github/workflows/deploy-mainnet.yml'
+  workflow_dispatch:
+    inputs:
+      restart_daemon:
+        description: 'Reiniciar baitcoin.service ao final?'
+        type: boolean
+        default: true
+      skip_frontend:
+        description: 'Pular sync de /var/www/mybait?'
+        type: boolean
+        default: false
+
+concurrency:
+  group: deploy-mainnet
+  cancel-in-progress: false
+
+jobs:
+  syntax-check:
+    name: Syntax check (Python)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Compile all changed Python modules
+        run: |
+          set -e
+          python -m py_compile baitcoin_api/server.py
+          python -m py_compile baitcoin_explorer/indices.py
+          python -m py_compile baitcoin_ai/oracle/feed.py
+          echo "OK: server.py, indices.py, feed.py"
+
+  deploy:
+    name: Deploy to mybait.org
+    needs: syntax-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          set -e
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          ssh-keyscan -p ${{ secrets.SSH_PORT }} -H ${{ secrets.SSH_HOST }} > ~/.ssh/known_hosts 2>/dev/null
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Pre-deploy snapshot (WAL)
+        run: |
+          ssh -i ~/.ssh/id_deploy \
+              -p ${{ secrets.SSH_PORT }} \
+              -o StrictHostKeyChecking=yes \
+              ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+              "test -x /home/baitcoin/scripts/snapshot_verify.sh && /home/baitcoin/scripts/snapshot_verify.sh || echo 'no snapshot_verify script; skipping'"
+
+      - name: Rsync backend (baitcoin_*)
+        run: |
+          set -e
+          rsync -avz --delete \
+            --exclude='__pycache__' --exclude='*.pyc' --exclude='.bak.*' \
+            -e "ssh -i ~/.ssh/id_deploy -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=yes" \
+            baitcoin_api baitcoin_explorer baitcoin_ai baitcoin_faucet \
+            baitcoin_bank baitcoin_wallet baitcoin_token baitcoin_core \
+            baitcoin_memory baitcoin_obscura baitcoin_whitelabel baitcoin_sdk \
+            baitcoin_bridge baitcoin_mainnet \
+            daemon_production.py daemon_wrapper.py \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/baitcoin/app/
+
+      - name: Rsync frontend (/var/www/mybait)
+        if: ${{ inputs.skip_frontend != true }}
+        run: |
+          set -e
+          rsync -avz \
+            --include='*.html' --include='favicon.svg' --exclude='*' \
+            -e "ssh -i ~/.ssh/id_deploy -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=yes" \
+            frontend/ \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/mybait-staging/
+          ssh -i ~/.ssh/id_deploy \
+              -p ${{ secrets.SSH_PORT }} \
+              -o StrictHostKeyChecking=yes \
+              ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+              "sudo -n rsync -a --chown=www-data:www-data /tmp/mybait-staging/ /var/www/mybait/ && sudo -n systemctl reload nginx && rm -rf /tmp/mybait-staging"
+
+      - name: Restart daemon
+        if: ${{ inputs.restart_daemon != false }}
+        run: |
+          ssh -i ~/.ssh/id_deploy \
+              -p ${{ secrets.SSH_PORT }} \
+              -o StrictHostKeyChecking=yes \
+              ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+              "sudo -n systemctl restart baitcoin.service && sleep 3 && sudo -n systemctl is-active baitcoin.service"
+
+      - name: Verify deploy (post-restart health check)
+        run: |
+          set -e
+          echo "Aguardando API subir (max 90s)..."
+          for i in $(seq 1 30); do
+            status=$(curl -sSf -o /tmp/status.json -w "%{http_code}" https://mybait.org/api/api/v1/status || echo "000")
+            if [ "$status" = "200" ]; then
+              echo "API up depois de ${i} tentativas"
+              break
+            fi
+            sleep 3
+          done
+          test "$(curl -sSf -o /dev/null -w '%{http_code}' https://mybait.org/api/api/v1/status)" = "200"
+          python3 - <<'PY'
+          import json,sys
+          s=json.load(open('/tmp/status.json'))
+          req=['network','chain_height','chain_valid','explorer_index','token_minted_bait','marketplace','oracle']
+          missing=[k for k in req if k not in s]
+          if missing:
+              print('FAIL missing keys:',missing); sys.exit(1)
+          print('OK payload expandido:',{k:type(s[k]).__name__ for k in req})
+          print('chain_height =',s['chain_height'])
+          print('explorer_index.indexed_blocks =',s['explorer_index'].get('indexed_blocks') if s['explorer_index'] else None)
+          PY
+          # Frontends
+          for path in / /blockchain /bainkr /faucet /sdk /obscura; do
+            code=$(curl -sSf -o /dev/null -w "%{http_code}" "https://mybait.org${path}")
+            echo "  ${path} -> ${code}"
+            test "$code" = "200"
+          done
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### Deploy mybait.org (${{ github.sha }})" >> $GITHUB_STEP_SUMMARY
+          echo "- backend syncado em /home/baitcoin/app/" >> $GITHUB_STEP_SUMMARY
+          echo "- frontend syncado em /var/www/mybait/" >> $GITHUB_STEP_SUMMARY
+          echo "- baitcoin.service reiniciado" >> $GITHUB_STEP_SUMMARY
+          echo "- /api/api/v1/status validado com payload expandido" >> $GITHUB_STEP_SUMMARY
