@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+      body { margin: 0; }
+      .slide-container {
+        width: 1280px;
+        min-height: 720px;
+        background-color: #D4D8DD;
+        background-image: radial-gradient(#0F172A 1px, transparent 1px);
+        background-size: 20px 20px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        color: #334155;
+      }
+      .header-box {
+        padding-top: 50px;
+        padding-left: 60px;
+      }
+      .page-title {
+        font-size: 48px;
+        color: #0F172A;
+        text-transform: uppercase;
+        letter-spacing: -0.05em;
+        font-weight: 800;
+        border-left: 10px solid #F59E0B;
+        padding-left: 20px;
+      }
+      .content-layout {
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 40px;
+        padding-top: 0px; /* reduced from 40px to remove overflow */
+        padding-left: 60px;
+        padding-right: 60px;
+      }
+      .governance-principles {
+        border: 2px solid #0F172A;
+        background-color: white;
+        padding-top: 30px;
+        padding-left: 30px;
+        padding-right: 30px;
+      }
+      .principle-item {
+        padding-top: 20px;
+      }
+      .principle-item h3 {
+        font-size: 24px;
+        color: #0F172A;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+      }
+      .principle-item p {
+        font-size: 18px;
+        line-height: 1.6;
+        margin: 0;
+      }
+      .repo-structure {
+        border: 2px solid #0F172A;
+        background-color: #0F172A;
+        color: white;
+        padding-top: 30px;
+        padding-left: 30px;
+        padding-right: 30px;
+        font-family: 'Courier New', Courier, monospace;
+      }
+      .repo-header {
+        color: #F59E0B;
+        font-weight: bold;
+        margin-bottom: 15px;
+        font-size: 20px;
+      }
+      .tree-node {
+        margin-top: 10px;
+        font-size: 18px;
+      }
+      .file-node {
+        color: #D4D8DD;
+        padding-left: 20px;
+      }
+    </style>
+</head>
+<body>
+    <div class="slide-container">
+        <div class="header-box">
+            <h2 class="page-title">Governança e Versionamento Seguro</h2>
+        </div>
+        <div class="content-layout">
+            <div class="governance-principles">
+                <div class="principle-item">
+                    <h3>Fonte Única da Verdade</h3>
+                    <p>Centralização de todos os artefatos de auditoria no GitHub, garantindo que o servidor de produção e a equipe operem sobre a mesma base de dados validada.</p>
+                </div>
+                <div class="principle-item">
+                    <h3>Isolamento de Contribuições</h3>
+                    <p>Utilização de diretórios dedicados para relatórios de carteiras, prevenindo conflitos de merge e protegendo o código-fonte desenvolvido por outros membros da equipe.</p>
+                </div>
+                <div class="principle-item">
+                    <h3>Commits Atômicos e Auditáveis</h3>
+                    <p>Cada atualização é registrada com mensagens descritivas e hashes únicos, permitindo o rastreamento completo de cada endereço Bitcoin adicionado ao sistema.</p>
+                </div>
+            </div>
+            <div class="repo-structure">
+                <div class="repo-header">ESTRUTURA DO REPOSITÓRIO</div>
+                <div class="tree-node">/ (root)</div>
+                <div class="tree-node file-node">├── src/</div>
+                <div class="tree-node file-node">├── docs/</div>
+                <div class="tree-node file-node" style="color: #F59E0B;">└── wallet_reports/</div>
+                <div class="tree-node file-node" style="padding-left: 40px;">└── consolidated_wallets.csv</div>
+                <div class="tree-node file-node" style="padding-left: 40px;">└── final_validated_wallets.csv</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

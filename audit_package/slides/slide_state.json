@@ -1,0 +1,67 @@
+{
+  "project_info": {
+    "title": "Varredura e Auditoria de Carteiras Bitcoin",
+    "created": 1786636216.921,
+    "last_updated": 1786636486.286,
+    "total_slides": 5
+  },
+  "slides": [
+    {
+      "id": "title_slide",
+      "state": "edited",
+      "pageNum": 1
+    },
+    {
+      "id": "extraction_methodology",
+      "state": "edited",
+      "pageNum": 2
+    },
+    {
+      "id": "validation_architecture",
+      "state": "edited",
+      "pageNum": 3
+    },
+    {
+      "id": "github_governance",
+      "state": "edited",
+      "pageNum": 4
+    },
+    {
+      "id": "conclusion_next_steps",
+      "state": "edited",
+      "pageNum": 5
+    }
+  ],
+  "outline": [
+    {
+      "id": "title_slide",
+      "title": "Varredura e Auditoria de Carteiras Bitcoin",
+      "summary": "Capa da apresentação com título principal e subtítulo sobre arquitetura de extração.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "extraction_methodology",
+      "title": "Metodologia de Extração de Dados Heterogêneos",
+      "summary": "Detalhes sobre o processamento de 983 registros únicos a partir de diversos formatos de arquivos.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "validation_architecture",
+      "title": "Arquitetura de Validação Blockchain Resiliente",
+      "summary": "Explicação sobre o pipeline de consulta paralela e redundância de APIs para verificação de saldos.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "github_governance",
+      "title": "Governança de Repositórios e Versionamento Seguro",
+      "summary": "Descrição do processo de atualização dos repositórios GitHub mantendo a integridade do trabalho da equipe.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "conclusion_next_steps",
+      "title": "Conclusão e Próximos Passos Operacionais",
+      "summary": "Resumo dos resultados alcançados e recomendações para automação futura de monitoramento.",
+      "image_plan": "Use a suitable image if needed"
+    }
+  ]
+}

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+      html, body { margin: 0; padding: 0; }
+      .slide-container {
+        width: 1280px;
+        min-height: 720px; /* keep as required */
+        margin-top: -1px; /* lift by 1px so bottom < 720px */
+        background-color: #D4D8DD;
+        background-image: radial-gradient(#0F172A 1px, transparent 1px);
+        background-size: 20px 20px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        color: #334155;
+      }
+      .header-box {
+        padding-top: 50px; /* must not be changed */
+        padding-left: 60px;
+      }
+      .page-title {
+        font-size: 48px;
+        color: #0F172A;
+        text-transform: uppercase;
+        letter-spacing: -0.05em;
+        font-weight: 800;
+        border-left: 10px solid #F59E0B;
+        padding-left: 20px;
+      }
+      .content-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px; /* reduced */
+        padding-top: 20px; /* reduced */
+        padding-left: 60px;
+        padding-right: 60px;
+      }
+      .text-container {
+        border: 2px solid #0F172A;
+        background-color: white;
+        padding-top: 8px; /* reduced */
+        padding-left: 18px;
+        padding-right: 18px;
+      }
+      .body-text {
+        font-size: 24px;
+        line-height: 1.35; /* tightened slightly */
+        margin-bottom: 6px; /* reduced */
+      }
+      .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        border: 2px solid #0F172A;
+        background-color: white;
+      }
+      .data-table th {
+        background-color: #0F172A;
+        color: white;
+        text-align: left;
+        padding-top: 6px; /* reduced */
+        padding-left: 12px;
+        font-size: 22px;
+      }
+      .data-table td {
+        padding-top: 6px; /* reduced */
+        padding-left: 12px;
+        border-top: 1px solid #D4D8DD;
+        font-size: 20px;
+      }
+      .highlight {
+        color: #F59E0B;
+        font-weight: bold;
+      }
+    </style>
+</head>
+<body>
+    <div class="slide-container">
+        <div class="header-box">
+            <h2 class="page-title">Metodologia de Extração de Dados</h2>
+        </div>
+        <div class="content-grid">
+            <div class="text-container">
+                <p class="body-text">
+                    Ingestão de formatos (<span class="highlight">CSV, TXT, XLSX, JSON, RTF</span>) e uso de regex para isolar endereços Bitcoin (Legacy, P2SH, Bech32).
+                </p>
+                <p class="body-text">
+                    Remoção de duplicatas, dataset consolidado de <span class="highlight">983 registros únicos</span> pronto para auditoria.
+                </p>
+            </div>
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th colspan="2">Resumo da Extração</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Total de Arquivos</td>
+                            <td>12</td>
+                        </tr>
+                        <tr>
+                            <td>Registros Brutos</td>
+                            <td>~1.500</td>
+                        </tr>
+                        <tr>
+                            <td>Registros Únicos</td>
+                            <td>983</td>
+                        </tr>
+                        <tr>
+                            <td>Formatos Identificados</td>
+                            <td>5</td>
+                        </tr>
+                        <tr>
+                            <td>Tipos de Endereço</td>
+                            <td>Legacy, P2SH, SegWit</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
