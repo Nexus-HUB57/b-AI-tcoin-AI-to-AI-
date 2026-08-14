@@ -400,6 +400,35 @@ def handle_admin():
     
     return False
 
+RENDER_API = 'https://b-ai-tcoin-ai-to-ai.onrender.com'
+
+# Render Fallback Proxy — when local daemon is dead, proxy GET to Render
+RENDER_READONLY = {'GET'}
+def proxy_to_render():
+    path_info = os.environ.get('PATH_INFO', '/api/v1/status')
+    query_string = os.environ.get('QUERY_STRING', '')
+    target = path_info + ('?' + query_string if query_string else '')
+    request_method = os.environ.get('REQUEST_METHOD', 'GET')
+    if request_method not in RENDER_READONLY:
+        respond_error('Local daemon offline. Write ops unavailable.', 503)
+        return
+    try:
+        req = Request(f'{RENDER_API}{target}', headers={'User-Agent': 'bait-cgi-fallback/1.0'})
+        with urlopen(req, timeout=15) as resp:
+            body = resp.read()
+        sys.stdout.write(f'Status: {resp.status}\n')
+        for k, v in resp.getheaders():
+            if k.lower() not in ('transfer-encoding', 'connection', 'server'):
+                sys.stdout.write(f'{k}: {v}\n')
+        sys.stdout.write(f'X-Powered-By: b-AI-tcoin-CGI-Gateway-{CGI_VERSION}-render-fallback\n')
+        sys.stdout.write(f'Access-Control-Allow-Origin: *\n')
+        sys.stdout.write(f'\n')
+        sys.stdout.flush()
+        os.write(sys.stdout.fileno(), body)
+    except Exception as e:
+        log.error(f'Render fallback error: {e}')
+        respond_error(f'Both local and Render API unavailable: {e}', 502)
+
 # Main Entry
 def main():
     try:
@@ -421,10 +450,12 @@ def main():
         if not is_daemon_healthy():
             log.info('Daemon unhealthy -> cold-start')
             if not start_daemon():
-                respond_error('Daemon failed to start.', 500)
+                log.info('Cold-start failed -> Render fallback')
+                proxy_to_render()
                 return
             if not wait_for_daemon():
-                respond_error(f'Daemon cold-starting. Retry in {STARTUP_TIMEOUT}s.', 503)
+                log.info('Daemon timeout -> Render fallback')
+                proxy_to_render()
                 return
         
         proxy_request()

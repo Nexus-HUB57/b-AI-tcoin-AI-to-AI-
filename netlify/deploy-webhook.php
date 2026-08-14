@@ -65,7 +65,14 @@ if ($target === 'frontend' || $target === 'all') {
     
     $files = [
         'netlify/index.html'        => 'index.html',
+        'netlify/blockchain.html'   => 'blockchain.html',
         'netlify/bainkr.html'       => 'bainkr.html',
+        'netlify/faucet.html'       => 'faucet.html',
+        'netlify/sdk.html'          => 'sdk.html',
+        'netlify/obscura.html'      => 'obscura.html',
+        'netlify/favicon.svg'       => 'favicon.svg',
+        'netlify/.htaccess'         => '.htaccess',
+        'netlify/api.cgi'           => 'api.cgi',
         'netlify/whitepaper.pdf'    => 'whitepaper.pdf',
     ];
     
@@ -82,6 +89,10 @@ if ($target === 'frontend' || $target === 'all') {
         if ($data !== false && strlen($data) > 100) {
             $ok = @file_put_contents($local_path, $data);
             if ($ok) {
+                // Ensure api.cgi is executable
+                if ($dest === 'api.cgi') {
+                    @chmod($local_path, 0755);
+                }
                 $results[] = "OK: $dest (" . strlen($data) . " bytes)";
                 deploy_log("  OK: $dest");
             } else {
