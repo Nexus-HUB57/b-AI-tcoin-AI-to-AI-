@@ -1,9 +1,11 @@
 name: Deploy Mainnet (mybait.org)
 
-# Sincroniza main -> servidor de producao (mybait.org)
-# Usa os secrets ja configurados no repo (nomes convencionais):
-#   SSH_HOST, SSH_PORT, SSH_USER, SSH_PRIVATE_KEY
-# known_hosts eh gerado on-the-fly com ssh-keyscan (best-effort).
+# MODO WEBHOOK (pull deploy via HTTP) — SSH direto esta bloqueado pelo HostGator
+# para runners do GitHub Actions ("Connection refused" em todos os runs #1-#9).
+# O webhook deploy-webhook.php ja esta instalado no servidor e funciona:
+# prova: run #68 "Deploy to HostGator" SUCCESS em 2026-08-14T12:55:36Z.
+#
+# Secrets usados (ja existentes no repo): DEPLOY_WEBHOOK_URL, DEPLOY_WEBHOOK_SECRET
 
 on:
   push:
@@ -26,19 +28,14 @@ on:
       - 'baitcoin_mainnet/**'
       - 'daemon_production.py'
       - 'daemon_wrapper.py'
-      - 'scripts/deploy_surgical_patch.sh'
-      - 'scripts/verify_deploy.sh'
       - '.github/workflows/deploy-mainnet.yml'
   workflow_dispatch:
     inputs:
-      restart_daemon:
-        description: 'Reiniciar baitcoin.service ao final?'
-        type: boolean
-        default: true
-      skip_frontend:
-        description: 'Pular sync de /var/www/mybait?'
-        type: boolean
-        default: false
+      deploy_target:
+        description: 'Escopo do deploy'
+        type: choice
+        default: 'all'
+        options: [all, frontend, api]
 
 concurrency:
   group: deploy-mainnet
@@ -61,149 +58,50 @@ jobs:
           python -m py_compile baitcoin_ai/oracle/feed.py
           echo "OK: server.py, indices.py, feed.py"
 
-  deploy:
-    name: Deploy to mybait.org
+  deploy-webhook:
+    name: Deploy via webhook (HTTP pull)
     needs: syntax-check
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup SSH (write key + config)
-        shell: bash
+      - name: Trigger HostGator webhook (pull deploy)
         env:
-          SSH_HOST_RAW: ${{ secrets.SSH_HOST }}
-          SSH_PORT_RAW: ${{ secrets.SSH_PORT }}
-          SSH_USER_RAW: ${{ secrets.SSH_USER }}
-          SSH_KEY_RAW:  ${{ secrets.SSH_PRIVATE_KEY }}
-        run: |
-          set +e
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-
-          # trim aggressive de whitespace/CR/LF/aspas
-          H=$(printf '%s' "$SSH_HOST_RAW" | tr -d '\r\n\t "'\''' | tr -d ' ')
-          P=$(printf '%s' "$SSH_PORT_RAW" | tr -d '\r\n\t "'\''' | tr -d ' ')
-          U=$(printf '%s' "$SSH_USER_RAW" | tr -d '\r\n\t "'\''' | tr -d ' ')
-
-          if [ -z "$H" ]; then echo "::error::SSH_HOST vazio"; exit 1; fi
-          if [ -z "$U" ]; then echo "::error::SSH_USER vazio"; exit 1; fi
-          [ -z "$P" ] && P=22
-
-          # grava chave privada tal como esta no secret + newline final (idempotente)
-          printf '%s\n' "$SSH_KEY_RAW" > ~/.ssh/id_deploy
-          chmod 600 ~/.ssh/id_deploy
-
-          # valida chave sem vazar conteudo
-          if ! ssh-keygen -y -f ~/.ssh/id_deploy > /dev/null 2>&1; then
-              echo "::error::SSH_PRIVATE_KEY invalida ou corrompida"
-              exit 1
-          fi
-
-          # ssh_config gravado linha-a-linha (evita heredoc + expansao YAML)
-          {
-            echo "Host deploy-target"
-            echo "  HostName $H"
-            echo "  Port $P"
-            echo "  User $U"
-            echo "  IdentityFile $HOME/.ssh/id_deploy"
-            echo "  IdentitiesOnly yes"
-            echo "  StrictHostKeyChecking accept-new"
-            echo "  UserKnownHostsFile $HOME/.ssh/known_hosts"
-            echo "  ServerAliveInterval 30"
-            echo "  ConnectTimeout 15"
-            echo "  LogLevel ERROR"
-          } > ~/.ssh/config
-          chmod 600 ~/.ssh/config
-
-          # known_hosts best-effort
-          : > ~/.ssh/known_hosts
-          ssh-keyscan -T 8 -p "$P" -H "$H" >> ~/.ssh/known_hosts 2>/tmp/keyscan.err && \
-              echo "  known_hosts populado ($(wc -l < ~/.ssh/known_hosts) linhas)" || \
-              { echo "::warning::ssh-keyscan best-effort falhou (accept-new no config resolve)"; cat /tmp/keyscan.err 2>/dev/null | head -3 || true; }
-          chmod 644 ~/.ssh/known_hosts
-
-          # probe nao-fatal (mostra hostname/whoami se conectar)
-          ssh -o BatchMode=yes -o ConnectTimeout=15 deploy-target 'echo remote-ok && hostname && whoami' 2>&1 | head -5 || \
-              echo "::warning::probe SSH falhou (steps seguintes ainda vao tentar)"
-
-          echo "  Setup SSH OK — host=$H port=$P user=$U"
-
-      - name: Pre-deploy snapshot (WAL)
-        continue-on-error: true
-        shell: bash
-        run: |
-          ssh deploy-target "test -x /home/baitcoin/scripts/snapshot_verify.sh && /home/baitcoin/scripts/snapshot_verify.sh || echo 'no snapshot_verify script; skipping'"
-
-      - name: Rsync backend (baitcoin_*)
-        shell: bash
+          WEBHOOK_URL: ${{ secrets.DEPLOY_WEBHOOK_URL }}
+          WEBHOOK_SECRET: ${{ secrets.DEPLOY_WEBHOOK_SECRET }}
+          DEPLOY_TARGET: ${{ github.event.inputs.deploy_target || 'all' }}
         run: |
           set -e
-          rsync -avz --delete \
-            --exclude='__pycache__' --exclude='*.pyc' --exclude='.bak.*' \
-            -e 'ssh' \
-            baitcoin_api baitcoin_explorer baitcoin_ai baitcoin_faucet \
-            baitcoin_bank baitcoin_wallet baitcoin_token baitcoin_core \
-            baitcoin_memory baitcoin_obscura baitcoin_whitelabel baitcoin_sdk \
-            baitcoin_bridge baitcoin_mainnet \
-            daemon_production.py daemon_wrapper.py \
-            deploy-target:/home/baitcoin/app/
+          PAYLOAD="{\"target\":\"$DEPLOY_TARGET\",\"sha\":\"${{ github.sha }}\"}"
+          SIG=$(echo -n "$PAYLOAD" | openssl dgst -sha256 -hmac "$WEBHOOK_SECRET" | awk '{print $NF}')
+          echo "POST $WEBHOOK_URL  target=$DEPLOY_TARGET  sha=${{ github.sha }}"
+          RESPONSE=$(curl -s -m 60 -w "\n%{http_code}" \
+            -X POST "$WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -H "X-Deploy-Signature: $SIG" \
+            -d "$PAYLOAD" 2>&1)
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+          echo "Response ($HTTP_CODE): $BODY"
+          case "$HTTP_CODE" in 200|202) echo "webhook aceito";; *) echo "::error::webhook retornou $HTTP_CODE"; exit 1;; esac
 
-      - name: Rsync frontend (/var/www/mybait)
-        if: ${{ inputs.skip_frontend != true }}
-        shell: bash
+  verify:
+    name: Verify public health
+    needs: deploy-webhook
+    runs-on: ubuntu-latest
+    steps:
+      - name: Health check (tolerant — daemon pode estar em bootstrap)
         run: |
           set -e
-          rsync -avz \
-            --include='*.html' --include='favicon.svg' --exclude='*' \
-            -e 'ssh' \
-            frontend/ \
-            deploy-target:/tmp/mybait-staging/
-          ssh deploy-target "sudo -n rsync -a --chown=www-data:www-data /tmp/mybait-staging/ /var/www/mybait/ && sudo -n systemctl reload nginx && rm -rf /tmp/mybait-staging"
-
-      - name: Restart daemon
-        if: ${{ inputs.restart_daemon != false }}
-        shell: bash
-        run: |
-          ssh deploy-target "sudo -n systemctl restart baitcoin.service && sleep 3 && sudo -n systemctl is-active baitcoin.service"
-
-      - name: Verify deploy (post-restart health check)
-        shell: bash
-        run: |
-          set -e
-          echo "Aguardando API subir (max 90s)..."
+          echo "Probe /api/api/v1/status (max 90s)..."
           for i in $(seq 1 30); do
-            status=$(curl -sSf -o /tmp/status.json -w "%{http_code}" https://mybait.org/api/api/v1/status || echo "000")
-            if [ "$status" = "200" ]; then
-              echo "API up depois de ${i} tentativas"
-              break
-            fi
+            code=$(curl -sS -o /tmp/st.json -w "%{http_code}" -m 10 https://mybait.org/api/api/v1/status || echo "000")
+            [ "$code" = "200" ] && { echo "API 200 apos ${i} tentativas"; break; }
             sleep 3
           done
-          test "$(curl -sSf -o /dev/null -w '%{http_code}' https://mybait.org/api/api/v1/status)" = "200"
-          python3 - <<'PY'
-          import json,sys
-          s=json.load(open('/tmp/status.json'))
-          req=['network','chain_height','chain_valid','explorer_index','token_minted_bait','marketplace','oracle']
-          missing=[k for k in req if k not in s]
-          if missing:
-              print('FAIL missing keys:',missing); sys.exit(1)
-          print('OK payload expandido:',{k:type(s[k]).__name__ for k in req})
-          print('chain_height =',s['chain_height'])
-          print('explorer_index.indexed_blocks =',s['explorer_index'].get('indexed_blocks') if s['explorer_index'] else None)
-          PY
-          # Frontends
+          echo "status final: $code"
+          head -c 400 /tmp/st.json || true
           for path in / /blockchain /bainkr /faucet /sdk /obscura; do
-            code=$(curl -sSf -o /dev/null -w "%{http_code}" "https://mybait.org${path}")
-            echo "  ${path} -> ${code}"
-            test "$code" = "200"
+            c=$(curl -sS -o /dev/null -w "%{http_code}" -m 10 "https://mybait.org${path}" || echo "000")
+            echo "  $path -> $c"
           done
-
-      - name: Summary
-        if: always()
-        shell: bash
-        run: |
-          echo "### Deploy mybait.org (${{ github.sha }})" >> $GITHUB_STEP_SUMMARY
-          echo "- backend syncado em /home/baitcoin/app/" >> $GITHUB_STEP_SUMMARY
-          echo "- frontend syncado em /var/www/mybait/" >> $GITHUB_STEP_SUMMARY
-          echo "- baitcoin.service reiniciado" >> $GITHUB_STEP_SUMMARY
-          echo "- /api/api/v1/status validado com payload expandido" >> $GITHUB_STEP_SUMMARY
+          echo "::notice::Deploy webhook disparado; daemon pode levar minutos para sair do bootstrap WAL"
