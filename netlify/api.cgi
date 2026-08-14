@@ -26,7 +26,7 @@ PIDFILE = os.path.join(INSTALL_DIR, 'daemon.pid')
 LOGFILE = os.path.join(INSTALL_DIR, 'daemon.log')
 HEALTHFILE = os.path.join(INSTALL_DIR, 'daemon.health')
 DAEMON_PORT = 18445
-STARTUP_TIMEOUT = 12
+STARTUP_TIMEOUT = 30
 MAX_PROXY_TIMEOUT = 25
 LOG_MAX_BYTES = 5 * 1024 * 1024
 HEALTH_CHECK_TIMEOUT = 3
@@ -216,8 +216,8 @@ def download_file(url, dest):
 def do_update():
     results = []
     
-    # 1. Static HTML
-    for fname in ['index.html', 'bainkr.html', '.htaccess']:
+    # 1. Static HTML — todas as paginas do frontend
+    for fname in ['index.html', 'blockchain.html', 'bainkr.html', 'faucet.html', 'sdk.html', 'obscura.html', 'favicon.svg', '.htaccess']:
         url = f'{REPO_RAW}/netlify/{fname}'
         dest = os.path.join(PUBLIC_HTML, fname)
         size = download_file(url, dest)
@@ -248,7 +248,7 @@ def do_update():
         'baitcoin_core/blockchain/chain.py', 'baitcoin_core/blockchain/block.py',
         'baitcoin_core/blockchain/mempool.py', 'baitcoin_core/blockchain/fees.py',
         'baitcoin_core/blockchain/addresses.py', 'baitcoin_core/blockchain/tx_verifier.py',
-        'baitcoin_core/consensus/zkml_engine.py', 'baitcoin_core/consensus/poww.py',
+        'baitcoin_core/consensus/zkml_engine.py', 'baitcoin_core/consensus/pouw.py',
         'baitcoin_core/consensus/difficulty.py', 'baitcoin_core/consensus/validator_election.py',
         'baitcoin_core/cryptography/schnorr.py',
         'baitcoin_core/network/p2p.py', 'baitcoin_core/network/gossip.py',
@@ -256,7 +256,7 @@ def do_update():
         'baitcoin_core/contracts/contract_engine.py', 'baitcoin_core/contracts/relayer.py',
         'baitcoin_core/ecosystem.py',
         'baitcoin_api/server.py', 'baitcoin_api/moltbook_auth.py',
-        'baitcoin_ai/agent_protocol/registry.py', 'baitcoin_ai/agent_protocol/capabilities.py',
+        'baitcoin_ai/agent_protocol/registry.py', 'baitcoin_ai/agent_protocol/__init__.py',
         'baitcoin_ai/marketplace/services.py',
         'baitcoin_ai/oracle/feed.py', 'baitcoin_ai/oracle/real_feed.py',
         'baitcoin_bank/staking/pool.py', 'baitcoin_bank/lending/engine.py',
@@ -269,8 +269,9 @@ def do_update():
         'baitcoin_explorer/search.py', 'baitcoin_explorer/indices.py',
         'baitcoin_explorer/docs.py', 'baitcoin_explorer/analytics.py',
         'baitcoin_explorer/rate_limiter.py',
-        'baitcoin_obscura/bridge/main.py', 'baitcoin_obscura/config.py',
-        'baitcoin_bridge/pool.py', 'baitcoin_bridge/watcher.py',
+        'baitcoin_obscura/bridge.py', 'baitcoin_obscura/config.py',
+        'baitcoin_obscura/agent_capability.py', 'baitcoin_obscura/__init__.py',
+        'baitcoin_bridge/pool.py', 'baitcoin_bridge/watcher.py', 'baitcoin_bridge/__init__.py',
         'baitcoin_whitelabel/config.py', 'baitcoin_whitelabel/engine.py',
         'baitcoin_whitelabel/presets.py',
     ]

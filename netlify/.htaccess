@@ -14,6 +14,10 @@ AddHandler cgi-script .cgi
 
   # Friendly aliases for b'AI'tcoin sections
   RewriteRule ^bainkr/?$ /bainkr.html [L]
+  RewriteRule ^blockchain/?$ /blockchain.html [L]
+  RewriteRule ^faucet/?$ /faucet.html [L]
+  RewriteRule ^sdk/?$ /sdk.html [L]
+  RewriteRule ^obscura/?$ /obscura.html [L]
   RewriteRule ^mainnet/?$ /index.html#dashboard [L]
   RewriteRule ^explorer/?$ /index.html#dashboard [L]
 
