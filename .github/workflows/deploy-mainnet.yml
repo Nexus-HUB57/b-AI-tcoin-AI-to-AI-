@@ -71,7 +71,7 @@ jobs:
           DEPLOY_TARGET: ${{ github.event.inputs.deploy_target || 'all' }}
         run: |
           set -e
-          PAYLOAD="{\"target\":\"$DEPLOY_TARGET\",\"sha\":\"${{ github.sha }}\"}"
+          PAYLOAD=$(printf '{"target":"%s","sha":"%s"}' "$DEPLOY_TARGET" "${{ github.sha }}")
           SIG=$(echo -n "$PAYLOAD" | openssl dgst -sha256 -hmac "$WEBHOOK_SECRET" | awk '{print $NF}')
           echo "POST $WEBHOOK_URL  target=$DEPLOY_TARGET  sha=${{ github.sha }}"
           RESPONSE=$(curl -s -m 60 -w "\n%{http_code}" \

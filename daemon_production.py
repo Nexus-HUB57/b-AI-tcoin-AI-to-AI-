@@ -48,8 +48,23 @@ def main():
 
     # Initialize daemon (all 14 modules)
     daemon = BAITDaemon(api_port=port)
+
+    # --- FIX 2026-08-14: HTTP-first boot. Sobe o server em modo degraded ANTES
+    # do replay do WAL (que leva minutos em ~6GB). /status responde 200 com
+    # bootstrapping=true em vez de deixar o wrapper responder 503.
+    class ThreadedHTTPServer(socketserver.ThreadingMixIn, HTTPServer):
+        daemon_threads = True
+        allow_reuse_address = True
+
+    BaitcoinAPIHandler.bootstrapping = True
+    httpd = ThreadedHTTPServer(('127.0.0.1', port), BaitcoinAPIHandler)
+    server_thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    server_thread.start()
+    logger.info(f"ThreadingHTTPServer (degraded) running on port {port} durante bootstrap")
+
     daemon.initialize()
     daemon._register_genesis_agents()
+    BaitcoinAPIHandler.bootstrapping = False
 
     # Initialize whitelabel engine
     init_whitelabel()
@@ -139,16 +154,7 @@ def main():
                 pass
     BaitcoinAPIHandler.handle_one_request = _safe_handle
 
-    # Create ThreadingHTTPServer manually
-    class ThreadedHTTPServer(socketserver.ThreadingMixIn, HTTPServer):
-        daemon_threads = True
-        allow_reuse_address = True
-
-    httpd = ThreadedHTTPServer(('127.0.0.1', port), BaitcoinAPIHandler)
-    server_thread = threading.Thread(target=httpd.serve_forever, daemon=True)
-    server_thread.start()
-    logger.info(f"ThreadingHTTPServer running on port {port}")
-
+    # (HTTP server ja iniciado em modo degraded acima — HTTP-first boot)\n
     # --- NEW: Seed oracle with REAL prices from CoinGecko/Binance ---
     real_oracle = RealPriceOracle(agent_id="chimera7_oracle")
     try:
