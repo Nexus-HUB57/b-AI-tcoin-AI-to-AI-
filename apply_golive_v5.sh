@@ -18,7 +18,7 @@ set -euo pipefail
 TS=$(date +%Y%m%d-%H%M%S)
 APP=/home/baitcoin/app
 RAW=https://raw.githubusercontent.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-/main/daemon_live.py
-EXPECTED_SHA=0bc38ef747869eac3b1da4d6ad5de78fa287ea3730a043008005bed6b87fb1c0
+EXPECTED_SHA=e296a9a6b7c0124140c1b09a7f57c1e053fd9f756ccfd737d7ab5b4d8084023e
 MEM=/home/baitcoin/.baitcoin/memory
 LOG=/tmp/golive-apply-$TS.log
 exec > >(tee -a "$LOG") 2>&1
