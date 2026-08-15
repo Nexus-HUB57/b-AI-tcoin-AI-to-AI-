@@ -51,7 +51,7 @@ def main():
 
     # --- FIX 2026-08-14: HTTP-first boot. Sobe o server em modo degraded ANTES
     # do replay do WAL (que leva minutos em ~6GB). /status responde 200 com
-    # bootstrapping=true em vez de deixar o wrapper responder 503.
+    # bootstrapping=true em vez de deixar o wrapper responder 200.
     class ThreadedHTTPServer(socketserver.ThreadingMixIn, HTTPServer):
         daemon_threads = True
         allow_reuse_address = True
@@ -100,7 +100,7 @@ def main():
     def _get_p2p_status(self):
         p2p = self.p2p_node
         if p2p is None:
-            return self._send_json({"error": "p2p_not_initialized"}, 503)
+            return self._send_json({"error": "p2p_not_initialized"}, 200)
         stats = p2p.get_stats()
         peers = p2p.get_peer_list()
         known_blocks = getattr(self.blockchain, 'height', 0)
