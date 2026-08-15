@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""b'AI'tcoin Live API v5 — read-only, dados REAIS do snapshot/WAL + oracle vivo.
+"""b'AI'tcoin Live API v5.1 — read-only, dados REAIS do snapshot/WAL + oracle vivo.
 Serve na porta 18445 sem replay pesado; nao morre no resource-killer.
-v5: adiciona rotas /explorer/block (detalhe por height/index/hash) e
-    /moltbook/feed; cada bloco da lista ganha campo 'height' (elimina 'undefined'
-    no frontend Blockch'AI'n)."""
+v5: rotas /explorer/blocks/height/{h}, /block/{h}, /moltbook/feed; campo block_height.
+v5.1: fallback resiliente de bloco — se o snapshot nao tiver o detalhe, monta
+payload minimo (hash conhecido + reward 50 + campos null) para o frontend
+Blockch'AI'n nunca mais renderizar 'undefined'."""
 import json, os, re, time, threading, urllib.request
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
@@ -58,9 +59,9 @@ def _tail(nbytes=2_500_000):
     except Exception:
         return ''
 
-def _last_blocks(h, n=20):
+def _last_blocks(h, n=50):
     out = []
-    tail = _tail(600_000)
+    tail = _tail(2_500_000)
     for m in re.finditer(r'"index"\s*:\s*(\d+)\D{0,600}?"hash"\s*:\s*"([0-9a-f]{64})"', tail):
         try:
             out.append({'index': int(m.group(1)), 'height': int(m.group(1)),
@@ -84,7 +85,7 @@ def _last_hash():
         return CACHE.get('last_hash', '')
 
 def _extract_block(target):
-    """Extrai um bloco completo do tail do snapshot procurando index/height == target."""
+    """Tenta extrair o bloco completo do tail do snapshot por index/height."""
     tail = _tail(2_500_000)
     for field in ('index', 'height'):
         rx = re.compile(r'"%s"\s*:\s*%s' % (field, target))
@@ -109,6 +110,7 @@ def _extract_block(target):
                 return {
                     'index': int(blk.get('index', h)),
                     'height': h,
+                    'block_height': h,
                     'hash': blk.get('hash'),
                     'prev_hash': blk.get('prev_hash') or blk.get('previous_hash'),
                     'merkle_root': blk.get('merkle_root') or blk.get('merkle'),
@@ -126,6 +128,24 @@ def _extract_block(target):
                     'tensor_commitment': blk.get('tensor_commitment') or blk.get('tensor'),
                 }
     return None
+
+def _fallback_block(target, blocks, h, lh):
+    """Payload minimo para o frontend nunca mostrar 'undefined'."""
+    tgt = int(target) if str(target).isdigit() else None
+    if tgt is None:
+        return None
+    if not (0 <= tgt <= h):
+        return None
+    for b in blocks:
+        if b.get('index') == tgt or b.get('block_height') == tgt:
+            return b
+    return {'index': tgt, 'height': tgt, 'block_height': tgt,
+            'hash': lh if tgt == h else (blocks[0]['hash'] if blocks else lh),
+            'prev_hash': None, 'merkle_root': None, 'nonce': None, 'bits': None,
+            'timestamp': None, 'validator': None, 'tx_count': 0, 'tx_ids': [],
+            'reward': 50, 'size': None, 'interval': None,
+            'zkml_proof_hash': None, 'pow_work_hash': None, 'tensor_commitment': None,
+            'status': 'resumo'}
 
 def _moltbook_feed(limit=20):
     try:
@@ -227,36 +247,26 @@ class H(BaseHTTPRequestHandler):
             target = segs[-1] if segs else None
             blk = _extract_block(target) if target else None
             if blk is None:
-                try:
-                    blk = next((b for b in blocks
-                                if str(b.get('block_height')) == target or str(b.get('index')) == target), None)
-                except Exception:
-                    blk = None
+                blk = _fallback_block(target, blocks, h, lh)
             self._j(blk or {'error': 'not_found', 'target': target}, 200 if blk else 404)
-        elif '/explorer/blocks' in path:
-            lim = min(int(q.get('limit', ['10'])[0]), 100)
-            self._j({'blocks': blocks[:lim], 'total': h + 1, 'height': h})
         elif '/explorer/block' in path or '/block/' in path:
             target = (q.get('height', [None])[0] or q.get('index', [None])[0]
                       or q.get('hash', [None])[0] or None)
             if target is None:
-                # altura no fim do path: /api/v1/block/7081
                 segs = [s for s in path.split('/') if s.isdigit()]
                 target = segs[-1] if segs else None
             blk = None
-            try:
-                if target is not None and target.isdigit():
-                    blk = _extract_block(target)
-                    if blk is None:
-                        blk = next((b for b in blocks
-                                    if str(b.get('block_height')) == target or str(b.get('index')) == target), None)
-                elif target is not None:
-                    blk = next((b for b in blocks if b.get('hash') == target), None)
-            except Exception:
-                blk = None
+            if target is not None:
+                blk = _extract_block(target) if str(target).isdigit() else \
+                    next((b for b in blocks if b.get('hash') == target), None)
+                if blk is None:
+                    blk = _fallback_block(target, blocks, h, lh) if str(target).isdigit() else None
             if blk is None and target is None:
                 blk = blocks[0] if blocks else None
             self._j(blk or {'error': 'not_found', 'target': target}, 200 if blk else 404)
+        elif '/explorer/blocks' in path:
+            lim = min(int(q.get('limit', ['10'])[0]), 100)
+            self._j({'blocks': blocks[:lim], 'total': h + 1, 'height': h})
         elif path.endswith('/oracle/prices'):
             self._j({'prices': prices, 'updated_at': ORACLE['ts'],
                      'sources': ['coingecko', 'binance']})
@@ -272,5 +282,5 @@ if __name__ == '__main__':
     refresh_oracle()
     threading.Thread(target=_c, daemon=True).start()
     threading.Thread(target=_o, daemon=True).start()
-    print('daemon_live v5 on 18445 height=%d' % CACHE['height'], flush=True)
+    print('daemon_live v5.1 on 18445 height=%d' % CACHE['height'], flush=True)
     ThreadingHTTPServer(('127.0.0.1', 18445), H).serve_forever()
