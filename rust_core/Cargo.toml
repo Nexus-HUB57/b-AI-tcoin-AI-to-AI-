@@ -1,0 +1,9 @@
+[package]
+name = "baitcoin_consensus_core"
+version = "1.0.0"
+edition = "2021"
+
+[dependencies]
+sha2 = "0.10.8"
+serde = { version = "1.0.197", features = ["derive"] }
+serde_json = "1.0.114"
