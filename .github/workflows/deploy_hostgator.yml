@@ -67,37 +67,46 @@ jobs:
           echo "Signature: $SIG"
           echo "Target: $TARGET"
 
-          # Send the webhook
-          RESPONSE=$(curl -s -m 30 -w "\n%{http_code}" \
+          # Send the webhook (try HTTP/1.1 to avoid HTTP/2 stream errors after reboot)
+          RESPONSE=$(curl -s --http1.1 -m 30 -w "\n%{http_code}" \
             -X POST "$WEBHOOK_URL" \
             -H "Content-Type: application/json" \
             -H "X-Deploy-Signature: $SIG" \
-            -d "$PAYLOAD" 2>&1)
+            -d "$PAYLOAD" 2>&1 || true)
 
           HTTP_CODE=$(echo "$RESPONSE" | tail -1)
           BODY=$(echo "$RESPONSE" | sed '$d')
 
           echo "Response ($HTTP_CODE):"
-          echo "$BODY" | python3 -m json.tool 2>/dev/null || echo "$BODY"
+          echo "$BODY" | python3 -m json.tool 2>/dev/null || echo "$BODY" | head -c 500
 
           if [ "$HTTP_CODE" = "200" ]; then
-            echo ""
-            echo "Deploy triggered successfully!"
-            echo "The server is now pulling files from GitHub."
+            # Check if response is valid JSON (PHP working) or error page
+            if echo "$BODY" | python3 -c "import sys,json; json.load(sys.stdin)" 2>/dev/null; then
+              echo ""
+              echo "Deploy triggered successfully!"
+              echo "The server is now pulling files from GitHub."
+            else
+              echo ""
+              echo "WARNING: PHP not executing (got HTML error page)"
+              echo "Fix: restart PHP-FPM on VPS (systemctl restart php*-fpm)"
+              echo "Quick fix: bash <(curl -sL https://raw.githubusercontent.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-/main/quick_deploy.sh)"
+            fi
           else
             echo ""
             echo "WARNING: Webhook returned HTTP $HTTP_CODE"
-            echo "This means deploy-webhook.php is not yet installed on the server."
+            echo "PHP-FPM may be down after VPS reboot. Fix options:"
             echo ""
-            echo "One-time setup required:"
-            echo "  1. Open cPanel > File Manager"
-            echo "  2. Upload deploy-webhook.php to public_html/"
-            echo "     (get it from: https://raw.githubusercontent.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-/main/netlify/deploy-webhook.php)"
-            echo "  3. Edit the DEPLOY_SECRET in the PHP to match your webhook secret"
-            echo "  4. Re-run this workflow"
+            echo "Option A — Quick deploy (no PHP needed):"
+            echo "  Via VNC/cPanel Terminal, run as root:"
+            echo "  bash <(curl -sL https://raw.githubusercontent.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-/main/quick_deploy.sh)"
             echo ""
-            echo "Alternative: run deploy-hostgator.sh from cPanel Terminal:"
-            echo "  bash <(curl -sL https://raw.githubusercontent.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-/main/scripts/deploy-hostgator.sh)"
+            echo "Option B — Full go-live (daemon + nginx + auto-update):"
+            echo "  curl -fsSL https://raw.githubusercontent.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-/main/apply_golive_v5.sh -o /tmp/golive.sh"
+            echo "  bash /tmp/golive.sh --full-backup"
+            echo ""
+            echo "Option C — Fix PHP only:"
+            echo "  systemctl restart php*-fpm"
           fi
 
       - name: Verify deployment
