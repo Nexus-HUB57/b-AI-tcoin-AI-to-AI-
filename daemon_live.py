@@ -373,7 +373,7 @@ class H(BaseHTTPRequestHandler):
             if blk is None:
                 blk = _fallback_block(target, blocks, h, lh)
             self._j(blk or {'error': 'not_found', 'target': target}, 200 if blk else 404)
-        elif '/explorer/block' in path or '/block/' in path:
+        elif ('/explorer/block' in path or '/block/' in path) and '/explorer/blocks' not in path:
             target = (q.get('height', [None])[0] or q.get('index', [None])[0]
                       or q.get('hash', [None])[0] or None)
             if target is None:
