@@ -20,8 +20,83 @@ def _b58(b):
         n, r = divmod(n, 58); s = BASE58[r] + s
     return '1' * (len(b) - len(b.lstrip(b'\0'))) + s
 
+def _ripemd160_pure(data):
+    """RIPEMD-160 em Python puro — fallback quando o OpenSSL do host nao
+    expoe ripemd160 (Python 3.10 + OpenSSL 3 levanta ValueError)."""
+    def _rol(x, n):
+        return ((x << n) | (x >> (32 - n))) & 0xFFFFFFFF
+    _r = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,
+          7,4,13,1,10,6,15,3,12,0,9,5,2,14,11,8,
+          3,10,14,4,9,15,8,1,2,7,0,6,13,11,5,12,
+          1,9,11,10,0,8,12,4,13,3,7,15,14,5,6,2,
+          4,0,5,9,7,12,2,10,14,1,3,8,11,6,15,13]
+    _rp = [5,14,7,0,9,2,11,4,13,6,15,8,1,10,3,12,
+           6,11,3,7,0,13,5,10,14,15,8,12,4,9,1,2,
+           15,5,1,3,7,14,6,9,11,8,12,2,10,0,4,13,
+           8,6,4,1,3,11,15,0,5,12,2,13,9,7,10,14,
+           12,15,10,4,1,5,8,7,6,2,13,14,0,3,9,11]
+    _s = [11,14,15,12,5,8,7,9,11,13,14,15,6,7,9,8,
+          7,6,8,13,11,9,7,15,7,12,15,9,11,7,13,12,
+          11,13,6,7,14,9,13,15,14,8,13,6,5,12,7,5,
+          11,12,14,15,14,15,9,8,9,14,5,6,8,6,5,12,
+          9,15,5,11,6,8,13,12,5,12,13,14,11,8,5,6]
+    _sp = [8,9,9,11,13,15,15,5,7,7,8,11,14,14,12,6,
+           9,13,15,7,12,8,9,11,7,7,12,7,6,15,13,11,
+           9,7,15,11,8,6,6,14,12,13,5,14,13,13,7,5,
+           15,5,8,11,14,14,6,14,6,9,12,9,12,5,15,8,
+           8,5,12,9,12,5,14,6,8,13,6,5,15,13,11,11]
+    _k = [0x00000000, 0x5A827999, 0x6ED9EBA1, 0x8F1BBCDC, 0xA953FD4E]
+    _kp = [0x50A28BE6, 0x5C4DD124, 0x6D703EF3, 0x7A6D76E9, 0x00000000]
+    def _f(j, b, c, d):
+        if j < 16: return b ^ c ^ d
+        if j < 32: return (b & c) | (~b & d)
+        if j < 48: return (b | ~c) ^ d
+        if j < 64: return (b & d) | (c & ~d)
+        return b ^ (c | ~d)
+    def _fp(j, b, c, d):
+        if j < 16: return b ^ (c | ~d)
+        if j < 32: return (b & d) | (c & ~d)
+        if j < 48: return (b | ~c) ^ d
+        if j < 64: return (b & c) | (~b & d)
+        return b ^ c ^ d
+    msg = bytearray(data)
+    bitlen = len(msg) * 8
+    msg.append(0x80)
+    while len(msg) % 64 != 56:
+        msg.append(0)
+    msg += bitlen.to_bytes(8, 'little')
+    h0, h1, h2, h3, h4 = 0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476, 0xC3D2E1F0
+    for off in range(0, len(msg), 64):
+        x = [int.from_bytes(msg[off + i:off + i + 4], 'little') for i in range(0, 64, 4)]
+        a, b, c, d, e = h0, h1, h2, h3, h4
+        a2, b2, c2, d2, e2 = h0, h1, h2, h3, h4
+        for j in range(80):
+            t = (_rol((a + _f(j, b, c, d) + x[_r[j]] + _k[j // 16]) & 0xFFFFFFFF, _s[j]) + e) & 0xFFFFFFFF
+            a, e, d, c, b = e, d, _rol(c, 10), b, t
+            t = (_rol((a2 + _fp(j, b2, c2, d2) + x[_rp[j]] + _kp[j // 16]) & 0xFFFFFFFF, _sp[j]) + e2) & 0xFFFFFFFF
+            a2, e2, d2, c2, b2 = e2, d2, _rol(c2, 10), b2, t
+        tt = (h1 + c + d2) & 0xFFFFFFFF
+        h1 = (h2 + d + e2) & 0xFFFFFFFF
+        h2 = (h3 + e + a2) & 0xFFFFFFFF
+        h3 = (h4 + a + b2) & 0xFFFFFFFF
+        h4 = (h0 + b + c2) & 0xFFFFFFFF
+        h0 = tt
+    return b''.join(x.to_bytes(4, 'little') for x in (h0, h1, h2, h3, h4))
+
+def _ripemd160(data):
+    try:
+        return hashlib.new('ripemd160', data).digest()
+    except ValueError:
+        pass
+    try:
+        from Crypto.Hash import RIPEMD160 as _R
+        return _R.new(data).digest()
+    except Exception:
+        pass
+    return _ripemd160_pure(data)
+
 def _bait_address(pub):
-    h = hashlib.new('ripemd160', hashlib.sha256(pub).digest()).digest()
+    h = _ripemd160(hashlib.sha256(pub).digest())
     p = b'\x42\x54' + h  # prefixo b'/t'
     chk = hashlib.sha256(hashlib.sha256(p).digest()).digest()[:4]
     return "b'/t" + _b58(p + chk)
