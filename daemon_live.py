@@ -7,7 +7,7 @@ payload minimo (hash conhecido + reward 50 + campos null) para o frontend
 Blockch'AI'n nunca mais renderizar 'undefined'."""
 import json, os, re, time, threading, urllib.request, hashlib, secrets
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs, unquote
 
 SNAP = os.path.expanduser('~/.baitcoin/memory/blockchain/current.json')
 WALDIR = os.path.expanduser('~/.baitcoin/memory/blockchain/wal')
@@ -342,8 +342,11 @@ class H(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(b)
     def do_GET(self):
-        path = urlparse(self.path).path
+        path = unquote(urlparse(self.path).path)
         q = parse_qs(urlparse(self.path).query)
+        if any(s == '..' for s in path.split('/')):
+            self._j({'error': 'bad_path', 'path': path}, 400)
+            return
         with LOCK:
             h, blocks, supply, lh = CACHE['height'], list(CACHE['blocks']), CACHE['supply'], CACHE['last_hash']
             prices = dict(ORACLE['prices'])
@@ -415,7 +418,10 @@ class H(BaseHTTPRequestHandler):
             self._j({'error': 'not_found', 'path': path}, 404)
 
 def _do_POST(self):
-    path = urlparse(self.path).path
+    path = unquote(urlparse(self.path).path)
+    if any(s == '..' for s in path.split('/')):
+        self._j({'error': 'bad_path', 'path': path}, 400)
+        return
     if '/faucet/public-claim' in path or '/faucet/claim' in path:
         self._j({'error': 'claim_indisponivel_modo_leitura',
                  'detail': 'faucet write requer daemon completo'}, 503)
