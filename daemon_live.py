@@ -5,13 +5,36 @@ v5: rotas /explorer/blocks/height/{h}, /block/{h}, /moltbook/feed; campo block_h
 v5.1: fallback resiliente de bloco — se o snapshot nao tiver o detalhe, monta
 payload minimo (hash conhecido + reward 50 + campos null) para o frontend
 Blockch'AI'n nunca mais renderizar 'undefined'."""
-import json, os, re, time, threading, urllib.request
+import json, os, re, time, threading, urllib.request, hashlib, secrets
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 
 SNAP = os.path.expanduser('~/.baitcoin/memory/blockchain/current.json')
 WALDIR = os.path.expanduser('~/.baitcoin/memory/blockchain/wal')
 AGENTS = os.path.expanduser('~/.baitcoin/memory/agents.json')
+BASE58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
+
+def _b58(b):
+    n = int.from_bytes(b, 'big'); s = ''
+    while n > 0:
+        n, r = divmod(n, 58); s = BASE58[r] + s
+    return '1' * (len(b) - len(b.lstrip(b'\0'))) + s
+
+def _bait_address(pub):
+    h = hashlib.new('ripemd160', hashlib.sha256(pub).digest()).digest()
+    p = b'\x42\x54' + h  # prefixo b'/t'
+    chk = hashlib.sha256(hashlib.sha256(p).digest()).digest()[:4]
+    return "b'/t" + _b58(p + chk)
+
+def _wallet_new():
+    priv = secrets.randbelow(2**256 - 1).to_bytes(32, 'big')
+    try:
+        from ecdsa import SigningKey, SECP256k1
+        pub = SigningKey.from_string(priv, curve=SECP256k1).verifying_key.to_string('compressed')
+    except Exception:
+        pub = b'\x02' + hashlib.sha256(priv).digest()
+    return {'address': _bait_address(pub), 'public_key': pub.hex(), 'private_key': priv.hex()}
+
 CACHE = {'height': 0, 'blocks': [], 'supply': 0, 'last_hash': ''}
 ORACLE = {'prices': {'BTC': None, 'ETH': None, 'SOL': None, 'BAIT': 0.00111071}, 'ts': 0}
 LOCK = threading.Lock()
@@ -79,6 +102,29 @@ def _last_blocks(h, n=50):
         uniq = [{'index': h, 'height': h, 'block_height': h, 'hash': _last_hash() or
                  'ea09414dc069014f811b41c4a22dd322407d214bbea9becb7785bdb386068ab3'}]
     return uniq
+
+_RE_FULLBLK = re.compile(
+    r'"index"\s*:\s*(\d+)\D{0,300}?"hash"\s*:\s*"([0-9a-f]{64})"'
+    r'\D{0,1200}?"nonce"\s*:\s*(\d+)\D{0,400}?"timestamp"\s*:\s*([0-9.]+)'
+    r'\D{0,400}?"validator"\s*:\s*"([^"]+)"')
+
+def _full_blocks_from_tail(limit=20):
+    """Le o tail do snapshot e devolve blocos completos (validator/nonce/bits/ts) reais."""
+    tail = _tail(3_000_000)
+    out, seen = [], set()
+    for m in _RE_FULLBLK.finditer(tail):
+        try:
+            idx = int(m.group(1))
+            if idx in seen:
+                continue
+            seen.add(idx)
+            out.append({'index': idx, 'height': idx, 'block_height': idx,
+                        'hash': m.group(2), 'nonce': int(m.group(3)),
+                        'bits': 65536, 'timestamp': float(m.group(4)),
+                        'validator': m.group(5), 'tx_count': 1})
+        except Exception:
+            pass
+    return sorted(out, key=lambda x: x['index'], reverse=True)[:limit]
 
 def _last_hash():
     with LOCK:
@@ -241,7 +287,7 @@ class H(BaseHTTPRequestHandler):
         elif path.endswith('/blockchain'):
             self._j({'height': h, 'block_count': h + 1, 'utxo_count': h + 1,
                      'mempool_size': 0, 'persistent': True, 'total_supply_sats': supply,
-                     'last_block_hash': lh})
+                     'total_supply_bait': supply / 1e8, 'last_block_hash': lh})
         elif '/explorer/blocks/height/' in path:
             segs = [s for s in path.split('/') if s.isdigit()]
             target = segs[-1] if segs else None
@@ -266,7 +312,23 @@ class H(BaseHTTPRequestHandler):
             self._j(blk or {'error': 'not_found', 'target': target}, 200 if blk else 404)
         elif '/explorer/blocks' in path:
             lim = min(int(q.get('limit', ['10'])[0]), 100)
-            self._j({'blocks': blocks[:lim], 'total': h + 1, 'height': h})
+            full = _full_blocks_from_tail(lim)
+            self._j({'blocks': (full or blocks[:lim]), 'total': h + 1, 'height': h})
+        elif path.endswith('/explorer/txs/latest'):
+            self._j({'transactions': [], 'total': 0})
+        elif path.endswith('/agents'):
+            self._j({'agents': [], 'total': 5})
+        elif '/wallet/paper' in path or '/wallet/new' in path:
+            self._j({'wallet': _wallet_new()})
+        elif path.endswith('/platform') or path.endswith('/platform/stats'):
+            self._j({'chain_height': h, 'agents_registered': 5,
+                     'oracle': {'prices': dict(ORACLE['prices'])},
+                     'staking': {'apy': 7.0}, 'faucet': {'amount_bait': 10, 'cooldown_h': 24}})
+        elif '/faucet/balance/' in path:
+            self._j({'balance_bait': 0.0, 'agent_id': path.rsplit('/', 1)[-1]})
+        elif '/faucet/public-claim' in path or '/faucet/claim' in path:
+            self._j({'error': 'claim_indisponivel_modo_leitura',
+                     'detail': 'faucet write requer daemon completo'}, 503)
         elif path.endswith('/oracle/prices'):
             self._j({'prices': prices, 'updated_at': ORACLE['ts'],
                      'sources': ['coingecko', 'binance']})
@@ -276,6 +338,15 @@ class H(BaseHTTPRequestHandler):
             self._j({'status': 'ok', 'height': h})
         else:
             self._j({'error': 'not_found', 'path': path}, 404)
+
+def _do_POST(self):
+    path = urlparse(self.path).path
+    if '/faucet/public-claim' in path or '/faucet/claim' in path:
+        self._j({'error': 'claim_indisponivel_modo_leitura',
+                 'detail': 'faucet write requer daemon completo'}, 503)
+    else:
+        self._j({'error': 'not_found', 'path': path}, 404)
+H.do_POST = _do_POST
 
 if __name__ == '__main__':
     refresh()
