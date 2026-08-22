@@ -292,10 +292,21 @@ def _moltbook_feed(limit=20):
             })
     return {'items': items, 'total': len(items), 'source': 'agents.json' if data else 'none'}
 
+# Piso de altura: ultimo snapshot integro conhecido (current.json 2026-08-11,
+# alturas 7078..7081, hash c28446b96f...). Evita exibir chain 'reiniciada' (h pequeno)
+# caso o current.json esteja temporariamente ilegivel ou regredido.
+KNOWN_GOOD_HEIGHT = 7081
+
 def refresh():
     h, lh = _real_height()
     blks = _last_blocks(h)
     with LOCK:
+        prev = CACHE.get('height') or 0
+        floor = max(prev, KNOWN_GOOD_HEIGHT)
+        if h < floor:
+            # snapshot regrediu/ilegivel: nao regride a exibicao da chain
+            h, lh = floor, lh or CACHE.get('last_hash') or ''
+            blks = blks or CACHE.get('blocks') or []
         CACHE.update({'height': h, 'blocks': blks,
                       'supply': (h + 1) * 5_000_000_000,
                       'last_hash': blks[0]['hash'] if blks else lh})

@@ -66,6 +66,7 @@ footer{border-top:1px solid var(--border);padding:24px;text-align:center;color:#
   <a class="link" href="/api/api/v1/status">📊 API</a>
   <a class="link" href="/whitepaper.pdf">📄 Whitepaper</a>
   <span class="live-pill"><span class="dot"></span><span id="live">MAINNET · h=…</span></span>
+  <script>try{var _bh=localStorage.getItem('bc_h');if(_bh)document.getElementById('live').textContent='MAINNET · h='+_bh;}catch(e){}</script>
 </div></header>
 
 <section class="hero">
@@ -126,6 +127,7 @@ async function loadHeader(){
     document.getElementById('uu').textContent=fmt(s.utxo_count);
     document.getElementById('mm').textContent='mempool: '+(s.mempool_size||0);
     document.getElementById('live').textContent='MAINNET · h='+s.chain_height;
+    try{localStorage.setItem('bc_h',s.chain_height)}catch(e){}
     // FIX: explorer -> explorer_index (key correto do daemon get_status())
     const ei=s.explorer_index||{};
     document.getElementById('tb').textContent=fmt(ei.indexed_blocks||s.chain_height);
