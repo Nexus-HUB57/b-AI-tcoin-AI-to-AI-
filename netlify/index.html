@@ -130,9 +130,11 @@ footer{border-top:1px solid var(--border);padding:24px;text-align:center;color:#
 <footer>b'AI'tcoin Mainnet · SHA-256d PoW · Schnorr BIP-340 · WAL Snapshots · TLS Let's Encrypt · 14 módulos core em produção</footer>
 
 <script>
+/* FIX: Render cold-start com blockchain in-memory (não persistente).
+   LOCAL como primário (daemon persistente), Render como fallback. */
 const RENDER_API='https://b-ai-tcoin-ai-to-ai.onrender.com/api/v1';
 const LOCAL_API='/api/api/v1';
-let API=RENDER_API; // Primario: Render (sempre vivo). Local via daemon HostGator.
+let API=LOCAL_API; // Primário: daemon local (PERSISTENTE).
 function fmt(n){if(n==null)return'—';if(n>=1e9)return(n/1e9).toFixed(2)+'B';if(n>=1e6)return(n/1e6).toFixed(2)+'M';if(n>=1e3)return(n/1e3).toFixed(1)+'K';return String(n)}
 async function pull(){
   try{
@@ -164,7 +166,12 @@ async function pull(){
     }
   }catch(e){console.warn('marketplace fetch error:',e)}
 }
-async function tryLocal(){try{const r=await fetch(LOCAL_API+'/status',{signal:AbortSignal.timeout(3000)});if(r.ok){const d=await r.json();if(d.chain_height!=null){API=LOCAL_API;document.getElementById('live').title='via daemon local'}}}catch(e){}}
-pull();tryLocal();setInterval(pull,7000);
+async function tryLocal(){try{const r=await fetch(LOCAL_API+'/status',{signal:AbortSignal.timeout(5000)});if(r.ok){const d=await r.json();if(d.chain_height!=null&&d.chain_height>50){API=LOCAL_API;document.getElementById('live').title='via daemon local (persistente)';return true;}}}catch(e){}return false;}
+async function tryRender(){try{const r=await fetch(RENDER_API+'/status',{signal:AbortSignal.timeout(8000)});if(r.ok){const d=await r.json();if(d.chain_height!=null){API=RENDER_API;document.getElementById('live').title='via Render (fallback)';return true;}}}catch(e){}return false;}
+(async function boot(){
+  if(!await tryLocal()) await tryRender();
+  pull();
+  setInterval(async()=>{if(API!==LOCAL_API)if(await tryLocal())pull();pull();},7000);
+})();
 </script>
 </body></html>

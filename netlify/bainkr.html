@@ -3,25 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- ═══ CORREÇÃO 3: Título da aba ═══ -->
-  <title>b'AI'tcoin Cryptocurrency</title>
-  <meta name="description" content="b'AI'tcoin (BAIT) — AI-to-AI Autonomous Cryptocurrency Protocol · PoW SHA-256d · Schnorr BIP-340 · 21M supply">
-  <!-- ═══ CORREÇÃO 1: Favicon 🪙 → 🤖 (robô) ═══ -->
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
-  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
+  <title>B'AI'nkr — Banco b'AI'tcoin</title>
+  <meta name="description" content="B'AI'nkr — banco digital do b'AI'tcoin. Staking, lending, wallets, oracle de preços.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏦</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
       --bg:#0a0a0f; --bg-2:#111119; --card:rgba(255,255,255,0.03);
       --border:rgba(255,255,255,0.08); --text:#e4e4e7; --text-muted:#71717a;
       --brand:#f7931a; --brand-ai:#3b82f6; --red:#ef4444; --green:#22c55e;
-      --amber:#f59e0b;
+      --amber:#f59e0b; --violet:#8b5cf6; --emerald:#10b981;
     }
     html,body { background:var(--bg); color:var(--text); font-family:'Inter',-apple-system,sans-serif; min-height:100vh; }
     a { color:inherit; text-decoration:none; }
+    code, .mono { font-family:'JetBrains Mono', monospace; }
     /* ═══ HEADER ═══ */
     header.top {
       display:flex; align-items:center; justify-content:space-between;
@@ -51,31 +49,82 @@
     .status-dot.ok { background:var(--green); animation:none; }
     .status-dot.err { background:var(--red); }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
-    /* ═══ CARD DAEMON OFFLINE ═══ */
-    main { min-height:calc(100vh - 140px); display:flex; align-items:center; justify-content:center; padding:40px 20px; }
-    .status-card {
-      max-width:520px; width:100%; background:linear-gradient(180deg,rgba(239,68,68,0.06),rgba(239,68,68,0.02));
-      border:1px solid rgba(239,68,68,0.2); border-radius:20px; padding:48px 40px; text-align:center;
+
+    /* ═══ MAIN LAYOUT ═══ */
+    .container { max-width:1200px; margin:0 auto; padding:32px 24px 60px; }
+    .section { margin-bottom:36px; }
+    .section-title {
+      font-size:18px; font-weight:800; margin-bottom:16px;
+      display:flex; align-items:center; gap:10px;
     }
-    .status-card.online { background:linear-gradient(180deg,rgba(34,197,94,0.06),rgba(34,197,94,0.02)); border-color:rgba(34,197,94,0.2); }
-    .status-icon {
-      width:64px; height:64px; margin:0 auto 20px; border-radius:50%;
-      border:2px solid var(--red); display:flex; align-items:center; justify-content:center;
-      color:var(--red); font-size:28px; font-weight:800;
+    .section-title .tag {
+      display:inline-block; padding:2px 8px; font-size:9px; border-radius:4px;
+      background:rgba(16,185,129,.15); color:#10b981; text-transform:uppercase; letter-spacing:1px;
     }
-    .status-card.online .status-icon { border-color:var(--green); color:var(--green); }
-    .status-title { font-size:22px; font-weight:700; margin-bottom:10px; }
-    .status-desc { color:var(--text-muted); font-size:14px; line-height:1.5; margin-bottom:20px; }
-    .status-actions { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:24px; }
-    .btn { padding:10px 20px; border-radius:8px; font-size:13px; font-weight:600; border:1px solid var(--border); background:var(--card); cursor:pointer; color:var(--text); transition:all .18s; }
-    .btn:hover { border-color:var(--brand-ai); background:rgba(59,130,246,0.08); }
-    .btn-primary { background:var(--brand-ai); border-color:var(--brand-ai); color:#fff; }
-    .btn-primary:hover { background:#2563eb; }
-    .metrics { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:24px; }
-    .metric { background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:10px; padding:14px 12px; }
-    .metric-label { font-size:10px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; }
-    .metric-value { font-size:16px; font-weight:700; margin-top:4px; font-family:'JetBrains Mono',monospace; }
-    .metric-value.small { font-size:13px; }
+
+    /* ═══ STATUS BANNER ═══ */
+    .status-banner {
+      display:flex; align-items:center; gap:16px; padding:16px 20px;
+      border-radius:12px; border:1px solid var(--border); background:var(--card);
+      margin-bottom:28px; flex-wrap:wrap;
+    }
+    .status-banner .dot-big {
+      width:12px; height:12px; border-radius:50%; flex-shrink:0;
+    }
+    .status-banner .dot-big.ok { background:var(--green); box-shadow:0 0 12px var(--green); }
+    .status-banner .dot-big.err { background:var(--red); box-shadow:0 0 12px var(--red); }
+    .status-banner .info { flex:1; min-width:200px; }
+    .status-banner .info h3 { font-size:15px; font-weight:700; }
+    .status-banner .info p { font-size:12px; color:var(--text-muted); margin-top:2px; }
+    .status-banner .api-src {
+      font-size:10px; color:var(--text-muted); font-family:'JetBrains Mono',monospace;
+      padding:4px 8px; border:1px solid var(--border); border-radius:6px;
+    }
+
+    /* ═══ CARDS GRID ═══ */
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; }
+    .card {
+      background:var(--card); border:1px solid var(--border); border-radius:12px; padding:18px;
+      transition:all .2s;
+    }
+    .card:hover { border-color:rgba(16,185,129,.3); transform:translateY(-1px); }
+    .card .label { font-size:10px; text-transform:uppercase; letter-spacing:1.5px; color:#64748b; margin-bottom:6px; }
+    .card .value { font-size:24px; font-weight:800; color:var(--emerald); font-variant-numeric:tabular-nums; }
+    .card .sub { font-size:11px; color:#94a3b8; margin-top:4px; }
+    .card .value.amber { color:var(--amber); }
+    .card .value.violet { color:var(--violet); }
+    .card .value.brand { color:var(--brand); }
+
+    /* ═══ TABLES ═══ */
+    table { width:100%; border-collapse:collapse; background:var(--card); border:1px solid var(--border); border-radius:12px; overflow:hidden; font-size:12px; }
+    th { text-align:left; padding:10px 12px; border-bottom:1px solid var(--border); color:#64748b; font-weight:600; text-transform:uppercase; font-size:10px; letter-spacing:1px; }
+    td { padding:10px 12px; border-bottom:1px solid rgba(255,255,255,.04); color:#cbd5e1; }
+    tr:last-child td { border-bottom:none; }
+    tr:hover td { background:rgba(16,185,129,.03); }
+    .hash { font-family:'JetBrains Mono',monospace; color:#10b981; font-size:11px; word-break:break-all; }
+    .tag { display:inline-block; padding:2px 8px; font-size:9px; border-radius:4px; background:rgba(139,92,246,.15); color:#8b5cf6; text-transform:uppercase; letter-spacing:1px; }
+    .tag.green { background:rgba(16,185,129,.15); color:#10b981; }
+
+    /* ═══ BANK FEATURES ═══ */
+    .bank-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:16px; }
+    .bank-card {
+      background:var(--card); border:1px solid var(--border); border-radius:14px; padding:24px;
+      transition:all .2s; position:relative; overflow:hidden;
+    }
+    .bank-card:hover { border-color:rgba(139,92,246,.3); transform:translateY(-1px); }
+    .bank-card h3 { font-size:16px; font-weight:800; margin-bottom:6px; display:flex; align-items:center; gap:8px; }
+    .bank-card h3 .emoji { font-size:20px; }
+    .bank-card .desc { font-size:12px; color:#94a3b8; margin-bottom:16px; line-height:1.5; }
+    .bank-card .stat-row { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(255,255,255,.04); font-size:13px; }
+    .bank-card .stat-row:last-child { border-bottom:none; }
+    .bank-card .stat-row .k { color:#64748b; }
+    .bank-card .stat-row .v { font-weight:700; font-family:'JetBrains Mono',monospace; }
+    .bank-card .stat-row .v.green { color:var(--green); }
+    .bank-card .stat-row .v.amber { color:var(--amber); }
+    .bank-card .stat-row .v.violet { color:var(--violet); }
+    .bank-card .api-link { display:inline-block; margin-top:12px; font-size:11px; color:var(--brand-ai); padding:6px 12px; border:1px solid rgba(59,130,246,.3); border-radius:6px; transition:all .15s; }
+    .bank-card .api-link:hover { background:rgba(59,130,246,.08); border-color:var(--brand-ai); }
+
     /* ═══ FOOTER ═══ */
     footer.bottom {
       padding:20px 32px; border-top:1px solid var(--border);
@@ -88,7 +137,7 @@
     @media (max-width:720px) {
       header.top { flex-direction:column; gap:14px; padding:14px 18px; }
       nav.top-nav { flex-wrap:wrap; justify-content:center; }
-      .metrics { grid-template-columns:1fr 1fr; }
+      .bank-grid { grid-template-columns:1fr; }
     }
   </style>
 </head>
@@ -99,153 +148,283 @@
       <div class="brand-sub">AI-to-AI Autonomous Cryptocurrency</div>
     </div>
     <nav class="top-nav">
-      <a href="/aistore" class="nav-link"><span class="nav-icon">🛒</span>AI Store</a>
-      <!-- ═══ CORREÇÃO 4: Ícone casa 🏛 → 🤖 (robô) ═══ -->
-      <a href="/bainkr" class="nav-link active"><span class="nav-icon">🤖</span>B'AI'nkr</a>
+      <a href="/aistore/" class="nav-link"><span class="nav-icon">🛒</span>AI Store</a>
+      <a href="/bainkr" class="nav-link active"><span class="nav-icon">🏦</span>B'AI'nkr</a>
       <a href="/mainnet" class="nav-link"><span class="nav-icon">⛓️</span>Mainnet</a>
-      <a href="/explorer" class="nav-link"><span class="nav-icon">🔍</span>Explorer</a>
+      <a href="/blockchain" class="nav-link"><span class="nav-icon">🔍</span>Explorer</a>
       <span class="version-pill" id="versionPill">
         <span class="status-dot" id="statusDot"></span>
-        <span id="statusText">Reconnecting…</span>
+        <span id="statusText">Conectando…</span>
         <span style="opacity:.5">·</span>
-        <span>v0.8.0</span>
+        <span>v8.8.0</span>
       </span>
     </nav>
   </header>
 
-  <main>
-    <div class="status-card" id="statusCard">
-      <div class="status-icon" id="statusIcon">✕</div>
-      <div class="status-title" id="titleText">Verificando daemon…</div>
-      <div class="status-desc" id="descText">Contatando a API b'AI'tcoin em /api.cgi …</div>
-      <div class="metrics" id="metrics" style="display:none;">
-        <div class="metric"><div class="metric-label">Chain Height</div><div class="metric-value" id="mHeight">—</div></div>
-        <div class="metric"><div class="metric-label">Agents</div><div class="metric-value" id="mAgents">—</div></div>
-        <div class="metric"><div class="metric-label">BTC Oracle</div><div class="metric-value small" id="mBtc">—</div></div>
+  <div class="container">
+    <!-- ═══ STATUS BANNER ═══ -->
+    <div class="status-banner" id="statusBanner">
+      <div class="dot-big" id="dotBig"></div>
+      <div class="info">
+        <h3 id="bannerTitle">Conectando ao daemon…</h3>
+        <p id="bannerDesc">Verificando API local e Render…</p>
       </div>
-      <div class="status-actions" id="actions" style="display:none;">
-        <button class="btn btn-primary" id="btnRetry">↻ Tentar novamente</button>
-        <a href="/api.cgi/api/v1/dev/docs" class="btn">📚 API Docs</a>
+      <span class="api-src" id="apiSrc">—</span>
+    </div>
+
+    <!-- ═══ CHAIN METRICS ═══ -->
+    <div class="section">
+      <div class="section-title">📊 Resumo da Chain <span class="tag">live</span></div>
+      <div class="grid">
+        <div class="card"><div class="label">Chain Height</div><div class="value" id="mHeight">—</div><div class="sub" id="mHeightSub">carregando</div></div>
+        <div class="card"><div class="label">Supply Circulante</div><div class="value amber" id="mSupply">—</div><div class="sub">BAIT mintados</div></div>
+        <div class="card"><div class="label">UTXO Set</div><div class="value" id="mUtxo">—</div><div class="sub" id="mMempool">mempool: —</div></div>
+        <div class="card"><div class="label">Agentes Ativos</div><div class="value violet" id="mAgents">—</div><div class="sub" id="mAgentsSub">registrados</div></div>
+        <div class="card"><div class="label">BTC Oracle</div><div class="value brand" id="mBtc">—</div><div class="sub" id="mBtcSub">CoinGecko / Binance</div></div>
+        <div class="card"><div class="label">Marketplace</div><div class="value" id="mMarket">—</div><div class="sub" id="mMarketSub">serviços ativos</div></div>
       </div>
     </div>
-  </main>
+
+    <!-- ═══ BANK FEATURES ═══ -->
+    <div class="section">
+      <div class="section-title">🏦 Serviços B'AI'nkr <span class="tag">baitcoin_bank</span></div>
+      <div class="bank-grid">
+        <!-- Staking -->
+        <div class="bank-card">
+          <h3><span class="emoji">💎</span> Staking</h3>
+          <p class="desc">Stake BAIT e ganhe recompensas passivas. APY de 7% com validação PoN. Saque a qualquer momento.</p>
+          <div class="stat-row"><span class="k">APY</span><span class="v green">7.0%</span></div>
+          <div class="stat-row"><span class="k">Total Staked</span><span class="v" id="stTotal">—</span></div>
+          <div class="stat-row"><span class="k">Min. Stake</span><span class="v">100 BAIT</span></div>
+          <div class="stat-row"><span class="k">Lock Period</span><span class="v">nenhum</span></div>
+          <a class="api-link" href="/api/api/v1/bank/staking" target="_blank">GET /bank/staking →</a>
+        </div>
+        <!-- Lending -->
+        <div class="bank-card">
+          <h3><span class="emoji">📐</span> Lending P2P</h3>
+          <p class="desc">Empréstimos peer-to-peer com 150% de colateral. Taxa dinâmica baseada na demanda da rede.</p>
+          <div class="stat-row"><span class="k">Colateral Mín.</span><span class="v amber">150%</span></div>
+          <div class="stat-row"><span class="k">Total Emprestado</span><span class="v" id="lnTotal">—</span></div>
+          <div class="stat-row"><span class="k">Taxa Base</span><span class="v">dinâmica</span></div>
+          <div class="stat-row"><span class="k">Liquidation</span><span class="v" style="color:var(--red)">120%</span></div>
+          <a class="api-link" href="/api/api/v1/bank/lending" target="_blank">GET /bank/lending →</a>
+        </div>
+        <!-- Wallets -->
+        <div class="bank-card">
+          <h3><span class="emoji">👛</span> Wallets</h3>
+          <p class="desc">Create wallets, check balances, transferir BAIT entre agentes. Schnorr BIP-340 signatures.</p>
+          <div class="stat-row"><span class="k">Tipo</span><span class="v">Schnorr BIP-340</span></div>
+          <div class="stat-row"><span class="k">Endereços</span><span class="v" id="wAddr">b'/t' prefix</span></div>
+          <div class="stat-row"><span class="k">Paper Wallet</span><span class="v green">disponível</span></div>
+          <div class="stat-row"><span class="k">Fee Padrão</span><span class="v">dinâmica</span></div>
+          <a class="api-link" href="/api/api/v1/wallet/paper" target="_blank">GET /wallet/paper →</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ ORACLE TABLE ═══ -->
+    <div class="section">
+      <div class="section-title">📈 Oracle de Preços <span class="tag">baitcoin_ai/oracle</span></div>
+      <table><thead><tr><th>Ativo</th><th>Preço (USD)</th><th>Fonte</th><th>Última Atualização</th></tr></thead>
+      <tbody id="oracle-body"><tr><td colspan="4" style="text-align:center;color:#64748b">carregando oracle…</td></tr></tbody></table>
+    </div>
+
+    <!-- ═══ AGENTS TABLE ═══ -->
+    <div class="section">
+      <div class="section-title">🤖 Agentes Registrados <span class="tag">baitcoin_ai</span></div>
+      <table><thead><tr><th>Agente</th><th>Reputação</th><th>Trust Level</th><th>Capabilities</th><th>BAL (BAIT)</th></tr></thead>
+      <tbody id="ag-body"><tr><td colspan="5" style="text-align:center;color:#64748b">carregando agentes…</td></tr></tbody></table>
+    </div>
+
+    <!-- ═══ LAST BLOCKS ═══ -->
+    <div class="section">
+      <div class="section-title">🧱 Últimos Blocos <span class="tag">PoW SHA-256d</span></div>
+      <table><thead><tr><th>#</th><th>Hash</th><th>Validador</th><th>Nonce</th><th>TXs</th><th>Timestamp</th></tr></thead>
+      <tbody id="blk-body"><tr><td colspan="6" style="text-align:center;color:#64748b">carregando blocos…</td></tr></tbody></table>
+    </div>
+  </div>
 
   <footer class="bottom">
-    <div>🪙 b'AI'tcoin (BAIT) — AI-to-AI Autonomous Cryptocurrency Protocol</div>
+    <div>🏦 B'AI'nkr — b'AI'tcoin (BAIT) — AI-to-AI Autonomous Cryptocurrency Protocol</div>
     <div class="foot-tags">
       <span>Schnorr/BIP-340</span><span>SHA-256d PoW</span><span>21M Supply</span>
     </div>
   </footer>
 
   <script>
-    // ═══════════════════════════════════════════════════════════
-    //  Daemon Live-Poll — mantém a UI viva com auto-recovery
-    // ═══════════════════════════════════════════════════════════
-    const API_BASE = '/api.cgi';
-    const POLL_INTERVAL_MS = 8000;   // 8s durante offline
-    const POLL_INTERVAL_MS_OK = 30000; // 30s quando online (economia)
-    let currentInterval = POLL_INTERVAL_MS;
-    let timer = null;
-    let consecutiveFailures = 0;
+  /* ═══════════════════════════════════════════════════════════
+     B'AI'nkr v2 — Interface bancária funcional
+     FIX: Render API para oracle/agentes/marketplace (rotas que o
+     daemon local não tem). LOCAL API para status/blocos (persistente).
+     ═══════════════════════════════════════════════════════════ */
+  const RENDER_API = 'https://b-ai-tcoin-ai-to-ai.onrender.com/api/v1';
+  const LOCAL_API  = '/api/api/v1';
+  const CGI_API    = '/api.cgi/api/v1'; // via CGI gateway
 
-    const el = id => document.getElementById(id);
+  let API = LOCAL_API;       // primário para status/blocos (persistente)
+  let API_EXT = RENDER_API;  // para rotas que local não tem (oracle, agents, marketplace)
+  let apiSource = 'local';
 
-    function setState(state, title, desc, data) {
-      const card = el('statusCard');
-      const icon = el('statusIcon');
-      const dot = el('statusDot');
-      const stTxt = el('statusText');
-      el('titleText').textContent = title;
-      el('descText').textContent = desc;
-      if (state === 'online') {
-        card.classList.add('online');
-        icon.textContent = '✓';
-        dot.classList.remove('err'); dot.classList.add('ok');
-        stTxt.textContent = 'Online';
-        el('metrics').style.display = 'grid';
-        el('actions').style.display = 'flex';
-        if (data) {
-          el('mHeight').textContent = data.chain_height ?? '—';
-          el('mAgents').textContent = data.agents_registered ?? '—';
-        }
-        // Documento title no browser (aba)
-        document.title = "b'AI'tcoin Cryptocurrency · Chain #" + (data?.chain_height ?? '—');
-      } else if (state === 'offline') {
-        card.classList.remove('online');
-        icon.textContent = '✕';
-        dot.classList.remove('ok'); dot.classList.add('err');
-        stTxt.textContent = 'Offline';
-        el('actions').style.display = 'flex';
-        document.title = "b'AI'tcoin Cryptocurrency";
-      } else { // connecting
-        card.classList.remove('online');
-        icon.textContent = '↻';
-        dot.classList.remove('ok','err');
-        stTxt.textContent = 'Reconnecting…';
-      }
-    }
+  const el = id => document.getElementById(id);
+  function fmt(n){if(n==null)return'—';if(n>=1e12)return(n/1e12).toFixed(2)+'T';if(n>=1e9)return(n/1e9).toFixed(2)+'B';if(n>=1e6)return(n/1e6).toFixed(2)+'M';if(n>=1e3)return(n/1e3).toFixed(1)+'K';return String(n)}
+  function ts(t){if(!t)return'—';const d=new Date(t*1000);return d.toISOString().replace('T',' ').slice(0,19)}
+  function tsRelative(t){if(!t)return'—';const s=Math.floor(Date.now()/1000-t);if(s<60)return s+'s atrás';if(s<3600)return Math.floor(s/60)+'min atrás';if(s<86400)return Math.floor(s/3600)+'h atrás';return Math.floor(s/86400)+'d atrás'}
 
-    async function fetchOracle(sym) {
+  /* ═══ SMART FETCH: tenta local, fallback Render ═══ */
+  async function smartFetch(path, opts = {}) {
+    // Para rotas de explorer/status/blocos → tentar local primeiro
+    const isLocalRoute = /^(\/status|\/block|\/blocks|\/supply|\/explorer)/.test(path);
+    if (isLocalRoute) {
       try {
-        const r = await fetch(API_BASE + '/api/v1/oracle/' + sym, { cache:'no-store' });
-        if (!r.ok) return null;
-        const j = await r.json();
-        return j.price;
-      } catch(e) { return null; }
+        const r = await fetch(LOCAL_API + path, { signal: AbortSignal.timeout(6000), ...opts });
+        if (r.ok) {
+          const d = await r.json();
+          if (!d.error && (d.chain_height != null || d.blocks != null || d.hash != null || d.supply != null)) {
+            return d;
+          }
+        }
+      } catch(e) { console.warn('[bainkr] local falhou para', path, e); }
     }
+    // Fallback: Render para tudo
+    try {
+      const r = await fetch(RENDER_API + path, { signal: AbortSignal.timeout(8000), ...opts });
+      if (r.ok) return await r.json();
+    } catch(e) { console.warn('[bainkr] Render falhou para', path, e); }
+    return null;
+  }
 
-    async function pollDaemon() {
+  /* ═══ STATUS & BANNER ═══ */
+  function setBanner(online, title, desc, src) {
+    const dot = el('dotBig');
+    const sDot = el('statusDot');
+    dot.className = 'dot-big ' + (online ? 'ok' : 'err');
+    sDot.className = 'status-dot ' + (online ? 'ok' : 'err');
+    el('bannerTitle').textContent = title;
+    el('bannerDesc').textContent = desc;
+    el('statusText').textContent = online ? 'Online' : 'Offline';
+    el('apiSrc').textContent = 'API: ' + src;
+  }
+
+  /* ═══ LOAD CHAIN STATUS ═══ */
+  async function loadStatus() {
+    const s = await smartFetch('/status');
+    if (!s) {
+      setBanner(false, 'Daemon Offline', 'Ambas as APIs (local e Render) indisponíveis', 'nenhuma');
+      return;
+    }
+    const online = s.chain_height != null && (s.chain_valid !== false);
+    setBanner(online,
+      online ? 'Daemon Online' : 'Chain Inválida',
+      online ? `Chain válida · ${s.chain_height} blocos · ${s.agents_registered || 0} agentes` : 'Chain não está válida',
+      apiSource
+    );
+    el('mHeight').textContent = fmt(s.chain_height);
+    el('mHeightSub').textContent = 'chain ' + (s.chain_valid ? 'valid ✓' : 'inválida ✗');
+    el('mSupply').textContent = fmt(s.token_minted_bait || 0) + ' BAIT';
+    el('mUtxo').textContent = fmt(s.utxo_count || 0);
+    el('mMempool').textContent = 'mempool: ' + (s.mempool_size || 0);
+    el('mAgents').textContent = s.agents_registered || 0;
+    el('mAgentsSub').textContent = (s.agents_registered || 0) + ' registrados';
+    // Marketplace
+    const mk = s.marketplace || {};
+    el('mMarket').textContent = mk.active || 0;
+    el('mMarketSub').textContent = (mk.active || 0) + ' serviços ativos';
+    // Explorer index
+    const ei = s.explorer_index || {};
+    if (ei.indexed_blocks) {
+      el('mHeightSub').textContent += ' · ' + ei.indexed_blocks + ' indexados';
+    }
+    document.title = "B'AI'nkr · Chain #" + (s.chain_height || '—') + " · b'AI'tcoin";
+  }
+
+  /* ═══ LOAD ORACLE ═══ */
+  async function loadOracle() {
+    const symbols = ['BTC', 'ETH', 'SOL'];
+    const rows = [];
+    for (const sym of symbols) {
       try {
-        const controller = new AbortController();
-        const timeout = setTimeout(()=>controller.abort(), 20000);
-        const r = await fetch(API_BASE + '/api/v1/status', { cache:'no-store', signal:controller.signal });
-        clearTimeout(timeout);
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        const data = await r.json();
-        consecutiveFailures = 0;
-        setState('online', 'Daemon Online', `Chain válida · ${data.chain_height} blocos minerados · ${data.agents_registered} agentes ativos`, data);
-        // Oracle em paralelo
-        const btc = await fetchOracle('BTC');
-        if (btc) el('mBtc').textContent = '$' + Number(btc).toLocaleString('en-US', {maximumFractionDigits:0});
-        // Ajusta polling para economia quando online
-        if (currentInterval !== POLL_INTERVAL_MS_OK) {
-          currentInterval = POLL_INTERVAL_MS_OK;
-          restartTimer();
+        const data = await smartFetch('/oracle/' + sym);
+        if (data && data.price) {
+          const price = '$' + Number(data.price).toLocaleString('en-US', { maximumFractionDigits: 2 });
+          const src = data.source || 'CoinGecko';
+          const upd = tsRelative(data.last_updated);
+          rows.push(`<tr><td><strong style="color:var(--brand)">${sym}</strong></td><td class="mono" style="color:var(--emerald);font-weight:700">${price}</td><td>${src}</td><td style="color:#64748b">${upd}</td></tr>`);
+          // Atualiza BTC no card principal
+          if (sym === 'BTC') {
+            el('mBtc').textContent = price;
+            el('mBtcSub').textContent = src + ' · ' + upd;
+          }
         }
-      } catch(e) {
-        consecutiveFailures++;
-        if (consecutiveFailures === 1) {
-          setState('connecting', 'Reconectando ao daemon…', 'A CGI está tentando iniciar o processo Python. Isto pode levar até 15s no cold-start.');
-        } else if (consecutiveFailures >= 3) {
-          setState('offline', 'Daemon Offline',
-            'O processo Python daemon não está respondendo. A CGI (/api.cgi) tenta re-iniciar automaticamente a cada requisição. Clique em "Tentar novamente" para forçar cold-start.');
-        }
-        if (currentInterval !== POLL_INTERVAL_MS) {
-          currentInterval = POLL_INTERVAL_MS;
-          restartTimer();
+      } catch(e) {}
+    }
+    if (rows.length) {
+      el('oracle-body').innerHTML = rows.join('');
+    } else {
+      el('oracle-body').innerHTML = '<tr><td colspan="4" style="text-align:center;color:#64748b">oracle indisponível no momento</td></tr>';
+    }
+  }
+
+  /* ═══ LOAD AGENTS ═══ */
+  async function loadAgents() {
+    const data = await smartFetch('/agents');
+    if (!data || !data.agents || !data.agents.length) {
+      el('ag-body').innerHTML = '<tr><td colspan="5" style="text-align:center;color:#64748b">sem agentes registrados</td></tr>';
+      return;
+    }
+    const rows = data.agents.map(a =>
+      `<tr><td><strong style="color:#8b5cf6">${a.agent_id}</strong></td><td>${a.reputation || 0}</td><td><span class="tag green">${a.trust || 'standard'}</span></td><td style="color:#94a3b8">${(a.capabilities || []).join(', ') || '—'}</td><td class="mono" style="color:var(--emerald)">${a.balance_bait != null ? a.balance_bait : '—'}</td></tr>`
+    ).join('');
+    el('ag-body').innerHTML = rows;
+  }
+
+  /* ═══ LOAD BLOCKS ═══ */
+  async function loadBlocks() {
+    const data = await smartFetch('/explorer/blocks?limit=8');
+    if (!data || data.error || !data.blocks || !data.blocks.length) {
+      el('blk-body').innerHTML = '<tr><td colspan="6" style="text-align:center;color:#64748b">nenhum bloco disponível</td></tr>';
+      return;
+    }
+    const rows = data.blocks.map(b =>
+      `<tr><td><a href="/blockchain#b-${b.block_height}" style="color:var(--amber);font-weight:700">${b.block_height}</a></td><td class="hash">${(b.hash || '').slice(0, 32)}…</td><td>${b.validator || '—'}</td><td class="mono">${b.nonce || 0}</td><td>${b.tx_count || 1}</td><td style="color:#64748b">${ts(b.timestamp)}</td></tr>`
+    ).join('');
+    el('blk-body').innerHTML = rows;
+  }
+
+  /* ═══ BOOT SEQUENCE ═══ */
+  (async function boot() {
+    // 1. Determinar API local disponível
+    try {
+      const r = await fetch(LOCAL_API + '/status', { signal: AbortSignal.timeout(5000) });
+      if (r.ok) {
+        const d = await r.json();
+        if (d.chain_height != null) {
+          API = LOCAL_API; apiSource = 'local';
         }
       }
+    } catch(e) {
+      console.warn('[bainkr] local não disponível, tentando Render');
+      try {
+        const r = await fetch(RENDER_API + '/status', { signal: AbortSignal.timeout(8000) });
+        if (r.ok) { API = RENDER_API; apiSource = 'render'; }
+      } catch(e2) {}
     }
 
-    function restartTimer() {
-      if (timer) clearInterval(timer);
-      timer = setInterval(pollDaemon, currentInterval);
-    }
+    // 2. Carregar tudo
+    await Promise.all([loadStatus(), loadOracle(), loadAgents(), loadBlocks()]);
 
-    el('btnRetry').addEventListener('click', () => {
-      setState('connecting', 'Forçando cold-start via CGI…', 'Aguardando resposta de /api.cgi/api/v1/status');
-      pollDaemon();
-    });
+    // 3. Auto-refresh
+    setInterval(() => {
+      loadStatus();
+      loadBlocks();
+    }, 15000);
+    setInterval(() => { loadOracle(); }, 60000);
+    setInterval(() => { loadAgents(); }, 30000);
+  })();
 
-    // Boot
-    pollDaemon();
-    restartTimer();
-
-    // Pausa polling quando aba oculta
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) { if (timer) { clearInterval(timer); timer=null; } }
-      else { pollDaemon(); restartTimer(); }
-    });
+  // Pausa polling quando aba oculta
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) { loadStatus(); loadBlocks(); loadOracle(); }
+  });
   </script>
 </body>
 </html>

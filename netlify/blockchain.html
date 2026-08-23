@@ -113,10 +113,47 @@ footer{border-top:1px solid var(--border);padding:24px;text-align:center;color:#
 <footer>Blockch'AI'n · powered by <code>baitcoin_explorer</code> · dados live · /api/api/v1/explorer/*</footer>
 
 <script>
+/* ═══════════════════════════════════════════════════════════
+   FIX CRÍTICO: Render (free tier) faz cold-start com blockchain IN-MEMORY.
+   Cada cold-start = nova chain com ~7 blocos. Dados NÃO são persistentes.
+   Solução: LOCAL API (daemon persistente com 7000+ blocos) como primária,
+   Render como fallback APENAS se local estiver offline.
+   ═══════════════════════════════════════════════════════════ */
 const RENDER_API='https://b-ai-tcoin-ai-to-ai.onrender.com/api/v1';
 const LOCAL_API='/api/api/v1';
-let API=RENDER_API; // Primario: Render (sempre vivo). Local via daemon HostGator.
+let API=LOCAL_API; // Primário: daemon local (PERSISTENTE). Render como fallback.
+let apiSource='local'; // 'local' | 'render'
+let localOk=false;
 let offset=0;
+
+async function tryLocal(){
+  try{
+    const r=await fetch(LOCAL_API+'/status',{signal:AbortSignal.timeout(5000)});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const d=await r.json();
+    if(d.chain_height!=null && d.chain_height>50){
+      API=LOCAL_API; localOk=true; apiSource='local';
+      document.getElementById('live').title='via daemon local (persistente)';
+      console.log('[blockchain] API local OK, chain_height='+d.chain_height);
+      return true;
+    }
+  }catch(e){console.warn('[blockchain] API local falhou:',e);}
+  return false;
+}
+async function tryRender(){
+  try{
+    const r=await fetch(RENDER_API+'/status',{signal:AbortSignal.timeout(8000)});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const d=await r.json();
+    if(d.chain_height!=null){
+      API=RENDER_API; apiSource='render';
+      document.getElementById('live').title='via Render (fallback — dados podem reiniciar)';
+      console.log('[blockchain] API Render OK, chain_height='+d.chain_height);
+      return true;
+    }
+  }catch(e){console.warn('[blockchain] API Render falhou:',e);}
+  return false;
+}
 function fmt(n){if(n==null)return'—';if(n>=1e12)return(n/1e12).toFixed(2)+'T';if(n>=1e9)return(n/1e9).toFixed(2)+'B';if(n>=1e6)return(n/1e6).toFixed(2)+'M';if(n>=1e3)return(n/1e3).toFixed(1)+'K';return String(n)}
 function ts(t){if(!t)return'—';const d=new Date(t*1000);return d.toISOString().replace('T',' ').slice(0,19)}
 async function loadHeader(){
@@ -271,7 +308,33 @@ async function doSearch(){
 }
 document.getElementById('q').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch()});
 if(location.hash.startsWith('#b-')){setTimeout(()=>showBlock(parseInt(location.hash.slice(3))),500);}
-loadHeader();loadBlocks(0);loadTxs();loadAgents();
-setInterval(()=>{loadHeader();if(offset===0)loadBlocks(0);loadTxs();},7000);
+/* ═══ BOOT SEQUENCE: local primeiro (persistente), depois Render ═══ */
+(async function boot(){
+  const localWorks = await tryLocal();
+  if(!localWorks) await tryRender();
+  // Se local parece OK mas chain_height < 50, pode ser daemon recém-reiniciado
+  // Tentar Render para comparar e pegar dados maiores
+  if(localOk){
+    try{
+      const rr=await fetch(RENDER_API+'/status',{signal:AbortSignal.timeout(6000)});
+      if(rr.ok){
+        const rd=await rr.json();
+        const ld=await fetch(LOCAL_API+'/status',{signal:AbortSignal.timeout(3000)}).then(r=>r.json()).catch(()=>({chain_height:0}));
+        // Se Render tem mais blocos que local, usar Render (chain mais atual)
+        if(rd.chain_height > (ld.chain_height||0) + 100){
+          API=RENDER_API; apiSource='render';
+          document.getElementById('live').title='via Render (chain maior: '+rd.chain_height+' vs local '+( ld.chain_height||0)+')';
+          console.log('[blockchain] Render tem chain maior, usando Render');
+        }
+      }
+    }catch(e){}
+  }
+  loadHeader();loadBlocks(0);loadTxs();loadAgents();
+  // Auto-refresh: tenta local a cada ciclo, fallback se precisar
+  setInterval(async()=>{
+    if(apiSource!=='local'){ if(await tryLocal()) { loadHeader(); if(offset===0)loadBlocks(0); loadTxs(); } }
+    loadHeader(); if(offset===0)loadBlocks(0); loadTxs();
+  },7000);
+})();
 </script>
 </body></html>
