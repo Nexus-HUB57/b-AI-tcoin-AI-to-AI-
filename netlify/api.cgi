@@ -361,7 +361,8 @@ def proxy_request():
 def handle_admin():
     path_info = os.environ.get('PATH_INFO', '')
     
-    if path_info == '/api/cgi/status':
+    # Accept both /api/cgi/* and /cgi/* (PATH_INFO varies by .htaccess)
+    if path_info == '/api/cgi/status' or path_info == '/cgi/status':
         respond_json({
             'gateway': CGI_VERSION,
             'daemon_pid': get_daemon_pid(),
@@ -374,7 +375,7 @@ def handle_admin():
         })
         return True
     
-    if path_info == '/api/cgi/update' and os.environ.get('REQUEST_METHOD') == 'POST':
+    if (path_info == '/api/cgi/update' or path_info == '/cgi/update') and os.environ.get('REQUEST_METHOD') == 'POST':
         if not check_secret():
             respond_error('Unauthorized', 401)
             return True
@@ -388,7 +389,7 @@ def handle_admin():
         })
         return True
     
-    if path_info == '/api/cgi/restart' and os.environ.get('REQUEST_METHOD') == 'POST':
+    if (path_info == '/api/cgi/restart' or path_info == '/cgi/restart') and os.environ.get('REQUEST_METHOD') == 'POST':
         if not check_secret():
             respond_error('Unauthorized', 401)
             return True
@@ -443,7 +444,10 @@ def main():
             sys.stdout.flush()
             return
 
-        if os.environ.get('PATH_INFO', '').startswith('/api/cgi/'):
+        # FIX: .htaccess sets PATH_INFO=/$1 (strips /api/ prefix)
+        # So /api/cgi/status becomes PATH_INFO=/cgi/status (NOT /api/cgi/status)
+        _pi = os.environ.get('PATH_INFO', '')
+        if _pi.startswith('/api/cgi/') or _pi.startswith('/cgi/'):
             if handle_admin():
                 return
         
