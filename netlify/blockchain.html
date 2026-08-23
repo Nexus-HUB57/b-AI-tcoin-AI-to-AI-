@@ -198,8 +198,10 @@ async function loadBlocks(off){
   }
 }
 async function loadTxs(){
+  // Local daemon não tem /explorer/txs/latest — usar Render para txs
+  const txApi = (apiSource==='local') ? RENDER_API : API;
   try{
-    const t=await fetch(API+'/explorer/txs/latest?limit=15').then(r=>r.json());
+    const t=await fetch(txApi+'/explorer/txs/latest?limit=15').then(r=>r.json());
     if(t.error)throw new Error(t.error);
     const rows=(t.transactions||[]).map(x=>`<tr onclick="showTx('${x.tx_id}')" style="cursor:pointer"><td class="hash">${(x.tx_id||'').slice(0,32)}…</td><td><span class="tag">${x.tx_type||'—'}</span></td><td>${x.agent_id||'—'}</td><td><a style="color:#f59e0b" href="#" onclick="event.stopPropagation();showBlock(${x.block_height});return false">#${x.block_height||'—'}</a></td><td style="color:#10b981">${x.total_output_bait!=null?x.total_output_bait+' BAIT':'—'}</td><td style="color:#64748b">${ts(x.timestamp)}</td></tr>`).join('');
     document.getElementById('tx-body').innerHTML=rows||'<tr><td colspan="6" style="text-align:center;color:#64748b">sem transações</td></tr>';
@@ -209,10 +211,20 @@ async function loadTxs(){
   }
 }
 async function loadAgents(){
+  // Local /agents retorna array vazio — usar Render para dados completos
+  const agApi = (apiSource==='local') ? RENDER_API : API;
   try{
-    const a=await fetch(API+'/agents').then(r=>r.json());
+    const a=await fetch(agApi+'/agents').then(r=>r.json());
     if(a.error)throw new Error(a.error);
-    const rows=(a.agents||[]).map(x=>`<tr><td><strong style="color:#8b5cf6">${x.agent_id}</strong></td><td>${x.reputation||0}</td><td><span class="tag">${x.trust||'standard'}</span></td><td style="color:#94a3b8">${(x.capabilities||[]).join(', ')}</td></tr>`).join('');
+    const agents = (a.agents||[]);
+    // Se local retornou agents vazios, tentar Render
+    if(agents.length===0 && agApi!==RENDER_API){
+      try{
+        const ra=await fetch(RENDER_API+'/agents').then(r=>r.json());
+        if((ra.agents||[]).length>0) agents = ra.agents;
+      }catch(e){}
+    }
+    const rows=agents.map(x=>`<tr><td><strong style="color:#8b5cf6">${x.agent_id}</strong></td><td>${x.reputation||0}</td><td><span class="tag">${x.trust||'standard'}</span></td><td style="color:#94a3b8">${(x.capabilities||[]).join(', ')}</td></tr>`).join('');
     document.getElementById('ag-body').innerHTML=rows||'<tr><td colspan="4" style="text-align:center;color:#64748b">sem agentes registrados</td></tr>';
   }catch(e){
     document.getElementById('ag-body').innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--red)">Falha ao carregar agentes</td></tr>';
