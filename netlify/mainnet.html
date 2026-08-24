@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mainnet — b'AI'tcoin</title>
+<style>
+:root{--bg:#0b1220;--fg:#e2e8f0;--mut:#64748b;--card:#0f172a;--border:#1e293b;--grn:#10b981;--amb:#f59e0b}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'SF Mono','Consolas',monospace;background:var(--bg);color:var(--fg);min-height:100vh;
+background-image:radial-gradient(circle at 20% 30%,rgba(16,185,129,.08),transparent 50%),radial-gradient(circle at 80% 70%,rgba(139,92,246,.06),transparent 50%)}
+nav{display:flex;gap:22px;align-items:center;padding:18px 32px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+nav a{color:var(--mut);text-decoration:none;font-size:13px}nav a:hover{color:var(--grn)}
+.brand{color:var(--grn);font-weight:700;font-size:16px}
+.live{margin-left:auto;color:var(--grn);font-size:12px;display:flex;align-items:center;gap:8px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--grn);box-shadow:0 0 12px var(--grn);animation:p 2s infinite}
+@keyframes p{50%{opacity:.4}}
+main{max-width:1100px;margin:40px auto;padding:0 24px}
+h1{font-size:30px;margin-bottom:8px}.sub{color:var(--mut);font-size:13px;margin-bottom:32px;line-height:1.6}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-bottom:32px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px}
+.card .l{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--mut);margin-bottom:6px}
+.card .v{font-size:24px;font-weight:700;color:var(--grn)}
+.card .s{font-size:11px;color:var(--mut);margin-top:4px}
+.card .v.amb{color:var(--amb)}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+th,td{padding:12px 14px;border-bottom:1px solid var(--border);font-size:12px;text-align:left}
+th{color:var(--mut);text-transform:uppercase;font-size:10px;letter-spacing:1px}
+td code{color:var(--grn);font-size:11px}
+footer{border-top:1px solid var(--border);padding:24px;text-align:center;color:var(--mut);font-size:11px;margin-top:40px}
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:10px;border:1px solid var(--grn);color:var(--grn)}
+</style></head><body>
+<nav>
+<a class="brand" href="/">⛓ b'AI'tcoin</a>
+<a href="/">Home</a><a href="/blockchain">Blockch'AI'n</a><a href="/aistore/">AI Store</a>
+<a href="/bainkr">B'AI'nkr</a><a href="/faucet">Faucet</a><a href="/sdk">SDK</a><a href="/obscura">Obscura</a>
+<a href="/blockchain">Explorer</a>
+<span class="live"><span class="dot"></span><span id="badge">MAINNET · h=…</span></span>
+</nav>
+<main>
+<h1>🌐 Mainnet — Status da Rede</h1>
+<p class="sub">Estado operacional da mainnet b'AI'tcoin: consenso PoW SHA-256d, assinaturas Schnorr BIP-340,
+persistência WAL+Snapshots, oráculos reais (CoinGecko + Binance) e módulos DeFi/IA — todos lidos ao vivo da API.</p>
+<div class="grid">
+<div class="card"><div class="l">Chain Height</div><div class="v" id="cH">—</div><div class="s">blocos minerados</div></div>
+<div class="card"><div class="l">Chain Valid</div><div class="v" id="cV">—</div><div class="s" id="cI">imutabilidade</div></div>
+<div class="card"><div class="l">Supply</div><div class="v" id="cS">—</div><div class="s">BAIT mintados (máx 21M)</div></div>
+<div class="card"><div class="l">UTXO Set</div><div class="v" id="cU">—</div><div class="s" id="cM">mempool</div></div>
+<div class="card"><div class="l">Agentes</div><div class="v" id="cA">—</div><div class="s">registrados on-chain</div></div>
+<div class="card"><div class="l">Staking APY</div><div class="v amb" id="cY">—</div><div class="s" id="cT">validators</div></div>
+</div>
+<div class="grid">
+<div class="card"><div class="l">BTC Oracle</div><div class="v" id="pBTC">—</div><div class="s">USD · mediana de oráculos</div></div>
+<div class="card"><div class="l">ETH Oracle</div><div class="v" id="pETH">—</div><div class="s">USD</div></div>
+<div class="card"><div class="l">SOL Oracle</div><div class="v" id="pSOL">—</div><div class="s">USD</div></div>
+<div class="card"><div class="l">BAIT Oracle</div><div class="v" id="pBAIT">—</div><div class="s">USD</div></div>
+</div>
+<h1 style="font-size:18px;margin-bottom:14px">Módulos do Ecossistema</h1>
+<table><thead><tr><th>Módulo</th><th>Status</th><th>Detalhe</th></tr></thead><tbody id="mods">
+<tr><td colspan="3" style="text-align:center;color:var(--mut)">carregando…</td></tr></tbody></table>
+<div style="margin-top:14px;font-size:11px;color:var(--mut)">
+Último bloco: <code id="lB">—</code> · Persistência: <code id="lP">—</code> · Fontes oráculo: <code id="lO">—</code></div>
+</main>
+<footer>b'AI'tcoin (BAIT) — AI-to-AI Autonomous Cryptocurrency Protocol · Schnorr/BIP-340 · SHA-256d PoW · 21M Supply</footer>
+<script>
+const API='/api/api/v1';
+const $=id=>document.getElementById(id);
+const fmt=n=>n==null?'—':Number(n).toLocaleString('pt-BR');
+async function j(p){const r=await fetch(API+p,{cache:'no-store'});return r.json();}
+(async()=>{
+try{
+const s=await j('/status');
+$('badge').textContent='MAINNET · h='+s.chain_height;
+$('cH').textContent=fmt(s.chain_height);
+$('cV').textContent=s.chain_valid?'✓ válida':'✗ inválida';
+$('cI').textContent=s.blocks_immutable?'blocos imutáveis':'mutável';
+$('cU').textContent=fmt(s.utxo_count);$('cM').textContent='mempool: '+s.mempool_size;
+$('cA').textContent=fmt(s.agents_registered);
+$('cY').textContent=(s.staking&&s.staking.apy!=null)?s.staking.apy+'%':'—';
+$('cT').textContent=(s.staking?s.staking.validators:0)+' validators';
+$('lP').textContent=s.persistence||'—';
+const mods=s.modules||{};
+$('mods').innerHTML=Object.keys(mods).map(k=>
+ `<tr><td>${k}</td><td>${mods[k]?'<span class="badge">ONLINE</span>':'<span class="badge" style="border-color:#f43f5e;color:#f43f5e">OFF</span>'}</td><td style="color:var(--mut)">baitcoin_${k}</td></tr>`).join('');
+const b=await j('/blockchain');
+$('cS').textContent=fmt(b.total_supply_bait);
+$('lB').textContent=(b.last_block_hash||'').slice(0,32)+'…';
+const o=await j('/oracle/prices');
+const P=(o&&o.prices)||{};
+$('pBTC').textContent=P.BTC?'$'+fmt(P.BTC):'—';
+$('pETH').textContent=P.ETH?'$'+fmt(P.ETH):'—';
+$('pSOL').textContent=P.SOL?'$'+fmt(P.SOL):'—';
+$('pBAIT').textContent=P.BAIT!=null?('$'+P.BAIT):'—';
+$('lO').textContent=(o.sources||[]).join(' + ')||'—';
+}catch(e){$('badge').textContent='MAINNET · offline';}
+})();
+</script></body></html>
