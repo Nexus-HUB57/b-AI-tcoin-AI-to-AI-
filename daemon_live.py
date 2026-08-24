@@ -183,7 +183,7 @@ _RE_FULLBLK = re.compile(
     r'\D{0,1200}?"nonce"\s*:\s*(\d+)\D{0,400}?"timestamp"\s*:\s*([0-9.]+)'
     r'\D{0,400}?"validator"\s*:\s*"([^"]+)"')
 
-def _full_blocks_from_tail(limit=20):
+def _full_blocks_from_tail(limit=20, order='desc'):
     """Le o tail do snapshot e devolve blocos completos (validator/nonce/bits/ts) reais."""
     tail = _tail(3_000_000)
     out, seen = [], set()
@@ -199,7 +199,7 @@ def _full_blocks_from_tail(limit=20):
                         'validator': m.group(5), 'tx_count': 1})
         except Exception:
             pass
-    return sorted(out, key=lambda x: x['index'], reverse=True)[:limit]
+    return sorted(out, key=lambda x: x['index'], reverse=(order != 'asc'))[:limit]
 
 def _last_hash():
     with LOCK:
@@ -250,6 +250,81 @@ def _extract_block(target):
                 }
     return None
 
+
+_SNAP_BLOCKS = None
+def _snap_blocks():
+    global _SNAP_BLOCKS
+    if _SNAP_BLOCKS is None:
+        try:
+            d = json.load(open(SNAP)) if os.path.exists(SNAP) else {}
+            srcb = d.get('blocks') if isinstance(d, dict) and 'blocks' in d else d
+            _SNAP_BLOCKS = list(srcb.values()) if isinstance(srcb, dict) else (srcb or [])
+        except Exception:
+            _SNAP_BLOCKS = []
+    return _SNAP_BLOCKS
+
+def _outs_with_addr(t):
+    outs = []
+    for o in (t.get('outputs') or []):
+        spk = o.get('script_pubkey') or ''
+        addr = None
+        try:
+            if len(spk) == 66:
+                addr = _bait_address(bytes.fromhex(spk))
+        except Exception:
+            addr = None
+        outs.append({'amount_bait': round((o.get('amount_sats') or 0) / 1e8, 8),
+                     'address': addr, 'output_index': o.get('output_index', 0)})
+    return outs
+
+def _block_full_by_height(hgt):
+    for b in _snap_blocks():
+        if isinstance(b, dict) and (b.get('index') == hgt or b.get('block_height') == hgt):
+            hd = b.get('header', {}) or {}
+            txs = [{'tx_id': t.get('tx_id'), 'tx_type': t.get('tx_type', 'coinbase'),
+                    'inputs': t.get('inputs') or [], 'outputs': _outs_with_addr(t),
+                    'agent_id': t.get('agent_id'), 'timestamp': t.get('timestamp')}
+                   for t in (b.get('transactions') or [])]
+            return {'index': b.get('index'), 'height': b.get('index'), 'block_height': b.get('index'),
+                    'hash': b.get('hash'), 'prev_hash': hd.get('prev_block_hash'),
+                    'merkle_root': hd.get('merkle_root'), 'nonce': hd.get('nonce'),
+                    'bits': hd.get('bits'), 'timestamp': hd.get('timestamp'),
+                    'validator': hd.get('agent_validator'), 'tx_count': len(txs),
+                    'tx_ids': [t.get('tx_id') for t in txs], 'transactions': txs,
+                    'reward': 50, 'size': len(json.dumps(b)),
+                    'zkml_proof_hash': hd.get('zkml_proof_hash'),
+                    'pow_work_hash': hd.get('pouw_work_hash'),
+                    'tensor_commitment': hd.get('tensor_commitment'), 'status': 'completo'}
+    return None
+
+_TXIDX = {'list': None}
+def _tx_index():
+    if _TXIDX.get('list') is not None:
+        return _TXIDX
+    txs, by_id, by_block, by_addr = [], {}, {}, {}
+    try:
+        for b in _snap_blocks():
+            if not isinstance(b, dict):
+                continue
+            bh = b.get('index', b.get('block_height'))
+            for t in (b.get('transactions') or []):
+                row = {'tx_id': t.get('tx_id'), 'tx_type': t.get('tx_type', 'unknown'),
+                       'block_height': bh, 'agent_id': t.get('agent_id'),
+                       'timestamp': t.get('timestamp'), 'inputs': t.get('inputs') or [],
+                       'outputs': _outs_with_addr(t)}
+                txs.append(row)
+                if row['tx_id']:
+                    by_id[row['tx_id']] = row
+                by_block.setdefault(bh, []).append(row)
+                for o in row['outputs']:
+                    if o['address']:
+                        by_addr.setdefault(o['address'], []).append(row)
+    except Exception:
+        pass
+    txs.sort(key=lambda r: (r.get('block_height') or 0, r.get('timestamp') or 0))
+    _TXIDX.update({'list': txs, 'by_id': by_id, 'by_block': by_block, 'by_addr': by_addr})
+    return _TXIDX
+
 def _fallback_block(target, blocks, h, lh):
     """Payload minimo para o frontend nunca mostrar 'undefined'."""
     tgt = int(target) if str(target).isdigit() else None
@@ -257,6 +332,9 @@ def _fallback_block(target, blocks, h, lh):
         return None
     if not (0 <= tgt <= h):
         return None
+    _fb = _block_full_by_height(tgt)
+    if _fb is not None:
+        return _fb
     for b in blocks:
         if b.get('index') == tgt or b.get('block_height') == tgt:
             return b
@@ -380,7 +458,9 @@ class H(BaseHTTPRequestHandler):
         elif '/explorer/blocks/height/' in path:
             segs = [s for s in path.split('/') if s.isdigit()]
             target = segs[-1] if segs else None
-            blk = _extract_block(target) if target else None
+            blk = _block_full_by_height(int(target)) if (target and str(target).isdigit()) else None
+            if blk is None:
+                blk = _extract_block(target) if target else None
             if blk is None:
                 blk = _fallback_block(target, blocks, h, lh)
             self._j(blk or {'error': 'not_found', 'target': target}, 200 if blk else 404)
@@ -391,7 +471,9 @@ class H(BaseHTTPRequestHandler):
                 segs = [s for s in path.split('/') if s.isdigit()]
                 target = segs[-1] if segs else None
             blk = None
-            if target is not None:
+            if target is not None and str(target).isdigit():
+                blk = _block_full_by_height(int(target))
+            if blk is None and target is not None:
                 blk = _extract_block(target) if str(target).isdigit() else \
                     next((b for b in blocks if b.get('hash') == target), None)
                 if blk is None:
@@ -401,10 +483,47 @@ class H(BaseHTTPRequestHandler):
             self._j(blk or {'error': 'not_found', 'target': target}, 200 if blk else 404)
         elif '/explorer/blocks' in path:
             lim = min(int(q.get('limit', ['10'])[0]), 100)
-            full = _full_blocks_from_tail(lim)
+            full = _full_blocks_from_tail(lim, q.get('order', ['desc'])[0])
             self._j({'blocks': (full or blocks[:lim]), 'total': h + 1, 'height': h})
+        elif '/explorer/tx/' in path:
+            _tid = path.split('/explorer/tx/')[-1].split('?')[0].strip()
+            _t = _tx_index()['by_id'].get(_tid)
+            self._j(_t or {'error': 'tx_not_found', 'tx_id': _tid}, 200 if _t else 404)
+        elif '/explorer/address/' in path:
+            from urllib.parse import unquote as _uq1
+            _ad = _uq1(path.split('/explorer/address/')[-1].split('?')[0]).strip()
+            _lst = _tx_index()['by_addr'].get(_ad, [])
+            self._j({'address': _ad, 'transactions': _lst[::-1][:50], 'total': len(_lst)})
+        elif '/wallet/balance/' in path:
+            from urllib.parse import unquote as _uq2
+            _ad = _uq2(path.split('/wallet/balance/')[-1].split('?')[0]).strip()
+            _tx = _tx_index()['by_addr'].get(_ad, [])
+            _tot = round(sum(o['amount_bait'] for t in _tx for o in t['outputs']), 8)
+            self._j({'address': _ad, 'balance_bait': _tot, 'tx_count': len(_tx),
+                     'transactions': _tx[::-1][:50]})
+        elif '/wallet/withdraw/build' in path:
+            _to = q.get('to', [''])[0]; _frm = q.get('from', [''])[0]
+            try:
+                _amt = float(q.get('amount', ['0'])[0] or 0)
+            except Exception:
+                _amt = 0
+            _ok = _to.startswith("b'/t") and _amt > 0
+            _raw = json.dumps({'from': _frm, 'to': _to, 'amount_bait': _amt}, sort_keys=True)
+            self._j({'ok': _ok, 'mode': 'read_only_daemon',
+                     'note': 'assine offline (Schnorr BIP-340) e faca broadcast no daemon completo',
+                     'unsigned_tx': {'from': _frm, 'to': _to, 'amount_bait': _amt,
+                                     'payload_hash': hashlib.sha256(_raw.encode()).hexdigest()}},
+                    200 if _ok else 400)
+        elif '/aistore/treasury' in path:
+            try:
+                _tw = json.load(open('/home/baitcoin/.baitcoin/aistore_treasury_public.json'))
+            except Exception:
+                _tw = {'error': 'treasury_not_configured'}
+            self._j(_tw, 200 if 'address' in _tw else 404)
         elif path.endswith('/explorer/txs/latest'):
-            self._j({'transactions': [], 'total': 0})
+            _lim = min(int(q.get('limit', ['20'])[0]), 200)
+            _tx = _tx_index()['list']
+            self._j({'transactions': _tx[-_lim:][::-1], 'total': len(_tx)})
         elif path.endswith('/agents'):
             self._j({'agents': [], 'total': 5})
         elif '/wallet/paper' in path or '/wallet/new' in path:
