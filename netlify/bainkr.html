@@ -426,5 +426,70 @@
     if (!document.hidden) { loadStatus(); loadBlocks(); loadOracle(); }
   });
   </script>
+
+<!-- v9.1: Painel Conectar Wallet — Watch-Only (endereco) + Broadcast (chave privada) -->
+<div class="card" style="margin-top:16px;grid-column:1/-1">
+  <div class="label">🔌 Conectar Wallet — B'AI'nkr</div>
+  <div style="font-size:11px;color:#94a3b8;margin-bottom:10px">
+    <b>Watch-Only:</b> cole o endereço <code>b'/t…</code> e autentique para ver saldo e histórico.<br>
+    <b>Broadcast Mainnet:</b> cole a chave privada para assinar e transmitir transações P2P (Peer/AI to Peer/AI). A chave nunca é exposta nem enviada ao servidor.
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0">
+    <input id="cwAddr" placeholder="Endereço b'/t… (watch-only)" style="flex:1;min-width:220px;background:#0b1220;border:1px solid #1e293b;color:#e2e8f0;padding:10px;border-radius:10px;font-family:monospace">
+    <button onclick="baConnectAddr()" style="background:#10b981;border:none;color:#04241a;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600">Autenticar (Watch-Only)</button>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+    <input id="cwPriv" type="password" placeholder="Chave privada (hex 64) — broadcast" style="flex:1;min-width:220px;background:#0b1220;border:1px solid #1e293b;color:#e2e8f0;padding:10px;border-radius:10px;font-family:monospace">
+    <button onclick="baConnectPriv()" style="background:#f59e0b;border:none;color:#2b1a02;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600">Autenticar (Broadcast)</button>
+  </div>
+  <div id="cwOut" style="font-size:12px;color:#94a3b8;white-space:pre-wrap;min-height:44px"></div>
+  <div style="border-top:1px solid #1e293b;margin:14px 0"></div>
+  <div class="label" style="margin-bottom:8px">📤 Withdraw Peer/AI to Peer/AI</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+    <input id="cwTo" placeholder="Para endereço b'/t…" style="flex:1;min-width:200px;background:#0b1220;border:1px solid #1e293b;color:#e2e8f0;padding:10px;border-radius:10px;font-family:monospace">
+    <input id="cwAmt" placeholder="Valor BAIT" type="number" step="0.00000001" min="0" style="width:130px;background:#0b1220;border:1px solid #1e293b;color:#e2e8f0;padding:10px;border-radius:10px">
+    <button onclick="baWithdrawP2P()" style="background:#38bdf8;border:none;color:#0b1220;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600">Preparar Withdrawal</button>
+  </div>
+  <div id="cwW" style="font-size:12px;color:#fbbf24;white-space:pre-wrap;min-height:20px"></div>
+</div>
+<script>
+(function(){
+  const A="b'/t";
+  window._baitWallet={addr:null,priv:null,mode:null};
+  window.baConnectAddr=async function(){
+    const a=document.getElementById('cwAddr').value.trim();const o=document.getElementById('cwOut');
+    if(!a.startsWith(A)){o.textContent='⚠️ Endereço inválido. Use b'+A.slice(1)+'…';return}
+    o.textContent='Consultando saldo on-chain…';
+    try{
+      const r=await fetch('/api/api/v1/wallet/balance/'+encodeURIComponent(a));
+      const j=await r.json();
+      if(j.error){o.textContent='Endereço não encontrado ou sem transações.';return}
+      window._baitWallet={addr:a,priv:null,mode:'watch'};
+      o.innerHTML='✅ Watch-Only conectada<br>Endereço: <code>'+a.slice(0,24)+'…</code><br>Saldo: <b style="color:#10b981">'+(j.balance_bait||0)+' BAIT</b><br>Transações: '+(j.tx_count||0);
+    }catch(e){o.textContent='Erro: '+e}
+  };
+  window.baConnectPriv=async function(){
+    const p=document.getElementById('cwPriv').value.trim();const o=document.getElementById('cwOut');
+    if(!/^[0-9a-f]{64}$/i.test(p)){o.textContent='⚠️ Chave privada inválida (64 hex).';return}
+    window._baitWallet={addr:null,priv:p,mode:'broadcast'};
+    o.innerHTML='✅ Broadcast Mainnet conectada<br>Modo: assinatura Schnorr BIP-340 (offline)<br>Chave privada: <span style="color:#94a3b8">não exibida por segurança</span>';
+    document.getElementById('cwPriv').value='';
+  };
+  window.baWithdrawP2P=async function(){
+    const w=window._baitWallet||{};const t=document.getElementById('cwTo').value.trim();const m=document.getElementById('cwAmt').value;const o=document.getElementById('cwW');
+    const f=w.addr||'';
+    if(!t.startsWith(A)){o.textContent='⚠️ Endereço de destino inválido.';return}
+    o.textContent='Construindo transação P2P (daemon read-only)…';
+    try{
+      const r=await fetch('/api/api/v1/wallet/withdraw/build?from='+encodeURIComponent(f)+'&to='+encodeURIComponent(t)+'&amount='+encodeURIComponent(m));
+      const j=await r.json();
+      if(j.ok){
+        o.innerHTML='✅ Transação P2P construída<br>From: <code>'+f.slice(0,20)+'…</code><br>To: <code>'+t.slice(0,20)+'…</code><br>Amount: '+m+' BAIT<br>Payload hash: <code>'+j.unsigned_tx.payload_hash+'</code><br><span style="color:#94a3b8">Assine offline (Schnorr BIP-340) e transmita no daemon completo.</span>';
+      }else{o.textContent='⚠️ Inválido: '+JSON.stringify(j)}
+    }catch(e){o.textContent='Erro: '+e}
+  };
+})();
+</script>
+
 </body>
 </html>

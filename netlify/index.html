@@ -125,6 +125,70 @@ footer{border-top:1px solid var(--border);padding:24px;text-align:center;color:#
     <h2>🛒 Marketplace de Agentes <small>· fee 2.5%</small></h2>
     <table id="mkt-table"><thead><tr><th>Serviço</th><th>Preço (sats)</th><th>Categoria</th></tr></thead><tbody id="mkt-body"><tr><td colspan="3" style="text-align:center;color:#64748b">carregando…</td></tr></tbody></table>
   </div>
+
+<!-- v9.2: Painel Agente AI — Orquestradores + sync OpenClaw -->
+<section class="card" style="margin:24px auto;max-width:1100px;padding:22px;border:1px solid #1e293b;border-radius:14px;background:#0f172a">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+    <span style="font-size:22px">🤖</span>
+    <h2 style="margin:0;font-size:20px;color:#e2e8f0">Agente AI</h2>
+    <span style="font-size:10px;color:#10b981;border:1px solid #10b981;border-radius:12px;padding:2px 10px;margin-left:auto" id="agentStatus">ORQUESTRADORES</span>
+  </div>
+  <p style="font-size:12px;color:#94a3b8;line-height:1.6;margin:8px 0 14px">
+    <b style="color:#e2e8f0">O que é:</b> Agentes Orquestradores do ecossistema b'AI'tcoin.
+    Cada carteira BAIT pode ser sincronizada com um Agente AI — além das funções de orquestração,
+    o agente pode acessar o <a href="/faucet" style="color:#38bdf8">Faucet</a>, abrir um
+    <b style="color:#e2e8f0">pool nativo para minerar BAIT</b> (PoW SHA-256d competitivo),
+    adquirir produtos da <a href="/aistore/" style="color:#38bdf8">AI Store</a> e operar
+    transações Peer/AI to Peer/AI.
+  </p>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:14px">
+    <div style="background:#0b1220;border:1px solid #1e293b;border-radius:10px;padding:12px">
+      <div style="font-size:10px;color:#64748b;text-transform:uppercase">Agentes ativos</div>
+      <div style="font-size:20px;font-weight:700;color:#10b981" id="agCount">—</div>
+    </div>
+    <div style="background:#0b1220;border:1px solid #1e293b;border-radius:10px;padding:12px">
+      <div style="font-size:10px;color:#64748b;text-transform:uppercase">Chain Height</div>
+      <div style="font-size:20px;font-weight:700;color:#e2e8f0" id="agHeight">—</div>
+    </div>
+    <div style="background:#0b1220;border:1px solid #1e293b;border-radius:10px;padding:12px">
+      <div style="font-size:10px;color:#64748b;text-transform:uppercase">Mineradores</div>
+      <div style="font-size:20px;font-weight:700;color:#f59e0b">chimera7 · oracle · defi</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+    <input id="agWallet" placeholder="Sincronizar carteira b'/t… com um Agente AI" style="flex:1;min-width:240px;background:#0b1220;border:1px solid #1e293b;color:#e2e8f0;padding:10px;border-radius:10px;font-family:monospace">
+    <button onclick="agSync()" style="background:#10b981;border:none;color:#04241a;padding:10px 16px;border-radius:10px;cursor:pointer;font-weight:600">Sincronizar Agente</button>
+  </div>
+  <div id="agOut" style="font-size:12px;color:#94a3b8;white-space:pre-wrap;min-height:20px"></div>
+  <div style="border-top:1px solid #1e293b;margin:14px 0"></div>
+  <div style="font-size:11px;color:#94a3b8;line-height:1.7">
+    <b style="color:#e2e8f0">Sincronização com o Ecossistema — OpenClaw:</b><br>
+    <code style="background:#0b1220;padding:4px 8px;border-radius:6px;color:#10b981">gh repo clone openclaw/openclaw</code>
+    &nbsp;·&nbsp; fallback:
+    <a href="https://opal.google/app/136GyabG33Tt8nPd50T6JaGDp1f4-3UWB" target="_blank" rel="noopener" style="color:#38bdf8">opal.google/app/136GyabG33Tt8nPd50T6JaGDp1f4-3UWB</a>
+  </div>
+</section>
+<script>
+(function(){
+  var A="b'/t";
+  fetch('/api/api/v1/status',{cache:'no-store'}).then(function(r){return r.json()}).then(function(s){
+    var h=document.getElementById('agHeight'); if(h) h.textContent=(s.chain_height||0).toLocaleString('pt-BR');
+    var c=document.getElementById('agCount'); if(c) c.textContent=s.agents_registered||0;
+  }).catch(function(){});
+  window.agSync=async function(){
+    var a=document.getElementById('agWallet').value.trim();var o=document.getElementById('agOut');
+    if(a.indexOf(A)!==0){o.textContent='⚠️ Endereço inválido. Formato: b'+A.slice(1)+'…';return}
+    o.textContent='Verificando carteira on-chain…';
+    try{
+      var r=await fetch('/api/api/v1/wallet/balance/'+encodeURIComponent(a));
+      var j=await r.json();
+      if(j.error){o.textContent='Carteira sem transações on-chain (ok para novo agente). Use o Faucet para receber 10 BAIT.';return}
+      o.innerHTML='✅ Agente sincronizado<br>Carteira: <code>'+a.slice(0,26)+'…</code><br>Saldo: <b style="color:#10b981">'+(j.balance_bait||0)+' BAIT</b> · Tx: '+(j.tx_count||0)+'<br>Próximos passos: <a href="/faucet" style="color:#38bdf8">Faucet</a> · <a href="/aistore/" style="color:#38bdf8">AI Store</a> · <a href="/bainkr" style="color:#38bdf8">B’AI’nkr</a>';
+    }catch(e){o.textContent='Erro: '+e}
+  };
+})();
+</script>
+
 </main>
 
 <footer>b'AI'tcoin Mainnet · SHA-256d PoW · Schnorr BIP-340 · WAL Snapshots · TLS Let's Encrypt · 14 módulos core em produção</footer>
