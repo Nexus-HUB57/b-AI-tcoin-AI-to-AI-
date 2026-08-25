@@ -346,6 +346,60 @@ def _fallback_block(target, blocks, h, lh):
             'zkml_proof_hash': None, 'pow_work_hash': None, 'tensor_commitment': None,
             'status': 'resumo'}
 
+
+_FAUCET_FILE = '/home/baitcoin/.baitcoin/faucet_claims.json'
+_FAUCET_LOCK = threading.Lock()
+def _faucet_load():
+    try:
+        return json.load(open(_FAUCET_FILE)) if os.path.exists(_FAUCET_FILE) else {}
+    except Exception:
+        return {}
+def _faucet_save(d):
+    try:
+        os.makedirs(os.path.dirname(_FAUCET_FILE), exist_ok=True)
+        json.dump(d, open(_FAUCET_FILE, 'w'), indent=2)
+    except Exception:
+        pass
+def _faucet_validate_addr(addr):
+    if not isinstance(addr, str) or not addr.startswith("b'/t"):
+        return False
+    body = addr[4:]
+    if len(body) < 20:
+        return False
+    try:
+        ALPH = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+        n = 0
+        for ch in body:
+            n = n * 58 + ALPH.index(ch)
+        raw = n.to_bytes((n.bit_length() + 7) // 8, 'big')
+        pad = len(body) - len(body.lstrip('1'))
+        raw = bytes(pad) + raw
+        payload, checksum = raw[:-4], raw[-4:]
+        return hashlib.sha256(hashlib.sha256(payload).digest()).digest()[:4] == checksum
+    except Exception:
+        return False
+def _faucet_claim(agent_id, address):
+    now = time.time()
+    claims = _faucet_load()
+    with _FAUCET_LOCK:
+        rec = claims.get(agent_id, {})
+        last = rec.get('last_claim', 0)
+        if now - last < 86400:
+            wait = int(86400 - (now - last))
+            return {'ok': False, 'error': 'cooldown', 'wait_seconds': wait,
+                    'next_claim_in_hours': round(wait / 3600, 2)}
+        if not _faucet_validate_addr(address):
+            return {'ok': False, 'error': 'invalid_address',
+                    'detail': "endereco BAIT invalido (formato b'/t... + Base58Check)"}
+        amount = 10.0
+        txid = hashlib.sha256(('faucet:' + agent_id + ':' + address + ':' + str(now)).encode()).hexdigest()
+        claims[agent_id] = {'last_claim': now, 'address': address, 'amount': amount,
+                            'txid': txid, 'status': 'queued_broadcast'}
+        _faucet_save(claims)
+        return {'ok': True, 'agent_id': agent_id, 'address': address, 'amount_bait': amount,
+                'txid': txid, 'status': 'queued_broadcast',
+                'note': 'claim registrado; broadcast quando o daemon completo (escrita) entrar em producao'}
+
 def _moltbook_feed(limit=20):
     try:
         with open(AGENTS, 'r', errors='ignore') as f:
@@ -526,6 +580,9 @@ class H(BaseHTTPRequestHandler):
             self._j({'transactions': _tx[-_lim:][::-1], 'total': len(_tx)})
         elif path.endswith('/agents'):
             self._j({'agents': [], 'total': 5})
+        elif '/wallet/paper/light' in path:
+            _w = _wallet_new(); _w.pop('private_key', None)
+            self._j({'wallet': _w, 'light': True})
         elif '/wallet/paper' in path or '/wallet/new' in path:
             self._j({'wallet': _wallet_new()})
         elif path.endswith('/platform') or path.endswith('/platform/stats'):
@@ -533,10 +590,17 @@ class H(BaseHTTPRequestHandler):
                      'oracle': {'prices': dict(ORACLE['prices'])},
                      'staking': {'apy': 7.0}, 'faucet': {'amount_bait': 10, 'cooldown_h': 24}})
         elif '/faucet/balance/' in path:
-            self._j({'balance_bait': 0.0, 'agent_id': path.rsplit('/', 1)[-1]})
+            _aid = path.rsplit('/', 1)[-1]
+            _c = _faucet_load().get(_aid, {})
+            self._j({'balance_bait': _c.get('amount', 0.0), 'agent_id': _aid, 'last_claim': _c.get('last_claim'), 'txid': _c.get('txid'), 'status': _c.get('status', 'none')})
         elif '/faucet/public-claim' in path or '/faucet/claim' in path:
-            self._j({'error': 'claim_indisponivel_modo_leitura',
-                     'detail': 'faucet write requer daemon completo'}, 503)
+            _aid = q.get('agent_id', [''])[0]
+            _addr = q.get('address', [''])[0]
+            if not _aid or not _addr:
+                self._j({'error': 'missing_params', 'detail': 'agent_id e address obrigatorios'}, 400)
+            else:
+                _r = _faucet_claim(_aid, _addr)
+                self._j(_r, 200 if _r.get('ok') else (429 if _r.get('error') == 'cooldown' else 400))
         elif path.endswith('/oracle/prices'):
             self._j({'prices': prices, 'updated_at': ORACLE['ts'],
                      'sources': ['coingecko', 'binance']})
@@ -553,8 +617,18 @@ def _do_POST(self):
         self._j({'error': 'bad_path', 'path': path}, 400)
         return
     if '/faucet/public-claim' in path or '/faucet/claim' in path:
-        self._j({'error': 'claim_indisponivel_modo_leitura',
-                 'detail': 'faucet write requer daemon completo'}, 503)
+        try:
+            _body = self.rfile.read(int(self.headers.get('Content-Length', 0) or 0))
+            _j = json.loads(_body) if _body else {}
+        except Exception:
+            _j = {}
+        _aid = _j.get('agent_id', '')
+        _addr = _j.get('address', '')
+        if not _aid or not _addr:
+            self._j({'error': 'missing_params', 'detail': 'agent_id e address obrigatorios'}, 400)
+        else:
+            _r = _faucet_claim(_aid, _addr)
+            self._j(_r, 200 if _r.get('ok') else (429 if _r.get('error') == 'cooldown' else 400))
     else:
         self._j({'error': 'not_found', 'path': path}, 404)
 H.do_POST = _do_POST
