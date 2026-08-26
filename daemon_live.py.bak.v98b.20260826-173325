@@ -378,29 +378,6 @@ def _faucet_validate_addr(addr):
         return hashlib.sha256(hashlib.sha256(payload).digest()).digest()[:4] == checksum
     except Exception:
         return False
-
-
-_pending_bcast = os.path.join(os.path.expanduser("~/.baitcoin"), "pending_broadcasts.json")
-def _queue_broadcast(payload):
-    """v9.8 — TX assinada BIP-340 enfileirada para o daemon completo."""
-    try:
-        os.makedirs(os.path.dirname(_pending_bcast), exist_ok=True)
-        db = {}
-        if os.path.exists(_pending_bcast):
-            try: db = json.load(open(_pending_bcast))
-            except Exception: db = {}
-        items = db.get("pending", [])
-        if any(i.get("sig")==payload.get("sig") for i in items):
-            return False, "duplicate_sig"
-        payload["queued_at"] = time.time()
-        payload["status"] = "queued_for_full_daemon"
-        items.append(payload)
-        db["pending"] = items[-5000:]
-        json.dump(db, open(_pending_bcast, "w"))
-        return True, "queued"
-    except Exception as e:
-        return False, str(e)
-
 def _faucet_claim(agent_id, address):
     now = time.time()
     claims = _faucet_load()
@@ -516,23 +493,6 @@ class H(BaseHTTPRequestHandler):
         with LOCK:
             h, blocks, supply, lh = CACHE['height'], list(CACHE['blocks']), CACHE['supply'], CACHE['last_hash']
             prices = dict(ORACLE['prices'])
-
-        if path == "/api/v1/wallet/withdraw/broadcast":
-            try:
-                _tx = json.loads(_body.decode("utf-8", "replace") or "{}")
-            except Exception:
-                _tx = {}
-            req = ["from_address","to_address","amount_bait","pubkey","sig","payload_hash"]
-            if not all(k in _tx for k in req):
-                H._json(_h, {"error":"campos_obrigatorios","required":req}, 400)
-            else:
-                _okq, _msgq = _queue_broadcast(_tx)
-                if _okq:
-                    H._json(_h, {"ok":True,"status":"queued_for_full_daemon","payload_hash":_tx.get("payload_hash"),
-                        "note":"daemon leitura - TX assinada enfileirada; broadcast efetivo quando daemon completo assumir"}, 202)
-                else:
-                    H._json(_h, {"ok":False,"error":_msgq}, 409)
-            return
         if path.endswith('/status'):
             self._j({'network': "b'AI'tcoin Mainnet", 'version': '0.8.0-live',
                      'chain_height': h, 'chain_valid': True, 'blocks_immutable': True,
