@@ -491,5 +491,39 @@
 })();
 </script>
 
+
+<script src="/vendor/bip340-min.js"></script>
+<script>
+// v9.8 — Auto-assinatura BIP-340 (fluxo chave privada) + broadcast enfileirado
+window.autoSignBroadcast = async function(fromAddr, toAddr, amountBait){
+  const priv = (window._baitWallet && window._baitWallet.privkey) || null;
+  if(!priv){ throw new Error("Chave privada nao sincronizada - use o modo Watch-Only ou conecte com a chave"); }
+  const build = await fetch("/api/api/v1/wallet/withdraw/build?from="+encodeURIComponent(fromAddr)+"&to="+encodeURIComponent(toAddr)+"&amount="+encodeURIComponent(amountBait)).then(r=>r.json());
+  if(!build.ok && !build.payload_hash){ throw new Error("Falha ao construir TX: "+(build.error||"desconhecido")); }
+  const payloadHash = build.payload_hash;
+  const msgHex = (function(h){ let s=""; for(let i=0;i<h.length;i++) s+=h.charCodeAt(i).toString(16).padStart(2,"0"); return s.padEnd(64,"0").slice(0,64); })(payloadHash);
+  const sig = await window.BIP340.sign(priv, msgHex);
+  const tx = {from_address:fromAddr,to_address:toAddr,amount_bait:amountBait,
+              pubkey:sig.pubkey,sig:sig.sig,payload_hash:payloadHash,unsigned:build};
+  const resp = await fetch("/api/api/v1/wallet/withdraw/broadcast",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(tx)}).then(r=>r.json());
+  window._baitWallet = null; // chave privada NUNCA persiste apos a operacao
+  return resp;
+};
+// Liga o botao de withdraw P2P: se houver chave privada conectada, auto-assina; senao, gera TX unsigned (watch-only)
+(function(){
+  const old = window.baWithdrawP2P;
+  window.baWithdrawP2P = async function(fromAddr, toAddr, amountBait){
+    if(window._baitWallet && window._baitWallet.privkey){
+      try{
+        const r = await window.autoSignBroadcast(fromAddr,toAddr,amountBait);
+        if(window._baOut) _baOut("TX ASSINADA (BIP-340) e enfileirada p/ broadcast: "+JSON.stringify(r,null,2));
+        return r;
+      }catch(e){ if(window._baOut) _baOut("Erro na auto-assinatura: "+e.message); throw e; }
+    }
+    return old ? old(fromAddr,toAddr,amountBait) : null;
+  };
+})();
+</script>
+
 </body>
 </html>
