@@ -7,10 +7,10 @@ Honestidade: esquema de hash historico nao reproduzivel; blocos novos usam
 sha256d(json(header, sort_keys)) — deterministico e auditavel."""
 import json, os, time, hashlib, copy, fcntl, sys
 
-SNAP = os.path.expanduser("~/.baitcoin/memory/blockchain/current.json")
+SNAP = "/home/baitcoin/.baitcoin/memory/blockchain/current.json"
 LOCK = SNAP + ".lock"
-FAUCET = os.path.expanduser("~/.baitcoin/faucet_claims.json")
-BCAST = os.path.expanduser("~/.baitcoin/pending_broadcasts.json")
+FAUCET = "/home/baitcoin/.baitcoin/faucet_claims.json"
+BCAST = "/home/baitcoin/.baitcoin/pending_broadcasts.json"
 INTERVAL = 60
 
 def sha256d(b): return hashlib.sha256(hashlib.sha256(b).digest()).hexdigest()
