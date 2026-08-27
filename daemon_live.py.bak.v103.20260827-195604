@@ -517,16 +517,6 @@ def _o():
             pass
         time.sleep(240)
 
-
-
-def _full_or_fallback(h, *a, **k):
-    try:
-        b = _block_full_by_height(int(h))
-        if b: return b
-    except Exception: pass
-    try: return _fallback_block(h, *a, **k)
-    except Exception: return None
-
 class H(BaseHTTPRequestHandler):
     def log_message(self, *a):
         pass
