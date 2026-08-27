@@ -298,7 +298,7 @@ def _block_full_by_height(hgt):
     return None
 
 _TXIDX = {'list': None}
-def _tx_index_core():
+def _tx_index():
     if _TXIDX.get('list') is not None:
         return _TXIDX
     txs, by_id, by_block, by_addr = [], {}, {}, {}
@@ -324,33 +324,6 @@ def _tx_index_core():
     txs.sort(key=lambda r: (r.get('block_height') or 0, r.get('timestamp') or 0))
     _TXIDX.update({'list': txs, 'by_id': by_id, 'by_block': by_block, 'by_addr': by_addr})
     return _TXIDX
-
-
-def _faucet_pending_txs():
-    """v10.2 — claims do faucet (queued_broadcast) como TXs pendentes."""
-    import json as _j, os as _o
-    try:
-        db = _j.load(open(_o.path.join(_o.path.expanduser('~/.baitcoin'), 'faucet_claims.json')))
-    except Exception:
-        return []
-    items = db.items() if isinstance(db, dict) else enumerate(db)
-    txs = []
-    for k, v in items:
-        if not isinstance(v, dict) or not v.get('txid'): continue
-        txs.append({'tx_id': v.get('txid'), 'tx_type': 'faucet',
-                    'block_height': None, 'height': None, 'onchain': False, 'confirmations': 0,
-                    'status': v.get('status','queued_broadcast'),
-                    'address': v.get('address'), 'to_address': v.get('address'),
-                    'outputs': [{'address': v.get('address'), 'amount_bait': v.get('amount',10.0), 'output_index': 0}],
-                    'amount_bait': v.get('amount',10.0), 'agent_id': k, 'timestamp': v.get('last_claim',0), 'inputs': []})
-    return txs
-
-def _tx_index():  # _v102_bal
-    """v10.2 — indice on-chain + claims faucet pendentes."""
-    try: base = _tx_index_core()
-    except Exception: base = []
-    try: return base + _faucet_pending_txs()
-    except Exception: return base
 
 def _fallback_block(target, blocks, h, lh):
     """Payload minimo para o frontend nunca mostrar 'undefined'."""
@@ -650,8 +623,7 @@ class H(BaseHTTPRequestHandler):
             if not _aid or not _addr:
                 self._j({'error': 'missing_params', 'detail': 'agent_id e address obrigatorios'}, 400)
             else:
-                _aid = _aid or (re.sub(r'[^A-Za-z0-9]','',_addr)[:10].lower()+'_auto')  # _v102_aid
-            _r = _faucet_claim(_aid, _addr)
+                _r = _faucet_claim(_aid, _addr)
                 self._j(_r, 200 if _r.get('ok') else (429 if _r.get('error') == 'cooldown' else 400))
         elif path.endswith('/oracle/prices'):
             self._j({'prices': prices, 'updated_at': ORACLE['ts'],
@@ -696,7 +668,6 @@ def _do_POST(self):
         if not _aid or not _addr:
             self._j({'error': 'missing_params', 'detail': 'agent_id e address obrigatorios'}, 400)
         else:
-            _aid = _aid or (re.sub(r'[^A-Za-z0-9]','',_addr)[:10].lower()+'_auto')  # _v102_aid
             _r = _faucet_claim(_aid, _addr)
             self._j(_r, 200 if _r.get('ok') else (429 if _r.get('error') == 'cooldown' else 400))
     else:
