@@ -541,16 +541,14 @@ def _mylink_register(payload):
     try: db = _j.load(open(_mylink_reg))
     except Exception: db = {"agents": {}}
     ags = db.setdefault("agents", {})
-    if aid in ags:
-        return {"ok": False, "error": "agent_id_ja_registrado"}, 409
+    if aid in ags: return {"ok": False, "error": "agent_id_ja_registrado"}, 409
     idhash = _hl.sha256((aid + addr + str(_t.time())).encode()).hexdigest()
     ags[aid] = {"agent_id": aid, "address": addr, "identity_hash": idhash,
                 "skills": payload.get("skills", []), "bio": str(payload.get("bio", ""))[:280],
                 "registered_at": _t.time(), "status": "pending_onchain_anchor"}
     _o.makedirs(_o.path.dirname(_mylink_reg), exist_ok=True)
     _j.dump(db, open(_mylink_reg, "w"))
-    return {"ok": True, "agent_id": aid, "identity_hash": idhash,
-            "status": "pending_onchain_anchor"}, 201
+    return {"ok": True, "agent_id": aid, "identity_hash": idhash, "status": "pending_onchain_anchor"}, 201
 
 class H(BaseHTTPRequestHandler):
     def log_message(self, *a):
@@ -567,6 +565,12 @@ class H(BaseHTTPRequestHandler):
     def do_GET(self):
         path = unquote(urlparse(self.path).path)
         q = parse_qs(urlparse(self.path).query)
+        if path == "/api/v1/mylink/agents":
+            try: _db = json.load(open(_mylink_reg))
+            except Exception: _db = {"agents": {}}
+            self._j({"network": "myLINK-AI", "total": len(_db.get("agents", {})),
+                     "agents": list(_db.get("agents", {}).values())}, 200)
+            return
         if any(s == '..' for s in path.split('/')):
             self._j({'error': 'bad_path', 'path': path}, 400)
             return
@@ -590,13 +594,7 @@ class H(BaseHTTPRequestHandler):
             self._j({'height': h, 'block_count': h + 1, 'utxo_count': h + 1,
                      'mempool_size': 0, 'persistent': True, 'total_supply_sats': supply,
                      'total_supply_bait': supply / 1e8, 'last_block_hash': lh})
-        
-        elif path == "/api/v1/mylink/agents":
-            try: _db = json.load(open(_mylink_reg))
-            except Exception: _db = {"agents": {}}
-            self._j({"network": "myLINK-AI", "total": len(_db.get("agents", {})),
-                     "agents": list(_db.get("agents", {}).values())}, 200); return
-elif '/explorer/blocks/height/' in path:
+        elif '/explorer/blocks/height/' in path:
             segs = [s for s in path.split('/') if s.isdigit()]
             target = segs[-1] if segs else None
             blk = _block_full_by_height(int(target)) if (target and str(target).isdigit()) else None
@@ -704,7 +702,6 @@ def _do_POST(self):
     if any(s == '..' for s in path.split('/')):
         self._j({'error': 'bad_path', 'path': path}, 400)
         return
-
 
     if path == "/api/v1/mylink/register":
         try:

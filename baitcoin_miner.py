@@ -6,6 +6,7 @@ SNAP = BASE + "/memory/blockchain/current.json"
 LOCK = BASE + "/memory/blockchain/.miner.lock"
 FAUCET = BASE + "/faucet_claims.json"
 BCAST = BASE + "/pending_broadcasts.json"
+MYLINK_REG = BASE + "/mylink_registrations.json"
 INTERVAL = 60
 def sha256d(b): return hashlib.sha256(hashlib.sha256(b).digest()).hexdigest()
 def load_chain():
@@ -58,6 +59,16 @@ def mine_block():
             "pubkey": tx.get("pubkey"), "sig": tx.get("sig"),
             "block_height": new_index, "status": "mined"})
         mined_b.append(tx)
+    mined_i = []
+    try: idb = json.load(open(MYLINK_REG))
+    except Exception: idb = {"agents": {}}
+    for aid, a2 in idb.get("agents", {}).items():
+        if a2.get("status") == "pending_onchain_anchor":
+            txs.append({"tx_id": a2["identity_hash"], "tx_type": "identity",
+                "agent_id": aid, "timestamp": a2.get("registered_at", now),
+                "address": a2.get("address"), "block_height": new_index, "status": "mined",
+                "inputs": [], "outputs": []})
+            mined_i.append(aid)
     nb["transactions"] = txs
     nb["tx_count"] = len(txs)
     if "merkle_root" in hdr:
@@ -84,6 +95,9 @@ def mine_block():
         ids = {id(t) for t in mined_b}
         bdb["pending"] = [t for t in bdb.get("pending", []) if id(t) not in ids]
         json.dump(bdb, open(BCAST, "w"))
+    if mined_i:
+        for aid in mined_i: idb["agents"][aid]["status"] = "anchored_onchain"
+        json.dump(idb, open(MYLINK_REG, "w"))
     return {"height": new_index, "hash": h[:16], "txs": len(txs), "faucet": len(mined_f), "bcast": len(mined_b), "nonce": nonce}
 def has_pending():
     try:
