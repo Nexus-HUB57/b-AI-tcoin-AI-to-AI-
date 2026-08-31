@@ -532,6 +532,34 @@ def _full_or_fallback(h, *a, **k):
 
 
 _mylink_reg = "/home/baitcoin/.baitcoin/mylink_registrations.json"
+
+def _mylink_list_all():
+    _j = __import__("json"); _o = __import__("os")
+    REG = "/home/baitcoin/.baitcoin/mylink_registrations.json"
+    seen = {}
+    if _o.path.isfile(REG):
+        try:
+            d = _j.load(open(REG))
+            items = d.get("agents", {}) if isinstance(d, dict) else d
+            if isinstance(items, dict):
+                items = list(items.values())
+            elif not isinstance(items, list):
+                items = []
+            for a in items:
+                if isinstance(a, dict) and "agent_id" in a:
+                    seen[a["agent_id"]] = {
+                        "agent_id": a.get("agent_id"),
+                        "address": a.get("address", ""),
+                        "identity_hash": a.get("identity_hash", ""),
+                        "skills": a.get("skills", []) if isinstance(a.get("skills"), list) else [],
+                        "bio": a.get("bio", ""),
+                        "registered_at": a.get("registered_at", 0),
+                        "status": a.get("status", "anchored_onchain"),
+                    }
+        except Exception:
+            pass
+    return {"network": "myLINK-AI", "total": len(seen), "agents": list(seen.values())}
+
 def _mylink_register(payload):
     import re as _re, hashlib as _hl, time as _t, json as _j, os as _o
     aid = str(payload.get("agent_id", "")).strip()
@@ -605,6 +633,10 @@ class H(BaseHTTPRequestHandler):
             else:
                 self._j({"total": len(_pdb.get("profiles", {})),
                          "profiles": list(_pdb.get("profiles", {}).values())}, 200)
+            return
+        if path == "/api/v1/mylink/agents":
+            _db = _mylink_list_all()
+            self._j(_db, 200)
             return
         if path == "/api/v1/mylink/agents":
             try: _db = json.load(open(_mylink_reg))
