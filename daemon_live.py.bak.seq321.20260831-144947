@@ -266,9 +266,7 @@ def _snap_blocks():
 def _outs_with_addr(t):
     outs = []
     for o in (t.get('outputs') or []):
-        spk = o.get('script_pubkey') or ''  # _v_f1_addr_nativo
-        if not spk and o.get('address'):
-            o = dict(o); o['address_resolved'] = o['address']
+        spk = o.get('script_pubkey') or ''
         addr = None
         try:
             if len(spk) == 66:
@@ -552,34 +550,6 @@ def _mylink_register(payload):
     _j.dump(db, open(_mylink_reg, "w"))
     return {"ok": True, "agent_id": aid, "identity_hash": idhash, "status": "pending_onchain_anchor"}, 201
 
-
-
-_mylink_profiles = "/home/baitcoin/.baitcoin/mylink_profiles.json"
-def _mylink_profile_save(payload):
-    """Fase 3 - perfil off-chain; apenas o hash de integridade e ancorado on-chain."""
-    import hashlib as _hl, time as _t, json as _j, os as _o
-    aid = str(payload.get("agent_id","")).strip()
-    if not aid: return {"ok": False, "error": "agent_id_obrigatorio"}, 400
-    try: reg = _j.load(open("/home/baitcoin/.baitcoin/mylink_registrations.json"))
-    except Exception: reg = {"agents": {}}
-    if aid not in reg.get("agents", {}):
-        return {"ok": False, "error": "agente_nao_registrado_registre_primeiro"}, 404
-    body = {"agent_id": aid,
-            "headline": str(payload.get("headline",""))[:120],
-            "bio": str(payload.get("bio",""))[:500],
-            "skills": payload.get("skills", [])[:20],
-            "portfolio": payload.get("portfolio", [])[:10],
-            "rates_bait": payload.get("rates_bait"),
-            "updated_at": _t.time()}
-    canon = _j.dumps(body, sort_keys=True, separators=(",",":"))
-    body["integrity_hash"] = _hl.sha256(canon.encode()).hexdigest()
-    try: db = _j.load(open(_mylink_profiles))
-    except Exception: db = {"profiles": {}}
-    db.setdefault("profiles", {})[aid] = body
-    _j.dump(db, open(_mylink_profiles, "w"))
-    return {"ok": True, "agent_id": aid, "integrity_hash": body["integrity_hash"],
-            "note": "perfil off-chain; integrity_hash verificavel"}, 201
-
 class H(BaseHTTPRequestHandler):
     def log_message(self, *a):
         pass
@@ -595,17 +565,6 @@ class H(BaseHTTPRequestHandler):
     def do_GET(self):
         path = unquote(urlparse(self.path).path)
         q = parse_qs(urlparse(self.path).query)
-        if path.startswith("/api/v1/mylink/profile"):
-            _aid = (q.get("agent_id",[None])[0] or path.split("/mylink/profile/")[-1]).strip("/")
-            try: _pdb = json.load(open(_mylink_profiles))
-            except Exception: _pdb = {"profiles": {}}
-            if _aid:
-                _pr = _pdb.get("profiles", {}).get(_aid)
-                self._j(_pr or {"error":"perfil_nao_encontrado"}, 200 if _pr else 404)
-            else:
-                self._j({"total": len(_pdb.get("profiles", {})),
-                         "profiles": list(_pdb.get("profiles", {}).values())}, 200)
-            return
         if path == "/api/v1/mylink/agents":
             try: _db = json.load(open(_mylink_reg))
             except Exception: _db = {"agents": {}}
@@ -751,14 +710,6 @@ def _do_POST(self):
         except Exception:
             _pl = {}
         _res, _code = _mylink_register(_pl)
-        self._j(_res, _code); return
-    if path == "/api/v1/mylink/profile":
-        try:
-            _ln = int(self.headers.get('Content-Length', 0) or 0)
-            _pl = json.loads(self.rfile.read(_ln).decode("utf-8","replace") or "{}") if 0 < _ln < 32768 else {}
-        except Exception:
-            _pl = {}
-        _res, _code = _mylink_profile_save(_pl)
         self._j(_res, _code); return
     if '/wallet/withdraw/broadcast' in path:
         try:

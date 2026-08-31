@@ -266,9 +266,7 @@ def _snap_blocks():
 def _outs_with_addr(t):
     outs = []
     for o in (t.get('outputs') or []):
-        spk = o.get('script_pubkey') or ''  # _v_f1_addr_nativo
-        if not spk and o.get('address'):
-            o = dict(o); o['address_resolved'] = o['address']
+        spk = o.get('script_pubkey') or ''
         addr = None
         try:
             if len(spk) == 66:
