@@ -34,20 +34,20 @@ jobs:
       - name: Setup SSH (secret)
         run: |
           install -m 700 -d ~/.ssh
-          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY || secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -p "${{ secrets.VPS_PORT }}" -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+          ssh-keyscan -p "${{ secrets.VPS_PORT || secrets.SSH_PORT }}" -H "${{ secrets.VPS_HOST || secrets.SSH_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
 
       - name: Enviar pacote (somente arquivos novos/alterados)
         run: |
           tar czf /tmp/mybait-site.tgz site ops
-          scp -i ~/.ssh/deploy_key -P "${{ secrets.VPS_PORT }}" /tmp/mybait-site.tgz \
-            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/mybait-site.tgz"
+          scp -i ~/.ssh/deploy_key -P "${{ secrets.VPS_PORT || secrets.SSH_PORT }}" /tmp/mybait-site.tgz \
+            "${{ secrets.VPS_USER || secrets.SSH_USER }}@${{ secrets.VPS_HOST || secrets.SSH_HOST }}:/tmp/mybait-site.tgz"
 
       - name: Aplicar no VPS (idempotente, com backups)
         run: |
-          ssh -i ~/.ssh/deploy_key -p "${{ secrets.VPS_PORT }}" \
-            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+          ssh -i ~/.ssh/deploy_key -p "${{ secrets.VPS_PORT || secrets.SSH_PORT }}" \
+            "${{ secrets.VPS_USER || secrets.SSH_USER }}@${{ secrets.VPS_HOST || secrets.SSH_HOST }}" \
             'cd /tmp && tar xzf mybait-site.tgz && bash ops/apply_mylink.sh'
 
       - name: Validação end-to-end
