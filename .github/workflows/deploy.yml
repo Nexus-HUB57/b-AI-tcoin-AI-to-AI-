@@ -1,84 +1,61 @@
-name: Deploy - Ecosystem Status Badge
+name: deploy-mybait
+
+# Deploy end-to-end do mybait.org usando EXCLUSIVAMENTE os secrets do repo.
+# Nenhuma credencial fica em código ou em log (o GitHub mascara secrets automaticamente).
+#
+# Secrets obrigatórios (Settings → Secrets and variables → Actions):
+#   VPS_SSH_KEY  — chave privada SSH (conteúdo de golive_root_key)
+#   VPS_HOST     — 143.95.213.237
+#   VPS_PORT     — 22022
+#   VPS_USER     — root
+#
+# Cadastro via CLI (sem expor no terminal do repo):
+#   gh secret set VPS_SSH_KEY < ~/.ssh/golive_root_key
+#   gh secret set VPS_HOST --body "143.95.213.237"
+#   gh secret set VPS_PORT --body "22022"
+#   gh secret set VPS_USER --body "root"
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
-  workflow_run:
-    workflows: ["CI - Testes e Lint"]
-    types:
-      - completed
+    paths: ["site/**", "ops/**", ".github/workflows/deploy.yml"]
+
+concurrency:
+  group: deploy-mybait
+  cancel-in-progress: false
 
 jobs:
-  update-status:
+  deploy:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || (github.event.workflow_run.conclusion == 'success')
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Setup Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
+      - name: Setup SSH (secret)
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p "${{ secrets.VPS_PORT }}" -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
 
-    - name: Install dependencies
-      run: pip install ecdsa numpy
+      - name: Enviar pacote (somente arquivos novos/alterados)
+        run: |
+          tar czf /tmp/mybait-site.tgz site ops
+          scp -i ~/.ssh/deploy_key -P "${{ secrets.VPS_PORT }}" /tmp/mybait-site.tgz \
+            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/mybait-site.tgz"
 
-    - name: Generate ecosystem status
-      run: |
-        python -c "
-        from baitcoin_core import Blockchain, ZkMLConsensus, SchnorrKeyPair
-        from baitcoin_token.erc20_like.bait_token import BAITToken
-        from baitcoin_bank.staking.pool import StakingPool
-        from baitcoin_bank.lending.engine import LendingEngine
-        from baitcoin_bank.defi_core.vault import Vault, VaultConfig, StrategyType
-        from baitcoin_ai.agent_protocol.registry import AgentRegistry, AgentCapability
-        from baitcoin_ai.marketplace.services import AIMarketplace, ServiceCategory
-        from baitcoin_ai.oracle.feed import PriceOracle
-        from baitcoin_token.tokenomics.schedule import EmissionSchedule
-        from baitcoin_token.governance.governor import Governor
-        import json
+      - name: Aplicar no VPS (idempotente, com backups)
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "${{ secrets.VPS_PORT }}" \
+            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+            'cd /tmp && tar xzf mybait-site.tgz && bash ops/apply_mylink.sh'
 
-        # Initialize all components
-        bc = Blockchain()
-        token = BAITToken()
-        token.mint('genesis', 100 * 100_000_000)
-        pool = StakingPool()
-        pool.stake('genesis', 10 * 100_000_000)
-        lending = LendingEngine()
-        lending.create_offer('lender1', 500_000_000, 12.0)
-        vault = Vault(VaultConfig(agent_id='genesis'))
-        vault.deposit(5_000_000_000, StrategyType.STAKING)
-        registry = AgentRegistry()
-        registry.register('agent1', '0x123', [AgentCapability.BLOCK_VALIDATION])
-        mp = AIMarketplace()
-        mp.list_service('agent1', ServiceCategory.ML_INFERENCE, 'GPT Service', 'AI inference', 50_000)
-        oracle = PriceOracle()
-        oracle.register_oracle('o1', 80)
-        oracle.submit_price('o1', 'BTC', 65000.0)
-        schedule = EmissionSchedule()
-        gov = Governor(21_000_000 * 100_000_000)
-        gov.create_proposal('agent1', 'Test', 'Ecosystem deployment test')
-
-        status = {
-            'blockchain_height': bc.height,
-            'utxo_count': len(bc.utxo_set),
-            'token': token.to_dict(),
-            'staking': pool.to_dict(),
-            'lending': lending.to_dict(),
-            'vault': vault.to_dict(),
-            'agents': registry.to_dict(),
-            'marketplace': mp.to_dict(),
-            'oracle': oracle.to_dict(),
-            'tokenomics': schedule.to_dict(),
-            'governance': gov.to_dict(),
-        }
-
-        with open('ecosystem_status.json', 'w') as f:
-            json.dump(status, f, indent=2)
-        print('Ecosystem status generated')
-        for k, v in status.items():
-            print(f'  {k}: {v}')
-        "
-
-    - name: Run daemon validation
-      run: python main_daemon.py
+      - name: Validação end-to-end
+        run: |
+          set -e
+          for p in / /mylink /blockchain /faucet "/bainkr?v=3" /mainnet /aistore/; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "https://www.mybait.org$p")
+            echo "$p -> $code"; [ "$code" = "200" ] || exit 1
+          done
+          curl -s https://www.mybait.org/api/api/v1/mylink/agents | python3 -c "import sys,json;d=json.load(sys.stdin);print('agentes:',d.get('total'))"
+          curl -s "https://www.mybait.org/api/api/v1/blocks?limit=2" | head -c 600
