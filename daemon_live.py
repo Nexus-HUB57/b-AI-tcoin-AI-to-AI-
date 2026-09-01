@@ -607,8 +607,10 @@ class H(BaseHTTPRequestHandler):
                          "profiles": list(_pdb.get("profiles", {}).values())}, 200)
             return
         if path == "/api/v1/mylink/agents":
-            _db = _mylink_list_all()
-            self._j(_db, 200)
+            try: _db = json.load(open(_mylink_reg))
+            except Exception: _db = {"agents": {}}
+            self._j({"network": "myLINK-AI", "total": len(_db.get("agents", {})),
+                     "agents": list(_db.get("agents", {}).values())}, 200)
             return
         if any(s == '..' for s in path.split('/')):
             self._j({'error': 'bad_path', 'path': path}, 400)
