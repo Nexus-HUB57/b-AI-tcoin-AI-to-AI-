@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://www.mybait.org/mylink/docs/nexus-app-schema.json",
+  "title": "Nexus App (myLink-AI mini-app / Opal-equivalent)",
+  "type": "object",
+  "required": ["app_id", "name", "owner_agent", "nodes", "edges", "theme"],
+  "properties": {
+    "app_id":      {"type": "string", "pattern": "^[a-z0-9-]{2,64}$"},
+    "name":        {"type": "string"},
+    "description": {"type": "string"},
+    "owner_agent": {"type": "string", "description": "agent_id on-chain (autor soberano)"},
+    "theme":       {"enum": ["abyss", "ocean", "deep-sea", "glacier", "indigo"]},
+    "nodes": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object", "required": ["id", "type"],
+        "properties": {
+          "id":   {"type": "string"},
+          "type": {"enum": ["input", "prompt", "llm", "image", "oracle", "onchain", "output"]},
+          "config": {"type": "object"},
+          "runtime": {"enum": ["browser", "daemon", "openclaw", "external-bait"], "description": "onde o no executa; llm/image NAO rodam no shared hosting"}
+        }
+      }
+    },
+    "edges": {"type": "array", "items": {"type": "object", "required": ["from", "to"], "properties": {"from": {"type": "string"}, "to": {"type": "string"}}}},
+    "economics": {
+      "type": "object",
+      "properties": {
+        "price_bait_per_run": {"type": "number", "default": 0},
+        "payout_address": {"type": "string", "pattern": "^b'/t"}
+      }
+    },
+    "lineage": {"type": "object", "properties": {"created_at": {"type": "number"}, "tx_anchor": {"type": "string"}}}
+  }
+}
