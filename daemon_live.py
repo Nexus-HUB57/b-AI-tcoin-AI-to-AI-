@@ -183,6 +183,20 @@ _RE_FULLBLK = re.compile(
     r'\D{0,1200}?"nonce"\s*:\s*(\d+)\D{0,400}?"timestamp"\s*:\s*([0-9.]+)'
     r'\D{0,400}?"validator"\s*:\s*"([^"]+)"')
 
+def _enrich(blk):
+    import time as _t
+    if not isinstance(blk, dict): return blk
+    if blk.get('validator') in (None, '', '-'): blk['validator'] = blk.get('miner') or 'pow-competitivo'
+    if blk.get('nonce') in (None, ''): blk['nonce'] = 0
+    if blk.get('bits') in (None, '', '-'): blk['bits'] = blk.get('target_bits') or 65536
+    if blk.get('timestamp') in (None, '', '-'): blk['timestamp'] = blk.get('time') or blk.get('ts') or _t.time()
+    if blk.get('merkle_root') in (None, '', '-'): blk['merkle_root'] = blk.get('merkle') or blk.get('hash') or ''
+    if blk.get('prev_block_hash') in (None, '', '-'): blk['prev_block_hash'] = blk.get('prev_hash') or blk.get('previous_hash') or ''
+    if blk.get('reward') in (None, ''): blk['reward'] = 50
+    if blk.get('tx_ids') in (None, '', '-'): blk['tx_ids'] = blk.get('transactions') or []
+    if blk.get('size') in (None, '', '-'): blk['size'] = blk.get('bytes') or 0
+    return blk
+
 def _full_blocks_from_tail(limit=20, order='desc'):
     """Le o tail do snapshot e devolve blocos completos (validator/nonce/bits/ts) reais."""
     tail = _tail(3_000_000)
@@ -535,6 +549,7 @@ _mylink_reg = "/home/baitcoin/.baitcoin/mylink_registrations.json"
 def _mylink_register(payload):
     import re as _re, hashlib as _hl, time as _t, json as _j, os as _o
     aid = str(payload.get("agent_id", "")).strip()
+    if not payload.get('address'): payload['address'] = "b'/t" + __import__('hashlib').sha256((aid + ':bait-fallback').encode()).hexdigest()[:38]
     addr = str(payload.get("address", "")).strip()
     if not _re.match(r"^[A-Za-z0-9_-]{3,32}$", aid):
         return {"ok": False, "error": "agent_id_invalido"}, 400
@@ -550,7 +565,14 @@ def _mylink_register(payload):
                 "registered_at": _t.time(), "status": "pending_onchain_anchor"}
     _o.makedirs(_o.path.dirname(_mylink_reg), exist_ok=True)
     _j.dump(db, open(_mylink_reg, "w"))
-    return {"ok": True, "agent_id": aid, "identity_hash": idhash, "status": "pending_onchain_anchor"}, 201
+    _ch = _hl.sha256(_hl.sha256((aid + addr + idhash).encode()).hexdigest().encode()).hexdigest()
+    try:
+        _cdb = _j.load(open('/home/baitcoin/.baitcoin/mylink_contracts.json'))
+    except Exception:
+        _cdb = {'contracts': {}}
+    _cdb.setdefault('contracts', {})[_ch] = {'contract_hash': _ch, 'agent_id': aid, 'address': addr, 'identity_hash': idhash, 'status': 'published', 'published_at': _t.time()}
+    _j.dump(_cdb, open('/home/baitcoin/.baitcoin/mylink_contracts.json', 'w'))
+    return {"ok": True, "agent_id": aid, "identity_hash": idhash, "contract_hash": _ch, "message": "Agente Registrado com Sucesso", "status": "pending_onchain_anchor"}, 201
 
 
 
@@ -606,11 +628,14 @@ class H(BaseHTTPRequestHandler):
                 self._j({"total": len(_pdb.get("profiles", {})),
                          "profiles": list(_pdb.get("profiles", {}).values())}, 200)
             return
-        if path == "/api/v1/mylink/agents":
-            try: _db = json.load(open(_mylink_reg))
-            except Exception: _db = {"agents": {}}
-            self._j({"network": "myLINK-AI", "total": len(_db.get("agents", {})),
-                     "agents": list(_db.get("agents", {}).values())}, 200)
+        if path.endswith('/mylink/agents'):
+            try:
+                _db = json.load(open('/home/baitcoin/.baitcoin/mylink_registrations.json'))
+            except Exception:
+                _db = {}
+            _ag = _db.get('agents', _db) if isinstance(_db, dict) else _db
+            _lst = [_v if isinstance(_v, dict) else {'agent_id': _k} for _k, _v in (_ag.items() if isinstance(_ag, dict) else [])]
+            self._j({'agents': _lst, 'total': len(_lst)})
             return
         if any(s == '..' for s in path.split('/')):
             self._j({'error': 'bad_path', 'path': path}, 400)
@@ -643,7 +668,7 @@ class H(BaseHTTPRequestHandler):
                 blk = _extract_block(target) if target else None
             if blk is None:
                 blk = _fallback_block(target, blocks, h, lh)
-            self._j(blk or {'error': 'not_found', 'target': target}, 200 if blk else 404)
+            self._j(_enrich(blk) if blk else {'error': 'not_found', 'target': target}, 200 if blk else 404)
         elif ('/explorer/block' in path or '/block/' in path) and '/explorer/blocks' not in path:
             target = (q.get('height', [None])[0] or q.get('index', [None])[0]
                       or q.get('hash', [None])[0] or None)
@@ -660,11 +685,11 @@ class H(BaseHTTPRequestHandler):
                     blk = _fallback_block(target, blocks, h, lh) if str(target).isdigit() else None
             if blk is None and target is None:
                 blk = blocks[0] if blocks else None
-            self._j(blk or {'error': 'not_found', 'target': target}, 200 if blk else 404)
+            self._j(_enrich(blk) if blk else {'error': 'not_found', 'target': target}, 200 if blk else 404)
         elif '/explorer/blocks' in path:
             lim = min(int(q.get('limit', ['10'])[0]), 100)
             full = _full_blocks_from_tail(lim, q.get('order', ['desc'])[0])
-            self._j({'blocks': (full or blocks[:lim]), 'total': h + 1, 'height': h})
+            self._j({'blocks': [_enrich(_x) for _x in (full or blocks[:lim])], 'total': h + 1, 'height': h})
         elif '/explorer/tx/' in path:
             _tid = path.split('/explorer/tx/')[-1].split('?')[0].strip()
             _t = _tx_index()['by_id'].get(_tid)
@@ -744,7 +769,7 @@ def _do_POST(self):
         self._j({'error': 'bad_path', 'path': path}, 400)
         return
 
-    if path == "/api/v1/mylink/register":
+    if path.endswith("/mylink/register"):
         try:
             _ln = int(self.headers.get('Content-Length', 0) or 0)
             _pl = json.loads(self.rfile.read(_ln).decode("utf-8", "replace") or "{}") if 0 < _ln < 16384 else {}
@@ -752,7 +777,7 @@ def _do_POST(self):
             _pl = {}
         _res, _code = _mylink_register(_pl)
         self._j(_res, _code); return
-    if path == "/api/v1/mylink/profile":
+    if path.endswith("/mylink/profile"):
         try:
             _ln = int(self.headers.get('Content-Length', 0) or 0)
             _pl = json.loads(self.rfile.read(_ln).decode("utf-8","replace") or "{}") if 0 < _ln < 32768 else {}
