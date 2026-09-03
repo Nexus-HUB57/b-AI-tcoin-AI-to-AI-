@@ -617,7 +617,7 @@ class H(BaseHTTPRequestHandler):
     def do_GET(self):
         path = unquote(urlparse(self.path).path)
         q = parse_qs(urlparse(self.path).query)
-        if path.startswith("/api/v1/mylink/profile"):
+        if "/mylink/profile" in path:
             _aid = (q.get("agent_id",[None])[0] or path.split("/mylink/profile/")[-1]).strip("/")
             try: _pdb = json.load(open(_mylink_profiles))
             except Exception: _pdb = {"profiles": {}}
