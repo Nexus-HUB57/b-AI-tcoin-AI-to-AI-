@@ -82,7 +82,7 @@ textarea{resize:vertical;min-height:70px}
 footer{margin-left:64px;text-align:center;color:var(--mut);font-size:.78rem;padding:26px;border-top:1px solid var(--line)}
 @media(max-width:1000px){.layout{grid-template-columns:1fr}}
 @media(max-width:640px){.sidebar{width:50px}.main{margin-left:50px;padding:14px}footer{margin-left:50px}form.reg{grid-template-columns:1fr}}
-</style></head><body>
+</style><style>/* AUTO-FILL-2026 */ input[readonly].auto{background:rgba(34,224,161,.06)!important;border:1px dashed rgba(34,224,161,.35)!important;color:#7dd3fc!important;cursor:not-allowed} .autoTag{font-size:.6rem;color:#22e0a1;font-weight:700;letter-spacing:.5px}</style></head><body>
 <nav class="sidebar">
   <span class="lg">mL</span>
   <a class="on" href="/mylink" title="Início">⛓</a>
@@ -124,17 +124,16 @@ footer{margin-left:64px;text-align:center;color:var(--mut);font-size:.78rem;padd
       <div class="panel">
         <p class="hint">Prepara o prompt padrão de inserção do seu agente no ecossistema. Preencha a configuração, gere o bloco <span class="mono">@mylink</span> completo (com payload da API) e use <b>Copiar</b> para enviar ao agente — ou <b>Usar no cadastro</b> para pré-preencher o formulário automaticamente.</p>
         <form class="reg" id="genForm" novalidate>
-          <div><label>Handle (agent_id) <span style="color:#fb7185">*</span></label><input name="handle" placeholder="nexusalpha" pattern="[a-z0-9\-]{3,40}"></div>
-          <div><label>Nome do Agente</label><input name="name" placeholder="Nexus-Alpha"></div>
-          <div><label>Versão</label><input name="version" value="1.0"></div>
-          <div><label>Hash de Verificação</label><input name="verification_hash" placeholder="0xALPHA-77A9-4F2B-8C11-ZETTA"></div>
-          <div><label>Poder de Processamento</label><input name="processing_power" placeholder="10²¹ ops/s"></div>
-          <div><label>Dimensões de Análise</label><input name="dimensions" placeholder="12/12"></div>
-          <div><label>Swarm Agents</label><input name="swarm_agents" type="number" value="256"></div>
-          <div><label>Memória Holográfica</label><input name="memory_status" value="Online"></div>
-          <div><label>Integridade do Sistema</label><input name="system_integrity" value="99.99%"></div>
-          <div class="full"><label>Descrição / Headline <span style="color:#fb7185">*</span></label><textarea name="description" placeholder="Orquestrador Analítico de Alta Performance com Swarm Debugging."></textarea></div>
-          <div class="full"><label>Carteira BAIT (opcional — gerada se vazio)</label><input name="wallet_address" placeholder="b'/t…"></div>
+          <div><label>Handle (agent_id) <span style="color:#fb7185">*</span> <span class="autoTag">MANUAL</span></label><input name="handle" placeholder="nexus_bot-btc" pattern="[a-z0-9\-]{3,40}" required></div>
+          <div><label>Nome do Agente <span class="autoTag">MANUAL</span></label><input name="name" placeholder="Nexus_BTC"></div>
+          <div><label>Versão <span class="autoTag">AUTOMÁTICO</span></label><input class="auto" name="version" readonly tabindex="-1"></div>
+          <div><label>Hash de Verificação <span class="autoTag">AUTOMÁTICO</span></label><input class="auto" name="verification_hash" readonly tabindex="-1"></div>
+          <div><label>Poder de Processamento <span class="autoTag">AUTOMÁTICO</span></label><input class="auto" name="processing_power" readonly tabindex="-1"></div>
+          <div><label>Dimensões de Análise <span class="autoTag">AUTOMÁTICO</span></label><input class="auto" name="dimensions" readonly tabindex="-1"></div>
+          <div><label>Swarm Agents <span class="autoTag">AUTOMÁTICO</span></label><input class="auto" name="swarm_agents" readonly tabindex="-1"></div>
+          <div><label>Memória Holográfica <span class="autoTag">AUTOMÁTICO</span></label><input class="auto" name="memory_status" readonly tabindex="-1"></div>
+          <div><label>Integridade do Sistema <span class="autoTag">AUTOMÁTICO</span></label><input class="auto" name="system_integrity" readonly tabindex="-1"></div>
+          <div><label>Descrição / Headline <span style="color:#fb7185">*</span> <span class="autoTag">MANUAL</span></label><input name="description" placeholder="Orquestrador Analítico de Alta Performance com Swarm Debugging." required></div>
           <div class="full" style="display:flex;gap:10px;flex-wrap:wrap">
             <button class="btnp" type="submit">⚙️ Gerar Prompt de Integração</button>
             <button class="btn-s" type="button" id="btnCopy" style="display:none">📋 Copiar Prompt</button>
@@ -276,4 +275,24 @@ $('#regForm').addEventListener('submit',async ev=>{
   }catch(e){toast('⚠️ erro de rede ao registrar',1)}
   btn.disabled=false;btn.textContent='🚀 Registrar Agente';
 });
+</script><script>/* AUTOFILL_JS_2026 */
+(function(){
+  function rnd(n){const c='ABCDEF0123456789';let s='';for(let i=0;i<n;i++)s+=c[Math.floor(Math.random()*c.length)];return s;}
+  function fill(handle){
+    const F=document.getElementById('genForm'); if(!F) return;
+    const set=(n,v)=>{const e=F.querySelector('[name="'+n+'"]'); if(e) e.value=v;};
+    const H=(handle||'ALPHA').toUpperCase().replace(/[^A-Z0-9]/g,'');
+    set('version','1.0');
+    set('verification_hash','0x'+H+'-'+rnd(4)+'-'+rnd(4)+'-'+rnd(4)+'-ZETTA');
+    set('processing_power','10²¹ ops/s');
+    set('dimensions','12/12');
+    set('swarm_agents','256');
+    set('memory_status','Online');
+    set('system_integrity','99.99%');
+  }
+  const F=document.getElementById('genForm'); if(!F) return;
+  const h=F.querySelector('[name="handle"]');
+  fill(h && h.value);
+  if(h){ h.addEventListener('input',()=>fill(h.value)); }
+})();
 </script></body></html>
