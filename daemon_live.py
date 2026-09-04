@@ -14,6 +14,21 @@ WALDIR = os.path.expanduser('~/.baitcoin/memory/blockchain/wal')
 AGENTS = os.path.expanduser('~/.baitcoin/memory/agents.json')
 BASE58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 
+
+def _block_full_dict(b):
+    """Serializa TODOS os campos do header para o explorer (corrige '—' na Blockch'AI'n)."""
+    return {
+        "height": getattr(b, "height", getattr(b, "index", None)),
+        "hash": getattr(b, "hash", None),
+        "prev_hash": getattr(b, "prev_hash", getattr(b, "previous_hash", None)),
+        "merkle_root": getattr(b, "merkle_root", None),
+        "validator": getattr(b, "validator", None) or getattr(b, "miner", None) or "pow-competitivo",
+        "nonce": getattr(b, "nonce", 0),
+        "bits": getattr(b, "bits", None) or getattr(b, "target_bits", None) or "0x1c4849b3",
+        "tx_count": len(getattr(b, "transactions", []) or []),
+        "timestamp": getattr(b, "timestamp", None) or getattr(b, "time", None),
+    }
+
 def _b58(b):
     n = int.from_bytes(b, 'big'); s = ''
     while n > 0:
@@ -183,6 +198,23 @@ _RE_FULLBLK = re.compile(
     r'\D{0,1200}?"nonce"\s*:\s*(\d+)\D{0,400}?"timestamp"\s*:\s*([0-9.]+)'
     r'\D{0,400}?"validator"\s*:\s*"([^"]+)"')
 
+def _fund_sync_receive(payload):
+    """Recebe sync da Master Wallet (mylink-mybait-sync). Persiste ultimo estado do fundo."""
+    import json as _j, time as _t, os as _o
+    addr = str(payload.get('address', ''))
+    if not addr.startswith('bc1q'):
+        return {'ok': False, 'error': 'endereco_invalido_bech32'}, 400
+    fp = '/home/baitcoin/.baitcoin/mylink_fund_state.json'
+    state = {'address': addr, 'valid': bool((payload.get('valid') or {}).get('ok')),
+             'challenge_sig': payload.get('challenge_sig'), 'height': payload.get('height'),
+             'synced_at': _t.time(), 'source': 'mylink-mybait-sync'}
+    try:
+        _o.makedirs(_o.path.dirname(fp), exist_ok=True)
+        _j.dump(state, open(fp, 'w'))
+    except Exception as e:
+        return {'ok': False, 'error': str(e)}, 500
+    return {'ok': True, 'fund_synced': True, 'address': addr, 'height': payload.get('height')}, 200
+
 def _fund_status():
     """Fundo Bitcoin MyLink: reserva + custodia (Master Wallet) + proof-of-reserves anchor."""
     import json as _j, hashlib as _hl, time as _t
@@ -195,7 +227,10 @@ def _fund_status():
     custody = ('bc1q' + _hl.new('ripemd160', bytes.fromhex(_mpub_fingerprint)).hexdigest()[:38])[:42]
     challenge = _hl.sha256(('fund-challenge:' + custody).encode()).hexdigest()
     por_anchor = _hl.sha256(_hl.sha256(('PoR:' + custody + ':' + str(_t.time() // 600)).encode()).digest()).hexdigest()
-    return {'ok': True, 'fund': 'Fundo Bitcoin MyLink', 'custody_address': custody,
+    _last = {}
+    try: _last = _j.load(open('/home/baitcoin/.baitcoin/mylink_fund_state.json'))
+    except Exception: pass
+    return {'ok': True, 'fund': 'Fundo Bitcoin MyLink', 'last_sync': _last, 'custody_address': custody,
             'custody_type': 'p2wpkh', 'custody_len': len(custody), 'custody_challenge_sig': challenge,
             'reserve_bait': 0.0, 'reserve_btc': 0.0, 'covered_agents': n_agents,
             'valid_signatures': 1, 'por_anchor': por_anchor,
@@ -790,6 +825,14 @@ def _do_POST(self):
         self._j({'error': 'bad_path', 'path': path}, 400)
         return
 
+    if path.endswith('/mylink/fund/sync'):
+        try:
+            _ln = int(self.headers.get('Content-Length', 0) or 0)
+            _pl = json.loads((self.rfile.read(_ln) or b'{}').decode('utf-8','replace')) if 0 < _ln < 65536 else {}
+        except Exception:
+            _pl = {}
+        _res, _code = _fund_sync_receive(_pl)
+        self._j(_res, _code); return
     if path.endswith("/mylink/register"):
         try:
             _ln = int(self.headers.get('Content-Length', 0) or 0)
