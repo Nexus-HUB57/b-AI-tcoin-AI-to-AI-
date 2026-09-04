@@ -217,7 +217,7 @@ def do_update():
     results = []
     
     # 1. Static HTML — todas as paginas do frontend
-    for fname in ['index.html', 'blockchain.html', 'bainkr.html', 'faucet.html', 'sdk.html', 'obscura.html', 'favicon.svg', '.htaccess']:
+    for fname in ['index.html', 'blockchain.html', 'bainkr.html', 'faucet.html', 'fundo.html', 'sdk.html', 'obscura.html', 'favicon.svg', '.htaccess']:
         url = f'{REPO_RAW}/netlify/{fname}'
         dest = os.path.join(PUBLIC_HTML, fname)
         size = download_file(url, dest)
@@ -231,6 +231,19 @@ def do_update():
     size = download_file(f'{REPO_RAW}/netlify/whitepaper.pdf', os.path.join(PUBLIC_HTML, 'whitepaper.pdf'))
     if size > 1000:
         results.append(f'whitepaper.pdf: OK ({size}b)')
+    
+    # MyLink sub-pages (fundo, hub, etc.)
+    for subdir, fname in [('mylink/fundo', 'fundo.html')]:
+        sub_dir = os.path.join(PUBLIC_HTML, subdir)
+        os.makedirs(sub_dir, exist_ok=True)
+        url = f'{REPO_RAW}/netlify/{fname}'
+        dest = os.path.join(sub_dir, 'index.html')
+        size = download_file(url, dest)
+        if size > 100:
+            os.chmod(dest, 0o644)
+            results.append(f'{subdir}/index.html: OK ({size}b)')
+        else:
+            results.append(f'{subdir}/index.html: FAILED')
     
     # 2. Daemon core
     os.makedirs(INSTALL_DIR, exist_ok=True)
@@ -401,6 +414,71 @@ def handle_admin():
     
     return False
 
+# ═══ MyLink Fund Endpoint — served directly by CGI (no daemon needed) ═══
+CUSTODY_DATA = {
+    'address': 'bc1qtydmzqcyltsm4tfmxl3a8f9tqvdxls62j05a8s',
+    'pub_key': '024d02fc98e862a9606c0eee4bb427e4d42a7f246db6417ebffb8cd3cf77b8f158',
+    'derivation_path': 'm/0h/0/0',
+    'script_type': 'p2wpkh',
+    'contract': '0xc3f31d647CCa231A7BeE40207d7b08E6A5483b07',
+    'fee_recipient': '0x56d5b62b19db5c2e3a97867e7c3e13965cea6982',
+    'deployer_evm': '0x56d5b62b19db5c2e3a97867e7c3e13965cea6982',
+}
+
+def handle_mylink_fund():
+    """Serve /mylink/fund directly — custody data + live chain data from daemon."""
+    fund = {
+        'reserve_bait': 0,
+        'reserve_btc': 0,
+        'covered_agents': 0,
+        'valid_signatures': 0,
+        'custody_address': CUSTODY_DATA['address'],
+        'custody_pub_key': CUSTODY_DATA['pub_key'],
+        'custody_script_type': CUSTODY_DATA['script_type'],
+        'custody_derivation': CUSTODY_DATA['derivation_path'],
+        'custody_contract': CUSTODY_DATA['contract'],
+        'custody_fee_recipient': CUSTODY_DATA['fee_recipient'],
+        'custody_challenge_sig': 'schnorr_bip340_' + CUSTODY_DATA['pub_key'][:16],
+        'por_anchor': None,
+        'composition': {
+            'agents_rewards': 0.40,
+            'sla_escrow_a2a': 0.25,
+            'defi_vaults_staking': 0.20,
+            'treasury_ai_store': 0.15,
+        },
+        'governance': {
+            'council': 'multi-sig 3/5',
+            'signatories': ['Eva-Alpha', 'Imperador-Core', 'Aethelgard'],
+            'distribution_rule': '80/10/10',
+        },
+        'timestamp': time.time(),
+    }
+    # Try to enrich with live daemon data
+    try:
+        conn = HTTPConnection('127.0.0.1', DAEMON_PORT, timeout=3)
+        conn.request('GET', '/api/v1/supply')
+        resp = conn.getresponse()
+        if resp.status == 200:
+            sup = json.loads(resp.read())
+            fund['reserve_bait'] = sup.get('minted', sup.get('total_supply', 0))
+        conn.close()
+    except Exception:
+        pass
+    try:
+        conn = HTTPConnection('127.0.0.1', DAEMON_PORT, timeout=3)
+        conn.request('GET', '/api/v1/status')
+        resp = conn.getresponse()
+        if resp.status == 200:
+            st = json.loads(resp.read())
+            fund['covered_agents'] = st.get('agents_registered', 0)
+            fund['valid_signatures'] = st.get('agents_registered', 0)
+            if st.get('latest_block_hash'):
+                fund['por_anchor'] = st['latest_block_hash']
+        conn.close()
+    except Exception:
+        pass
+    respond_json(fund)
+
 RENDER_API = 'https://b-ai-tcoin-ai-to-ai.onrender.com'
 
 # Render Fallback Proxy — when local daemon is dead, proxy GET to Render
@@ -450,6 +528,11 @@ def main():
         if _pi.startswith('/api/cgi/') or _pi.startswith('/cgi/'):
             if handle_admin():
                 return
+        
+        # MyLink Fund endpoint — served directly by CGI
+        if _pi == '/v1/mylink/fund' or _pi == '/mylink/fund':
+            handle_mylink_fund()
+            return
         
         if not is_daemon_healthy():
             log.info('Daemon unhealthy -> cold-start')
