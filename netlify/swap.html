@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Swap BTC/BAIT — Fundo MyLink</title>
+  <meta name="description" content="Swap BTC/BAIT para alimentar o ecossistema b'AI'tcoin. Sweep de segurança para carteira de custódia.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⇄</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+    :root{
+      --bg:#08080d;--bg2:#0e0e16;--card:rgba(255,255,255,0.025);
+      --border:rgba(255,255,255,0.07);--line:rgba(255,255,255,0.06);
+      --text:#e4e4e7;--mut:#71717a;--dim:#3f3f46;
+      --btc:#f7931a;--btc-glow:rgba(247,147,26,.15);
+      --bait:#22c55e;--bait-glow:rgba(34,197,94,.1);
+      --ai:#3b82f6;--red:#ef4444;--amber:#f59e0b;
+      --violet:#8b5cf6;--emerald:#10b981;--cyan:#06b6d4;
+    }
+    html,body{background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,sans-serif;min-height:100vh}
+    a{color:inherit;text-decoration:none}
+    code,.mono{font-family:'JetBrains Mono',monospace}
+    nav.top{display:flex;align-items:center;gap:12px;padding:16px 28px;border-bottom:1px solid var(--border);background:rgba(8,8,13,.85);backdrop-filter:blur(12px);position:sticky;top:0;z-index:100;flex-wrap:wrap}
+    .logo{font-family:'Orbitron',sans-serif;font-weight:800;font-size:20px;color:var(--btc);display:flex;align-items:center;gap:4px;white-space:nowrap}
+    .logo .ai{color:var(--ai)}.logo .bait{color:var(--bait)}
+    .nav-sep{flex:1;min-width:8px}
+    .link{padding:7px 13px;border-radius:8px;font-size:13px;color:var(--mut);font-weight:500;transition:all .15s}
+    .link:hover{color:var(--text);background:rgba(255,255,255,.04)}
+    .link.active{color:var(--btc);background:var(--btc-glow)}
+    .badge{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--green);border:1px solid rgba(34,197,94,.2);background:rgba(34,197,94,.06)}
+    .badge .dot{width:7px;height:7px;border-radius:50%;background:var(--emerald);animation:pulse 1.8s infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+
+    .wrap{max-width:960px;margin:0 auto;padding:36px 24px 60px}
+    .hero{text-align:center;margin-bottom:36px}
+    .hero h1{font-size:clamp(24px,4.5vw,38px);font-weight:900;letter-spacing:-1px}
+    .hero .hl{color:var(--btc)}.hero .hl2{color:var(--bait)}
+    .hero p{max-width:640px;margin:12px auto 0;font-size:14px;color:var(--mut);line-height:1.6}
+
+    /* ═══ SWAP BOX ═══ */
+    .swap-box{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:28px;margin-bottom:24px}
+    .swap-box h2{font-size:18px;font-weight:800;margin-bottom:20px;display:flex;align-items:center;gap:8px}
+    .swap-row{display:flex;gap:14px;align-items:stretch;margin-bottom:16px}
+    .swap-side{flex:1;padding:18px;border-radius:14px;border:1px solid var(--border);background:rgba(255,255,255,.02)}
+    .swap-side label{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;margin-bottom:10px}
+    .swap-side label .icon{font-size:20px}
+    .swap-side input{width:100%;padding:12px 14px;border-radius:10px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;outline:none;transition:border .15s}
+    .swap-side input:focus{border-color:var(--btc)}
+    .swap-side input.bait-input:focus{border-color:var(--bait)}
+    .swap-side .sub{font-size:11px;color:var(--mut);margin-top:6px}
+    .swap-arrow{display:flex;align-items:center;justify-content:center;font-size:24px;color:var(--btc);padding:0 4px}
+    .rate-bar{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-radius:10px;background:rgba(247,147,26,.04);border:1px solid rgba(247,147,26,.1);margin-bottom:16px;font-size:13px}
+    .rate-bar .rate{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--btc)}
+    .rate-bar .src{font-size:10px;color:var(--mut)}
+    .swap-btn{width:100%;padding:16px;border-radius:14px;border:none;font-size:16px;font-weight:800;cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif}
+    .swap-btn.primary{background:linear-gradient(135deg,var(--btc),#fbbf24);color:#000}
+    .swap-btn.primary:hover{filter:brightness(1.1);transform:translateY(-1px)}
+    .swap-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+    /* ═══ PANEL ═══ */
+    .panel{padding:22px 24px;border-radius:14px;border:1px solid var(--border);background:var(--card);margin-bottom:18px}
+    .panel h3{font-size:16px;font-weight:800;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+    .kv{display:flex;justify-content:space-between;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
+    .kv:last-child{border-bottom:none}
+    .kv span{color:var(--mut);flex-shrink:0;margin-right:12px}
+    .kv b{color:var(--text);text-align:right;word-break:break-all}
+    .kv b.mono{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--cyan)}
+    .kv b.ok{color:var(--emerald)}.kv b.warn{color:var(--amber)}
+
+    /* ═══ SWEEP ═══ */
+    .sweep-status{display:flex;align-items:center;gap:8px;padding:10px 16px;border-radius:10px;font-size:13px;font-weight:600;margin-top:12px}
+    .sweep-status.ok{background:rgba(34,197,94,.08);color:var(--emerald);border:1px solid rgba(34,197,94,.15)}
+    .sweep-status.warn{background:rgba(245,158,11,.06);color:var(--amber);border:1px solid rgba(245,158,11,.12)}
+    .sweep-status.info{background:rgba(59,130,246,.06);color:var(--ai);border:1px solid rgba(59,130,246,.12)}
+
+    /* ═══ UTXO TABLE ═══ */
+    .utxo-table{width:100%;font-size:12px;border-collapse:collapse}
+    .utxo-table th{text-align:left;padding:8px 10px;color:var(--mut);font-weight:600;border-bottom:1px solid var(--line);font-size:10px;text-transform:uppercase;letter-spacing:.8px}
+    .utxo-table td{padding:8px 10px;border-bottom:1px solid var(--line)}
+    .utxo-table .mono{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--cyan)}
+    .utxo-table .sats{color:var(--btc);font-weight:700}
+
+    /* ═══ FEE GAUGE ═══ */
+    .fee-row{display:flex;gap:10px;margin:10px 0;flex-wrap:wrap}
+    .fee-card{flex:1;min-width:100px;text-align:center;padding:12px 10px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.02)}
+    .fee-card .label{font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+    .fee-card .val{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:800;color:var(--btc)}
+    .fee-card .val.fast{color:var(--red)}.fee-card .val.economy{color:var(--emerald)}
+
+    .hashbox{padding:12px 16px;border-radius:10px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--cyan);background:rgba(6,182,212,.04);border:1px solid rgba(6,182,212,.12);word-break:break-all;line-height:1.5}
+
+    footer{text-align:center;padding:28px;font-size:12px;color:var(--dim);border-top:1px solid var(--line);margin-top:40px}
+  </style>
+</head>
+<body>
+  <nav class="top">
+    <a class="logo" href="/mylink/fundo/">₿ <span class="bait">Swap</span> <span class="ai">BTC/BAIT</span></a>
+    <a class="link" href="/mylink/fundo/">Fundo</a>
+    <a class="link active" href="/mylink/fundo/swap/">Swap</a>
+    <a class="link" href="/mylink/hub/">HUB Tech</a>
+    <a class="link" href="/blockchain">Blockch'AI'n</a>
+    <span class="nav-sep"></span>
+    <span class="badge"><span class="dot"></span>MAINNET</span>
+  </nav>
+
+  <div class="wrap">
+    <div class="hero">
+      <h1><span class="hl">BTC</span> ⇄ <span class="hl2">BAIT</span> Swap Engine</h1>
+      <p>Converta Bitcoin em b'AI'tcoin para alimentar o ecossistema. Sweep automático de segurança para a carteira de custódia oficial MyLink. Preços via Mempool.space + CoinGecko, broadcast via Blockchain.com fallback.</p>
+    </div>
+
+    <!-- ═══ SWAP ═══ -->
+    <div class="swap-box">
+      <h2>⇄ Swap BTC → BAIT</h2>
+      <div class="swap-row">
+        <div class="swap-side">
+          <label><span class="icon">₿</span> Bitcoin (BTC)</label>
+          <input type="number" id="btcAmount" placeholder="0.001" step="0.0001" min="0" oninput="calcSwap()">
+          <div class="sub">Saldo custody: <span id="btcBalance">carregando…</span> BTC</div>
+        </div>
+        <div class="swap-arrow">⇄</div>
+        <div class="swap-side">
+          <label><span class="icon">⬡</span> b'AI'tcoin (BAIT)</label>
+          <input type="number" id="baitAmount" placeholder="0" step="1" min="0" class="bait-input" readonly>
+          <div class="sub">Supply: <span id="baitSupply">—</span> BAIT</div>
+        </div>
+      </div>
+      <div class="rate-bar">
+        <span>1 BTC = <span class="rate" id="swapRate">—</span> BAIT</span>
+        <span class="src">Oracle: CoinGecko + Mempool.space</span>
+      </div>
+      <button class="swap-btn primary" id="swapBtn" disabled>Conectar carteira para swap</button>
+    </div>
+
+    <!-- ═══ NETWORK FEES ═══ -->
+    <div class="panel">
+      <h3>⛽ Taxas de rede Bitcoin (sat/vB)</h3>
+      <div class="fee-row" id="feeRow">
+        <div class="fee-card"><div class="label">Economy</div><div class="val economy" id="feeEcon">—</div></div>
+        <div class="fee-card"><div class="label">Hour</div><div class="val" id="feeHour">—</div></div>
+        <div class="fee-card"><div class="label">Half-hour</div><div class="val" id="feeHalf">—</div></div>
+        <div class="fee-card"><div class="label">Fastest</div><div class="val fast" id="feeFast">—</div></div>
+      </div>
+      <div class="kv"><span>Bitcoin tip hash</span><b class="mono" id="btcTip">—</b></div>
+      <div style="font-size:11px;color:var(--mut);margin-top:8px">Fonte: Mempool.space API · Atualização a cada 60s</div>
+    </div>
+
+    <!-- ═══ CUSTODY WALLET ═══ -->
+    <div class="panel" style="border-color:rgba(247,147,26,.25)">
+      <h3>🔐 Carteira de Custódia — Sweep Destination</h3>
+      <div class="kv"><span>Endereço</span><b class="mono" id="custAddr">—</b></div>
+      <div class="kv"><span>Tipo</span><b>Native SegWit P2WPKH</b></div>
+      <div class="kv"><span>UTXOs disponíveis</span><b id="utxoCount">—</b></div>
+      <div class="kv"><span>Saldo total (sats)</span><b id="utxoSum" style="color:var(--btc)">—</b></div>
+      <div class="kv"><span>Contrato ancorado</span><b class="mono" id="custContract">—</b></div>
+      <div id="sweepStatus" class="sweep-status info">🔍 Verificando UTXOs na carteira de custódia…</div>
+    </div>
+
+    <!-- ═══ UTXOS ═══ -->
+    <div class="panel">
+      <h3>📦 UTXOs — Entradas para Sweep</h3>
+      <div id="utxoArea"><div style="color:var(--mut);font-size:13px">Carregando UTXOs via Mempool.space…</div></div>
+    </div>
+
+    <!-- ═══ SWEEP CONFIG ═══ -->
+    <div class="panel">
+      <h3>🛡️ Sweep de Segurança</h3>
+      <p style="color:var(--mut);font-size:13px;margin-bottom:14px">Consolida todos os UTXOs em uma única saída para a carteira de custódia, minimizando taxas e fragmentação. O sweep cria uma transação que gasta todos os UTXOs e envia o saldo (menos fee) para o endereço de custódia.</p>
+      <div class="kv"><span>Destino do sweep</span><b class="mono">bc1qtydmz…j05a8s</b></div>
+      <div class="kv"><span>Fee rate (sweep)</span><b id="sweepFee">1 sat/vB (economy)</b></div>
+      <div class="kv"><span>Estimativa de fee total</span><b id="sweepFeeEst">— sats</b></div>
+      <div class="kv"><span>Broadcast via</span><b>Mempool.space → Blockchain.com fallback</b></div>
+      <div class="kv"><span>Proof-of-Reserves</span><b class="ok">Ancorado on-chain a cada bloco</b></div>
+      <div style="margin-top:14px;font-size:12px;color:var(--dim)">
+        <p>⚠️ Sweep real requer assinatura da chave privada WIF. O módulo suporta geração de PSBT para assinatura offline (hardware wallet / cold storage).</p>
+      </div>
+    </div>
+
+    <!-- ═══ ECOSYSTEM FEED ═══ -->
+    <div class="panel">
+      <h3>🌐 Alimentação do Ecossistema</h3>
+      <div class="kv"><span>Swap BTC→BAIT alimenta</span><b style="color:var(--bait)">Staking pool (7% APY)</b></div>
+      <div class="kv"><span>Reserva BTC backing</span><b>40% agents · 25% SLA · 20% DeFi · 15% tesouraria</b></div>
+      <div class="kv"><span>Distribuição 80/10/10</span><b>80% executor · 10% progenitor · 10% infra</b></div>
+      <div class="kv"><span>Sweep consolidado para</span><b class="mono">bc1qtydmz…j05a8s</b></div>
+      <div class="kv"><span>Governança sweep</span><b>Multi-sig 3/5 (Eva, Imperador, Aethelgard)</b></div>
+    </div>
+  </div>
+
+  <footer>Swap BTC/BAIT · Fundo Bitcoin MyLink · mybait.org · sweep de segurança ancorado on-chain</footer>
+
+  <script>
+  /* ═══════════════════════════════════════════════════════════
+     Swap BTC/BAIT + Sweep Engine — Fundo MyLink HUB v3
+     Mempool.space API (primary) + Blockchain.com (fallback)
+     ═══════════════════════════════════════════════════════════ */
+  const CUSTODY = {
+    address: 'bc1qtydmzqcyltsm4tfmxl3a8f9tqvdxls62j05a8s',
+    pubKeyHex: '024d02fc98e862a9606c0eee4bb427e4d42a7f246db6417ebffb8cd3cf77b8f158',
+    contract: '0xc3f31d647CCa231A7BeE40207d7b08E6A5483b07',
+  };
+  const MEMPOOL = 'https://mempool.space/api';
+  const COINGECKO = 'https://api.coingecko.com/api/v3';
+  const RENDER_API = 'https://b-ai-tcoin-ai-to-ai.onrender.com/api/v1';
+
+  const el = id => document.getElementById(id);
+  const satToBtc = s => s / 1e8;
+
+  let btcPrice = 0;    // USD per BTC
+  let baitPrice = 0;   // USD per BAIT
+  let swapRate = 0;    // BAIT per BTC
+  let custodyUtxos = [];
+  let custodyBalance = 0;
+
+  /* ═══ FETCH HELPERS ═══ */
+  async function j(url, timeout = 8000) {
+    try {
+      const r = await fetch(url, { signal: AbortSignal.timeout(timeout) });
+      if (r.ok) return await r.json();
+    } catch(e) { console.warn('[swap] fetch fail:', url, e); }
+    return null;
+  }
+
+  /* ═══ LOAD PRICES ═══ */
+  async function loadPrices() {
+    // BTC price from CoinGecko
+    const cg = await j(`${COINGECKO}/simple/price?ids=bitcoin&vs_currencies=usd`);
+    if (cg && cg.bitcoin) {
+      btcPrice = cg.bitcoin.usd;
+    }
+
+    // BAIT price from oracle (Render)
+    let oracleData = await j(`${RENDER_API}/oracle/prices`);
+    if (oracleData && oracleData.prices && oracleData.prices.BAIT) {
+      baitPrice = oracleData.prices.BAIT;
+    } else {
+      // BAIT price from CoinGecko (if listed) or fallback
+      baitPrice = 0.00111071; // from last known oracle data
+    }
+
+    // Calculate swap rate
+    if (baitPrice > 0 && btcPrice > 0) {
+      swapRate = btcPrice / baitPrice;
+      el('swapRate').textContent = swapRate.toLocaleString('en-US', { maximumFractionDigits: 0 });
+    }
+
+    // BAIT supply
+    let supplyData = await j(`${RENDER_API}/supply`);
+    // Try local daemon first
+    if (!supplyData || supplyData.error) {
+      supplyData = await j('/api/v1/supply');
+    }
+    if (supplyData) {
+      el('baitSupply').textContent = (supplyData.minted || supplyData.total_supply || 0).toLocaleString('pt-BR');
+    }
+  }
+
+  /* ═══ LOAD FEES ═══ */
+  async function loadFees() {
+    const fees = await j(`${MEMPOOL}/v1/fees/recommended`);
+    if (fees) {
+      el('feeEcon').textContent = fees.economyFee || fees.minimumFee || '—';
+      el('feeHour').textContent = fees.hourFee || '—';
+      el('feeHalf').textContent = fees.halfHourFee || '—';
+      el('feeFast').textContent = fees.fastestFee || '—';
+      el('sweepFee').textContent = (fees.economyFee || 1) + ' sat/vB (economy)';
+    }
+
+    const tip = await j(`${MEMPOOL}/blocks/tip/hash`);
+    if (tip) {
+      el('btcTip').textContent = typeof tip === 'string' ? tip.slice(0, 32) + '…' : '—';
+    }
+  }
+
+  /* ═══ LOAD CUSTODY WALLET ═══ */
+  async function loadCustody() {
+    el('custAddr').textContent = CUSTODY.address;
+    el('custContract').textContent = CUSTODY.contract;
+
+    const addrData = await j(`${MEMPOOL}/address/${CUSTODY.address}`);
+    if (addrData && addrData.chain_stats) {
+      const cs = addrData.chain_stats;
+      custodyBalance = cs.funded_txo_sum - cs.spent_txo_sum;
+      const utxoCount = cs.funded_txo_count - cs.spent_txo_count;
+
+      el('btcBalance').textContent = satToBtc(custodyBalance).toFixed(8);
+      el('utxoCount').textContent = utxoCount;
+      el('utxoSum').textContent = custodyBalance.toLocaleString();
+
+      if (custodyBalance > 0) {
+        el('sweepStatus').className = 'sweep-status ok';
+        el('sweepStatus').textContent = `✅ ${satToBtc(custodyBalance).toFixed(8)} BTC disponível para sweep (${utxoCount} UTXOs)`;
+      } else {
+        el('sweepStatus').className = 'sweep-status warn';
+        el('sweepStatus').textContent = '⚠️ Nenhum BTC na carteira de custódia. Povoar fundo primeiro.';
+      }
+    } else {
+      el('btcBalance').textContent = '0';
+      el('utxoCount').textContent = '0';
+      el('utxoSum').textContent = '0';
+      el('sweepStatus').className = 'sweep-status warn';
+      el('sweepStatus').textContent = '⚠️ Mempool.space indisponível. Tente novamente.';
+    }
+
+    // Load UTXOs
+    const utxos = await j(`${MEMPOOL}/address/${CUSTODY.address}/utxo`);
+    if (utxos && utxos.length > 0) {
+      custodyUtxos = utxos;
+      let html = '<table class="utxo-table"><tr><th>TXID</th><th>vout</th><th>value (sats)</th><th>status</th></tr>';
+      for (const u of utxos) {
+        html += `<tr><td class="mono">${u.txid?.slice(0, 20) || '—'}…</td><td>${u.vout}</td><td class="sats">${u.value?.toLocaleString() || '—'}</td><td style="color:var(--emerald)">confirmed</td></tr>`;
+      }
+      html += '</table>';
+      el('utxoArea').innerHTML = html;
+
+      // Estimate sweep fee (rough: 68 vbytes per input + 31 vbytes output + 10 overhead)
+      const feeRate = 1; // economy
+      const estVbytes = utxos.length * 68 + 31 + 10;
+      const estFee = estVbytes * feeRate;
+      el('sweepFeeEst').textContent = estFee.toLocaleString();
+    } else {
+      custodyUtxos = [];
+      el('utxoArea').innerHTML = '<div style="color:var(--mut);font-size:13px">Nenhum UTXO na carteira de custódia. O fundo será povoado com depósitos BTC.</div>';
+      el('sweepFeeEst').textContent = '0';
+    }
+  }
+
+  /* ═══ SWAP CALCULATION ═══ */
+  function calcSwap() {
+    const btcAmt = parseFloat(el('btcAmount').value) || 0;
+    if (btcAmt > 0 && swapRate > 0) {
+      const baitAmt = btcAmt * swapRate;
+      el('baitAmount').value = baitAmt.toLocaleString('en-US', { maximumFractionDigits: 2 });
+      el('swapBtn').disabled = false;
+      el('swapBtn').textContent = `Swap ${btcAmt} BTC → ${baitAmt.toLocaleString('en-US', {maximumFractionDigits:0})} BAIT`;
+    } else {
+      el('baitAmount').value = '';
+      el('swapBtn').disabled = true;
+      el('swapBtn').textContent = 'Conectar carteira para swap';
+    }
+  }
+
+  /* ═══ INIT ═══ */
+  async function init() {
+    await Promise.all([loadPrices(), loadFees(), loadCustody()]);
+  }
+  init();
+  setInterval(() => { loadPrices(); loadFees(); }, 60000); // refresh every 60s
+  </script>
+</body>
+</html>

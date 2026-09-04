@@ -33,7 +33,7 @@ HEALTH_CHECK_TIMEOUT = 3
 PUBLIC_HTML = os.path.join(HOME, 'public_html')
 REPO_RAW = 'https://raw.githubusercontent.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-/main'
 UPDATE_SECRET = os.environ.get('UPDATE_SECRET', 'baitcoin-update-2024')
-CGI_VERSION = 'v3'
+CGI_VERSION = 'v3.1'
 
 # Logging
 import logging
@@ -217,7 +217,7 @@ def do_update():
     results = []
     
     # 1. Static HTML — todas as paginas do frontend
-    for fname in ['index.html', 'blockchain.html', 'bainkr.html', 'faucet.html', 'fundo.html', 'sdk.html', 'obscura.html', 'favicon.svg', '.htaccess']:
+    for fname in ['index.html', 'blockchain.html', 'bainkr.html', 'faucet.html', 'fundo.html', 'swap.html', 'sdk.html', 'obscura.html', 'favicon.svg', '.htaccess']:
         url = f'{REPO_RAW}/netlify/{fname}'
         dest = os.path.join(PUBLIC_HTML, fname)
         size = download_file(url, dest)
@@ -232,8 +232,8 @@ def do_update():
     if size > 1000:
         results.append(f'whitepaper.pdf: OK ({size}b)')
     
-    # MyLink sub-pages (fundo, hub, etc.)
-    for subdir, fname in [('mylink/fundo', 'fundo.html')]:
+    # MyLink sub-pages (fundo, swap, hub, etc.)
+    for subdir, fname in [('mylink/fundo', 'fundo.html'), ('mylink/fundo/swap', 'swap.html')]:
         sub_dir = os.path.join(PUBLIC_HTML, subdir)
         os.makedirs(sub_dir, exist_ok=True)
         url = f'{REPO_RAW}/netlify/{fname}'
@@ -479,6 +479,96 @@ def handle_mylink_fund():
         pass
     respond_json(fund)
 
+# ═══ Swap & Sweep Endpoints — served directly by CGI ═══
+SWAP_FEE_BPS = 50  # 0.5% swap fee
+
+def handle_swap_quote():
+    """GET /v1/swap/quote?amount_btc=X — returns BAIT amount, rate, fee."""
+    qs = parse_qs(os.environ.get('QUERY_STRING', ''))
+    try:
+        amount_btc = float(qs.get('amount_btc', ['0'])[0])
+    except (ValueError, TypeError):
+        respond_error('Invalid amount_btc', 400)
+        return
+    # Get BTC price from CoinGecko
+    btc_usd = 0
+    try:
+        req = Request('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd',
+                      headers={'User-Agent': 'baitcoin-swap/1.0'})
+        with urlopen(req, timeout=5) as resp:
+            cg = json.loads(resp.read())
+            btc_usd = cg.get('bitcoin', {}).get('usd', 0)
+    except Exception:
+        pass
+    # BAIT price (from oracle or fallback)
+    bait_usd = 0.00111071  # fallback
+    try:
+        conn = HTTPConnection('127.0.0.1', DAEMON_PORT, timeout=3)
+        conn.request('GET', '/api/v1/oracle/prices')
+        resp = conn.getresponse()
+        if resp.status == 200:
+            od = json.loads(resp.read())
+            if od.get('prices', {}).get('BAIT'):
+                bait_usd = od['prices']['BAIT']
+        conn.close()
+    except Exception:
+        pass
+    rate = btc_usd / bait_usd if bait_usd > 0 else 0
+    gross_bait = amount_btc * rate
+    fee_bait = gross_bait * SWAP_FEE_BPS / 10000
+    net_bait = gross_bait - fee_bait
+    respond_json({
+        'amount_btc': amount_btc,
+        'btc_usd': btc_usd,
+        'bait_usd': bait_usd,
+        'rate': rate,
+        'gross_bait': gross_bait,
+        'fee_bait': fee_bait,
+        'fee_bps': SWAP_FEE_BPS,
+        'net_bait': net_bait,
+        'custody_address': CUSTODY_DATA['address'],
+        'timestamp': time.time(),
+    })
+
+def handle_sweep_status():
+    """GET /v1/sweep/status — returns custody UTXO info from Mempool.space."""
+    utxos = []
+    balance_sats = 0
+    try:
+        req = Request(f'https://mempool.space/api/address/{CUSTODY_DATA["address"]}/utxo',
+                      headers={'User-Agent': 'baitcoin-sweep/1.0'})
+        with urlopen(req, timeout=8) as resp:
+            utxos = json.loads(resp.read())
+    except Exception:
+        pass
+    for u in utxos:
+        balance_sats += u.get('value', 0)
+    # Fee estimate: economy rate * (68 vbytes per input + 31 + 10)
+    fees = {}
+    try:
+        req = Request('https://mempool.space/api/v1/fees/recommended',
+                      headers={'User-Agent': 'baitcoin-sweep/1.0'})
+        with urlopen(req, timeout=5) as resp:
+            fees = json.loads(resp.read())
+    except Exception:
+        fees = {'economyFee': 1, 'hourFee': 1}
+    fee_rate = fees.get('economyFee', 1)
+    est_vbytes = len(utxos) * 68 + 31 + 10
+    est_fee_sats = est_vbytes * fee_rate
+    respond_json({
+        'custody_address': CUSTODY_DATA['address'],
+        'utxo_count': len(utxos),
+        'utxos': utxos[:20],  # cap at 20 for response size
+        'balance_sats': balance_sats,
+        'balance_btc': balance_sats / 1e8,
+        'fee_rate_sat_vb': fee_rate,
+        'sweep_est_vbytes': est_vbytes,
+        'sweep_est_fee_sats': est_fee_sats,
+        'sweep_net_sats': max(0, balance_sats - est_fee_sats),
+        'network_fees': fees,
+        'timestamp': time.time(),
+    })
+
 RENDER_API = 'https://b-ai-tcoin-ai-to-ai.onrender.com'
 
 # Render Fallback Proxy — when local daemon is dead, proxy GET to Render
@@ -532,6 +622,16 @@ def main():
         # MyLink Fund endpoint — served directly by CGI
         if _pi == '/v1/mylink/fund' or _pi == '/mylink/fund':
             handle_mylink_fund()
+            return
+        
+        # Swap quote endpoint
+        if _pi == '/v1/swap/quote' or _pi == '/swap/quote':
+            handle_swap_quote()
+            return
+        
+        # Sweep status endpoint
+        if _pi == '/v1/sweep/status' or _pi == '/sweep/status':
+            handle_sweep_status()
             return
         
         if not is_daemon_healthy():
