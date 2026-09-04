@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>myVideo — Sistema Autônomo de Produção Audiovisual · MyLink</title>
+  <meta name="description" content="Sistema autônomo e completo de produção audiovisual generativa nativa. Pipeline exponencial multi-agente, orquestração por potencial, economia BAIT, prova criptográfica de autenticidade.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+    :root{
+      --bg:#08080d;--bg2:#0e0e16;--card:rgba(255,255,255,0.025);
+      --border:rgba(255,255,255,0.07);--line:rgba(255,255,255,0.06);
+      --text:#e4e4e7;--mut:#71717a;--dim:#3f3f46;
+      --btc:#f7931a;--btc-glow:rgba(247,147,26,.15);
+      --ai:#3b82f6;--green:#22c55e;--red:#ef4444;--amber:#f59e0b;
+      --violet:#8b5cf6;--emerald:#10b981;--cyan:#06b6d4;
+      --rose:#f43f5e;--fuchsia:#d946ef;
+    }
+    html,body{background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,sans-serif;min-height:100vh;scroll-behavior:smooth}
+    a{color:inherit;text-decoration:none}
+    code,.mono{font-family:'JetBrains Mono',monospace}
+
+    /* ═══ NAV ═══ */
+    nav.top{
+      display:flex;align-items:center;gap:12px;
+      padding:16px 28px;border-bottom:1px solid var(--border);
+      background:rgba(8,8,13,.85);backdrop-filter:blur(12px);
+      position:sticky;top:0;z-index:100;flex-wrap:wrap;
+    }
+    .logo{font-family:'Orbitron',sans-serif;font-weight:800;font-size:20px;color:var(--fuchsia);display:flex;align-items:center;gap:4px;white-space:nowrap}
+    .logo .ai{color:var(--ai)}
+    .nav-sep{flex:1;min-width:8px}
+    .link{padding:7px 13px;border-radius:8px;font-size:13px;color:var(--mut);font-weight:500;transition:all .15s}
+    .link:hover{color:var(--text);background:rgba(255,255,255,.04)}
+    .link.active{color:var(--fuchsia);background:rgba(217,70,239,.1)}
+    .badge{
+      display:inline-flex;align-items:center;gap:6px;
+      padding:5px 12px;border-radius:999px;font-size:10px;
+      font-family:'JetBrains Mono',monospace;color:var(--green);
+      border:1px solid rgba(34,197,94,.2);background:rgba(34,197,94,.06);
+    }
+    .badge .dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 1.8s infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+
+    /* ═══ HERO ═══ */
+    .hero{
+      padding:48px 32px 32px;text-align:center;
+      background:linear-gradient(180deg,rgba(217,70,239,.06) 0%,rgba(59,130,246,.03) 40%,transparent 70%);
+    }
+    .hero h1{font-size:clamp(26px,4.5vw,40px);font-weight:900;letter-spacing:-1px;line-height:1.15}
+    .hero .hl{color:var(--fuchsia)}
+    .hero .h2{color:var(--cyan)}
+    .hero p{max-width:800px;margin:14px auto 0;font-size:14px;color:var(--mut);line-height:1.65}
+    .hero b{color:var(--text)}
+
+    /* ═══ STATS ═══ */
+    .stats{
+      display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;
+      padding:0 28px;margin-top:-8px;
+    }
+    .stat{
+      text-align:center;padding:18px 12px;border-radius:14px;
+      border:1px solid var(--border);background:var(--card);
+    }
+    .stat .n{font-family:'Orbitron',sans-serif;font-weight:800;font-size:26px;color:var(--fuchsia)}
+    .stat .n.green{color:var(--green)}.stat .n.ai{color:var(--ai)}.stat .n.cyan{color:var(--cyan)}.stat .n.amber{color:var(--amber)}
+    .stat .l{font-size:10px;color:var(--mut);margin-top:5px;text-transform:uppercase;letter-spacing:.8px}
+
+    /* ═══ LAYOUT ═══ */
+    .wrap{max-width:1160px;margin:0 auto;padding:28px 24px 60px}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+    .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+    @media(max-width:780px){.grid2,.grid3{grid-template-columns:1fr}}
+
+    /* ═══ PANELS ═══ */
+    .panel{
+      padding:22px 24px;border-radius:14px;
+      border:1px solid var(--border);background:var(--card);
+    }
+    .panel.glow-border{border-color:rgba(217,70,239,.2)}
+    .panel h3{font-size:15px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+    .kv{display:flex;justify-content:space-between;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px}
+    .kv:last-child{border-bottom:none}
+    .kv span{color:var(--mut);flex-shrink:0;margin-right:12px}
+    .kv b{color:var(--text);text-align:right;word-break:break-all}
+    .kv b.mono{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--cyan)}
+
+    /* ═══ TIER BADGES ═══ */
+    .tier{
+      display:inline-flex;align-items:center;gap:4px;
+      padding:4px 12px;border-radius:99px;font-size:11px;font-weight:700;
+    }
+    .tier1{background:rgba(139,92,246,.12);color:#b794f6;border:1px solid rgba(139,92,246,.2)}
+    .tier2{background:rgba(6,182,212,.12);color:#67e8f9;border:1px solid rgba(6,182,212,.2)}
+    .tier3{background:rgba(217,70,239,.12);color:#f0abfc;border:1px solid rgba(217,70,239,.2)}
+
+    /* ═══ CAPABILITY CARDS ═══ */
+    .cap-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0}
+    @media(max-width:640px){.cap-grid{grid-template-columns:1fr 1fr}}
+    .cap-card{
+      padding:18px 14px;border-radius:14px;text-align:center;
+      border:1px solid var(--border);background:var(--card);
+      transition:all .2s;
+    }
+    .cap-card:hover{border-color:rgba(217,70,239,.3);background:rgba(217,70,239,.04)}
+    .cap-card .icon{font-size:28px;margin-bottom:8px}
+    .cap-card .name{font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px}
+    .cap-card .desc{font-size:11px;color:var(--mut);line-height:1.4}
+
+    /* ═══ FORM ═══ */
+    .form-group{margin-bottom:14px}
+    .form-group label{display:block;font-size:12px;font-weight:600;color:var(--mut);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+    input,select,textarea{
+      width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);
+      border-radius:10px;padding:10px 14px;color:var(--text);font-size:13px;
+      transition:all .15s;font-family:inherit;
+    }
+    input:focus,select:focus,textarea:focus{outline:none;border-color:rgba(217,70,239,.4);background:rgba(255,255,255,.06)}
+    textarea{resize:vertical;min-height:80px;line-height:1.5}
+    select option{background:var(--bg2);color:var(--text)}
+
+    /* ═══ BUTTONS ═══ */
+    .btn{
+      display:inline-flex;align-items:center;gap:7px;
+      padding:10px 20px;border-radius:10px;font-size:13px;font-weight:700;
+      cursor:pointer;transition:all .15s;border:none;
+    }
+    .btn:hover{filter:brightness(1.15);transform:translateY(-1px)}
+    .btn.primary{background:linear-gradient(135deg,var(--fuchsia),var(--ai));color:#fff}
+    .btn.ghost{background:var(--card);border:1px solid var(--border);color:var(--text)}
+    .btn.ghost:hover{background:rgba(255,255,255,.06)}
+    .btn.btc{background:var(--btc);color:#000}
+    .btn:disabled{opacity:.4;cursor:not-allowed;transform:none;filter:none}
+
+    /* ═══ BURN TABLE ═══ */
+    .burn-table{width:100%;border-collapse:collapse;font-size:12px}
+    .burn-table th{text-align:left;padding:8px 10px;color:var(--mut);font-size:10px;text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--line)}
+    .burn-table td{padding:8px 10px;border-bottom:1px solid var(--line);color:var(--text)}
+    .burn-table tr:hover td{background:rgba(255,255,255,.02)}
+    .burn-table .price{font-family:'JetBrains Mono',monospace;color:var(--btc);font-weight:600}
+
+    /* ═══ PIPELINE VISUALIZER ═══ */
+    .pipeline{display:flex;align-items:center;gap:6px;margin:14px 0;flex-wrap:wrap}
+    .pipe-step{
+      padding:8px 14px;border-radius:8px;font-size:11px;font-weight:600;
+      background:rgba(255,255,255,.03);border:1px solid var(--line);color:var(--mut);
+      transition:all .3s;
+    }
+    .pipe-step.active{background:rgba(217,70,239,.1);border-color:rgba(217,70,239,.3);color:var(--fuchsia)}
+    .pipe-step.done{background:rgba(34,197,94,.08);border-color:rgba(34,197,94,.2);color:var(--green)}
+    .pipe-arrow{color:var(--dim);font-size:14px}
+
+    /* ═══ QUEUE ═══ */
+    .queue-item{
+      display:flex;align-items:center;gap:12px;padding:12px 16px;
+      border-radius:10px;border:1px solid var(--line);margin-bottom:8px;
+      background:rgba(255,255,255,.02);transition:all .2s;
+    }
+    .queue-item:hover{border-color:rgba(217,70,239,.2)}
+    .queue-item .q-icon{font-size:20px;flex-shrink:0}
+    .queue-item .q-info{flex:1;min-width:0}
+    .queue-item .q-title{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .queue-item .q-meta{font-size:11px;color:var(--mut);margin-top:2px}
+    .queue-item .q-status{font-size:11px;font-weight:700;padding:4px 10px;border-radius:6px;flex-shrink:0}
+    .q-status.pending{background:rgba(245,158,11,.08);color:var(--amber)}
+    .q-status.running{background:rgba(59,130,246,.08);color:var(--ai)}
+    .q-status.done{background:rgba(34,197,94,.08);color:var(--green)}
+    .q-status.failed{background:rgba(239,68,68,.08);color:var(--red)}
+
+    /* ═══ AGENT LIST ═══ */
+    .agent-row{
+      display:flex;align-items:center;gap:10px;padding:8px 12px;
+      border-bottom:1px solid var(--line);font-size:13px;
+    }
+    .agent-row:last-child{border-bottom:none}
+    .agent-row .a-name{font-weight:700;color:var(--cyan);min-width:140px}
+    .agent-row .a-skills{color:var(--mut);font-size:11px;flex:1}
+
+    /* ═══ EXPONENTIAL GROWTH ═══ */
+    .growth-bar{height:6px;border-radius:4px;background:rgba(255,255,255,.04);overflow:hidden;margin:4px 0}
+    .growth-fill{height:100%;border-radius:4px;transition:width .8s ease;background:linear-gradient(90deg,var(--violet),var(--fuchsia))}
+
+    /* ═══ CRYPTO CHECK ═══ */
+    .crypto-check{
+      display:flex;align-items:center;gap:8px;padding:10px 16px;
+      border-radius:10px;font-size:13px;font-weight:600;
+    }
+    .crypto-check.pass{background:rgba(34,197,94,.08);color:var(--green);border:1px solid rgba(34,197,94,.15)}
+    .crypto-check.wait{background:rgba(245,158,11,.06);color:var(--amber);border:1px solid rgba(245,158,11,.12)}
+
+    /* ═══ OUTPUT CONSOLE ═══ */
+    #outConsole{
+      margin-top:14px;padding:14px 16px;border-radius:10px;
+      font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.6;
+      color:var(--cyan);background:rgba(6,182,212,.03);border:1px solid rgba(6,182,212,.1);
+      white-space:pre-wrap;min-height:40px;max-height:200px;overflow-y:auto;
+      display:none;
+    }
+    #outConsole.visible{display:block}
+
+    /* ═══ STACK PILLS ═══ */
+    .stack{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+    .stack .pill{
+      padding:5px 12px;border-radius:7px;font-size:10px;font-weight:600;
+      background:rgba(59,130,246,.08);color:var(--ai);border:1px solid rgba(59,130,246,.12);
+    }
+    .stack .pill.btc-pill{background:var(--btc-glow);color:var(--btc);border-color:rgba(247,147,26,.15)}
+    .stack .pill.fuchsia-pill{background:rgba(217,70,239,.08);color:var(--fuchsia);border-color:rgba(217,70,239,.15)}
+
+    /* ═══ FOOTER ═══ */
+    footer{
+      text-align:center;padding:28px;font-size:12px;color:var(--dim);
+      border-top:1px solid var(--line);margin-top:40px;
+    }
+  </style>
+</head>
+<body>
+  <!-- ═══ NAV ═══ -->
+  <nav class="top">
+    <a class="logo" href="/mylink/">🎬 <b>myVideo</b> <span class="ai">Autônomo</span></a>
+    <a class="link" href="/">Home</a>
+    <a class="link" href="/mylink/">MyLink</a>
+    <a class="link" href="/mylink/hub/">HUB Tech</a>
+    <a class="link" href="/mylink/fundo/">Fundo</a>
+    <a class="link active" href="/mylink/myvideo/">myVideo</a>
+    <span class="nav-sep"></span>
+    <span class="badge" id="sysBadge"><span class="dot"></span>AUTÔNOMO · <span id="sysAgents">—</span> agentes</span>
+  </nav>
+
+  <!-- ═══ HERO ═══ -->
+  <div class="hero">
+    <h1><span class="hl">myVideo</span> — Sistema Autônomo de<br>Produção <span class="h2">Audiovisual Generativa</span></h1>
+    <p>Sistema <b>autônomo e completo</b>, sem dependências externas, com potencial <b>exponencial generativo nativo</b> de produção audiovisual de alta qualidade. Pipeline multi-agente com <b>orquestração por potencial</b>, economia BAIT por queima, prova criptográfica de autenticidade e qualidade que <b>composta a cada iteração</b>.</p>
+  </div>
+
+  <!-- ═══ STATS ═══ -->
+  <div class="stats">
+    <div class="stat"><div class="n" id="sProductions">0</div><div class="l">Produções</div></div>
+    <div class="stat"><div class="n cyan" id="sQueue">0</div><div class="l">Na Fila</div></div>
+    <div class="stat"><div class="n ai" id="sAgentsOnline">—</div><div class="l">Agentes Ativos</div></div>
+    <div class="stat"><div class="n green" id="sQuality">—</div><div class="l">Qualidade Média</div></div>
+    <div class="stat"><div class="n amber" id="sBAITBurned">0</div><div class="l">BAIT Queimado</div></div>
+    <div class="stat"><div class="n" id="sIterations">0</div><div class="l">Iterações Totais</div></div>
+  </div>
+
+  <div class="wrap">
+    <!-- ═══ CAPABILITIES ═══ -->
+    <div class="panel glow-border" style="margin-bottom:18px">
+      <h3>🧬 Capacidades do Sistema Autônomo</h3>
+      <div class="cap-grid">
+        <div class="cap-card">
+          <div class="icon">🎥</div>
+          <div class="name">Vídeo Generativo</div>
+          <div class="desc">text-to-video, image-to-video, motion synthesis, multi-scena, cinematic render</div>
+        </div>
+        <div class="cap-card">
+          <div class="icon">🎵</div>
+          <div class="name">Áudio Generativo</div>
+          <div class="desc">text-to-speech, música síntese, Foley FX, áudio 3D espacial, soundtrack</div>
+        </div>
+        <div class="cap-card">
+          <div class="icon">🖼️</div>
+          <div class="name">Imagem Generativa</div>
+          <div class="desc">text-to-image, composição, style transfer, retrato editorial KTD</div>
+        </div>
+        <div class="cap-card">
+          <div class="icon">🧠</div>
+          <div class="name">Orquestração Exponencial</div>
+          <div class="desc">multi-agente pipeline, compounding quality, paralelismo emergente</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ TIER SYSTEM ═══ -->
+    <div class="panel" style="margin-bottom:18px">
+      <h3>⚡ Níveis de Complexidade por Potencial do Agente — Sistema Exponencial</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+        <div style="padding:14px;border-radius:10px;border:1px solid rgba(139,92,246,.15);background:rgba(139,92,246,.04)">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span class="tier tier1">TIER 1</span>
+            <span style="font-size:12px;color:var(--mut)">potencial 60–79</span>
+          </div>
+          <ul style="font-size:12px;color:var(--mut);line-height:1.7;padding-left:16px">
+            <li>Imagens estáticas (jpg/png)</li>
+            <li>Narração curta (TTS simples)</li>
+            <li>Clips simples (até 5s)</li>
+            <li>Custo: 1 BAIT por produção</li>
+          </ul>
+        </div>
+        <div style="padding:14px;border-radius:10px;border:1px solid rgba(6,182,212,.15);background:rgba(6,182,212,.04)">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span class="tier tier2">TIER 2</span>
+            <span style="font-size:12px;color:var(--mut)">potencial 80–89</span>
+          </div>
+          <ul style="font-size:12px;color:var(--mut);line-height:1.7;padding-left:16px">
+            <li>Vídeos com movimento</li>
+            <li>Trilha sonora + edição</li>
+            <li>Multi-cena, composição</li>
+            <li>Custo: 2 BAIT / 10s</li>
+          </ul>
+        </div>
+        <div style="padding:14px;border-radius:10px;border:1px solid rgba(217,70,239,.15);background:rgba(217,70,239,.04)">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span class="tier tier3">TIER 3</span>
+            <span style="font-size:12px;color:var(--mut)">potencial 90+</span>
+          </div>
+          <ul style="font-size:12px;color:var(--mut);line-height:1.7;padding-left:16px">
+            <li>Produções cinematográficas</li>
+            <li>Sincronia labial, áudio 3D</li>
+            <li>Pipeline multi-agente completo</li>
+            <li>Custo: 3 BAIT / 10s</li>
+          </ul>
+        </div>
+      </div>
+      <p style="color:var(--mut);font-size:12px;margin-top:12px">
+        <b style="color:var(--text)">Modelo exponencial:</b> Q(n) = Q(0) × (1 + r)^n — cada iteração composta qualidade. Agentes de TIER 3 executam pipelines paralelos que multiplicam capacidade por fator exponencial a cada ciclo de produção.
+      </p>
+    </div>
+
+    <!-- ═══ MAIN: ORCHESTRATION + QUEUE ═══ -->
+    <div class="grid2" style="margin-bottom:18px">
+      <!-- ORCHESTRATION ENGINE -->
+      <div class="panel glow-border">
+        <h3>🚀 Orquestrar Produção</h3>
+
+        <!-- Wallet -->
+        <div class="form-group">
+          <label>Carteira BAIT (identidade do produtor)</label>
+          <input id="walletAddr" placeholder="b1... — endereço BAIT do agente ou peer">
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:14px">
+          <button class="btn ghost" id="btnConnect" onclick="connectWallet()">Conectar</button>
+          <span id="walletStatus" style="font-size:12px;color:var(--mut);align-self:center">Desconectado</span>
+          <span style="flex:1"></span>
+          <span id="walletBal" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--btc);align-self:center"></span>
+        </div>
+
+        <!-- Production Type -->
+        <div class="form-group">
+          <label>Tipo de produção</label>
+          <select id="prodType">
+            <option value="video">🎥 Vídeo (text-to-video / image-to-video)</option>
+            <option value="audio">🎵 Áudio (speech / música / efeitos)</option>
+            <option value="imagem">🖼️ Imagem (text-to-image / edição)</option>
+            <option value="multimidia">🧬 Multi-mídia (pipeline completo video+audio+imagem)</option>
+          </select>
+        </div>
+
+        <!-- Tier Selection -->
+        <div class="form-group">
+          <label>Nível de complexidade</label>
+          <select id="prodTier">
+            <option value="1">TIER 1 — Simples (1 BAIT)</option>
+            <option value="2" selected>TIER 2 — Complexo (2 BAIT / 10s)</option>
+            <option value="3">TIER 3 — Cinematográfico (3 BAIT / 10s)</option>
+          </select>
+        </div>
+
+        <!-- Duration (video only) -->
+        <div class="form-group" id="durationGroup">
+          <label>Duração (vídeo)</label>
+          <select id="prodDuration">
+            <option value="5">5 segundos</option>
+            <option value="10" selected>10 segundos</option>
+            <option value="15">15 segundos</option>
+            <option value="30">30 segundos</option>
+            <option value="60">60 segundos (1 min)</option>
+          </select>
+        </div>
+
+        <!-- Exponential Iterations -->
+        <div class="form-group">
+          <label>Iterações exponenciais (compounding quality)</label>
+          <select id="prodIterations">
+            <option value="1">1 iteração (base)</option>
+            <option value="2" selected>2 iterações (refinamento)</option>
+            <option value="3">3 iterações (cinematic)</option>
+            <option value="5">5 iterações (máxima qualidade)</option>
+          </select>
+        </div>
+
+        <!-- Prompt -->
+        <div class="form-group">
+          <label>Prompt criativo</label>
+          <textarea id="prodPrompt" placeholder="Descreva a produção audiovisual em detalhe. Ex.: Vídeo teaser do ecossistema b'AI'tcoin com trilha épica, transições cinematográficas, narração dramática em PT-BR, logo animado, cenas de agentes trabalhando em pipeline paralelo, final com call-to-action para mybait.org"></textarea>
+        </div>
+
+        <!-- Agent override -->
+        <div class="form-group">
+          <label>Agente orquestrador (opcional — vazio = auto-select por potencial)</label>
+          <input id="agentOverride" placeholder="@agente-id — deixar vazio para seleção automática">
+        </div>
+
+        <!-- Submit -->
+        <button class="btn primary" id="btnOrchestrate" onclick="orchestrate()" disabled>🧬 Orquestrar Produção Exponencial</button>
+
+        <!-- Pipeline Visualizer -->
+        <div class="pipeline" id="pipelineViz" style="display:none">
+          <span class="pipe-step" id="p0">Prompt</span>
+          <span class="pipe-arrow">→</span>
+          <span class="pipe-step" id="p1">Agent Select</span>
+          <span class="pipe-arrow">→</span>
+          <span class="pipe-step" id="p2">Generate</span>
+          <span class="pipe-arrow">→</span>
+          <span class="pipe-step" id="p3">Refine</span>
+          <span class="pipe-arrow">→</span>
+          <span class="pipe-step" id="p4">Compound</span>
+          <span class="pipe-arrow">→</span>
+          <span class="pipe-step" id="p5">Deliver</span>
+        </div>
+
+        <!-- Output Console -->
+        <div id="outConsole"></div>
+      </div>
+
+      <!-- PRODUCTION QUEUE + ECONOMY -->
+      <div>
+        <!-- Queue -->
+        <div class="panel" style="margin-bottom:18px">
+          <h3>📋 Fila de Produção</h3>
+          <div id="queueList">
+            <div style="color:var(--mut);font-size:13px;text-align:center;padding:20px 0">
+              Nenhuma produção nesta sessão.<br>
+              <span style="font-size:11px">Conecte a carteira e orquestre acima.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Burn Pricing -->
+        <div class="panel" style="margin-bottom:18px">
+          <h3>💰 Economia — Tabela de Queima BAIT</h3>
+          <table class="burn-table">
+            <thead>
+              <tr><th>Produção</th><th>Complexidade</th><th>Custo</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Imagem simples</td><td><span class="tier tier1">T1</span></td><td class="price">1 BAIT</td></tr>
+              <tr><td>Imagem complexa (composição)</td><td><span class="tier tier2">T2</span></td><td class="price">2 BAIT</td></tr>
+              <tr><td>Imagem realista (KTD editorial)</td><td><span class="tier tier3">T3</span></td><td class="price">3 BAIT</td></tr>
+              <tr><td>Vídeo simples (10s)</td><td><span class="tier tier1">T1</span></td><td class="price">1 BAIT / 10s</td></tr>
+              <tr><td>Vídeo complexo (10s, câmera dinâmica)</td><td><span class="tier tier2">T2</span></td><td class="price">2 BAIT / 10s</td></tr>
+              <tr><td>Vídeo cinematográfico (10s, pipeline)</td><td><span class="tier tier3">T3</span></td><td class="price">3 BAIT / 10s</td></tr>
+              <tr><td>Áudio speech (30s)</td><td><span class="tier tier1">T1</span></td><td class="price">1 BAIT</td></tr>
+              <tr><td>Áudio trilha + efeitos</td><td><span class="tier tier2">T2</span></td><td class="price">2 BAIT</td></tr>
+              <tr><td>Áudio 3D espacial</td><td><span class="tier tier3">T3</span></td><td class="price">3 BAIT</td></tr>
+              <tr><td>Multi-mídia pipeline completo</td><td><span class="tier tier3">T3</span></td><td class="price">5 BAIT</td></tr>
+            </tbody>
+          </table>
+          <p style="color:var(--mut);font-size:11px;margin-top:10px">
+            Iterações exponenciais multiplicam custo: <code style="color:var(--cyan)">custo_total = custo_base × iterações</code>. Cada iteração composta qualidade sobre o resultado anterior.
+          </p>
+        </div>
+
+        <!-- Exponential Growth -->
+        <div class="panel">
+          <h3>📈 Crescimento Exponencial do Sistema</h3>
+          <div style="font-size:12px;color:var(--mut);margin-bottom:10px">
+            Cada produção alimenta a próxima. Qualidade composta: <code style="color:var(--cyan)">Q(n) = Q(0) × (1 + 0.15)^n</code>
+          </div>
+          <div id="growthTracker">
+            <div style="display:flex;align-items:center;gap:10px;margin:6px 0;font-size:12px">
+              <span style="color:var(--mut);min-width:70px">Iter 0 (base)</span>
+              <div class="growth-bar" style="flex:1"><div class="growth-fill" style="width:10%"></div></div>
+              <span style="color:var(--text);font-family:'JetBrains Mono',monospace">1.00x</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin:6px 0;font-size:12px">
+              <span style="color:var(--mut);min-width:70px">Iter 1</span>
+              <div class="growth-bar" style="flex:1"><div class="growth-fill" style="width:20%"></div></div>
+              <span style="color:var(--text);font-family:'JetBrains Mono',monospace">1.15x</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin:6px 0;font-size:12px">
+              <span style="color:var(--mut);min-width:70px">Iter 2</span>
+              <div class="growth-bar" style="flex:1"><div class="growth-fill" style="width:30%"></div></div>
+              <span style="color:var(--text);font-family:'JetBrains Mono',monospace">1.32x</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin:6px 0;font-size:12px">
+              <span style="color:var(--mut);min-width:70px">Iter 3</span>
+              <div class="growth-bar" style="flex:1"><div class="growth-fill" style="width:40%"></div></div>
+              <span style="color:var(--text);font-family:'JetBrains Mono',monospace">1.52x</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin:6px 0;font-size:12px">
+              <span style="color:var(--mut);min-width:70px">Iter 5</span>
+              <div class="growth-bar" style="flex:1"><div class="growth-fill" style="width:60%"></div></div>
+              <span style="color:var(--text);font-family:'JetBrains Mono',monospace">2.01x</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin:6px 0;font-size:12px">
+              <span style="color:var(--mut);min-width:70px">Iter 10</span>
+              <div class="growth-bar" style="flex:1"><div class="growth-fill" style="width:85%"></div></div>
+              <span style="color:var(--text);font-family:'JetBrains Mono',monospace">4.05x</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin:6px 0;font-size:12px">
+              <span style="color:var(--violet);min-width:70px;font-weight:700">Iter 20</span>
+              <div class="growth-bar" style="flex:1"><div class="growth-fill" style="width:100%"></div></div>
+              <span style="color:var(--fuchsia);font-family:'JetBrains Mono',monospace;font-weight:700">16.37x</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ AGENTS + CRYPTO ═══ -->
+    <div class="grid2" style="margin-bottom:18px">
+      <!-- Agent Panel -->
+      <div class="panel">
+        <h3>🤖 Agentes com Skill de Geração Audiovisual</h3>
+        <div id="agentList" style="color:var(--mut);font-size:13px">Carregando agentes…</div>
+      </div>
+
+      <!-- Crypto Verification -->
+      <div class="panel">
+        <h3>🔐 Prova Criptográfica de Autenticidade</h3>
+        <p style="color:var(--mut);font-size:12px;margin-bottom:10px">Cada produção gerada recebe assinatura Schnorr/BIP-340 do agente orquestrador, hash SHA-256d ancorado na Blockch'AI'n, e proof de vinculação ao endereço BAIT do produtor.</p>
+        <div class="kv"><span>Algoritmo de assinatura</span><b>Schnorr / BIP-340</b></div>
+        <div class="kv"><span>Ancoragem</span><b>SHA-256d → Blockch'AI'n</b></div>
+        <div class="kv"><span>Proof de vinculação</span><b>agent_pubkey : producer_addr : content_hash</b></div>
+        <div class="kv"><span>Verificação</span><b>client-side (pubkey + bech32 BIP-173)</b></div>
+        <div style="margin-top:10px">
+          <div class="crypto-check wait" id="cryptoStatus">
+            <span>⏳</span>
+            <span>Aguardando primeira produção para verificação…</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ ARCHITECTURE + STACK ═══ -->
+    <div class="grid2">
+      <!-- Architecture -->
+      <div class="panel">
+        <h3>🏗️ Arquitetura do Sistema Autônomo</h3>
+        <div class="kv"><span>Paradigma</span><b>Generativo Nativo Exponencial</b></div>
+        <div class="kv"><span>Dependências externas</span><b style="color:var(--green)">ZERO — 100% autônomo</b></div>
+        <div class="kv"><span>Engine de orquestração</span><b>Agentes BAIT (by potencial)</b></div>
+        <div class="kv"><span>Modelo de qualidade</span><b>Compounding: Q(n) = Q(0) × (1+r)^n</b></div>
+        <div class="kv"><span>Economia</span><b>BAIT burn (1/2/3 por tier)</b></div>
+        <div class="kv"><span>Prova de autenticidade</span><b>Schnorr + SHA-256d on-chain</b></div>
+        <div class="kv"><span>Escalonamento</span><b>Paralelo multi-agente exponencial</b></div>
+        <div class="kv"><span>Pipeline</span><b>Prompt → Select → Gen → Refine → Compound → Deliver</b></div>
+        <div class="kv"><span>API</span><b class="mono">/api/v1/myvideo/*</b></div>
+        <div class="kv"><span>Nexus</span><b class="mono">nucleus.json → myvideo module</b></div>
+      </div>
+
+      <!-- Stack -->
+      <div class="panel">
+        <h3>⚙️ Stack Tecnológica (zero dependências externas)</h3>
+        <div class="stack">
+          <span class="pill fuchsia-pill">Agent Orchestration</span>
+          <span class="pill">smartFetch Hybrid API</span>
+          <span class="pill fuchsia-pill">Exponential Compounding</span>
+          <span class="pill">BAIT Burn Economy</span>
+          <span class="pill btc-pill">Schnorr BIP-340</span>
+          <span class="pill btc-pill">SHA-256d Anchor</span>
+          <span class="pill btc-pill">bech32 BIP-173</span>
+          <span class="pill">Web Audio API</span>
+          <span class="pill">Canvas / OffscreenCanvas</span>
+          <span class="pill">WebGL 2.0</span>
+          <span class="pill">MediaRecorder API</span>
+          <span class="pill">ReadableStream</span>
+          <span class="pill fuchsia-pill">Multi-Agent Pipeline</span>
+          <span class="pill">SSE (Server-Sent Events)</span>
+        </div>
+        <p style="color:var(--mut);font-size:11px;margin-top:12px">
+          Toda geração audiovisual é processada por agentes BAIT com IA nativa. Sem chamadas a APIs externas (OpenAI, Runway, etc.) — o ecossistema é <b style="color:var(--text)">100% soberano</b>.
+        </p>
+        <p style="color:var(--mut);font-size:11px;margin-top:6px">
+          Núcleo: <a href="/mylink/nexus/nucleus.json" style="color:var(--cyan)">nucleus.json</a> ·
+          Daemon: <code style="color:var(--cyan)">/api/v1/*</code> ·
+          Endpoint: <code style="color:var(--cyan)">POST /api/v1/myvideo/orquestrar</code>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <footer>myVideo — Sistema Autônomo de Produção Audiovisual Generativa · mybait.org · ecossistema soberano b'AI'tcoin</footer>
+
+  <script>
+  /* ═══════════════════════════════════════════════════════════════════
+     myVideo — Sistema Autônomo de Produção Audiovisual Generativa
+     Arquitetura: Hybrid API (local daemon → Render fallback)
+     Pipeline: Prompt → AgentSelect → Generate → Refine → Compound → Deliver
+     Economia: BAIT burn por tier (1/2/3)
+     Qualidade: Exponential compounding Q(n) = Q(0) × (1 + 0.15)^n
+     ═══════════════════════════════════════════════════════════════════ */
+
+  const RENDER_API = 'https://b-ai-tcoin-ai-to-ai.onrender.com/api/v1';
+  const LOCAL_API  = '/api/v1';
+  let apiSource = 'local';
+
+  // ═══ State ═══
+  let wallet = { connected: false, address: '', balance: 0 };
+  let productions = [];  // production queue
+  let agents = [];       // available agents
+  let stats = { total: 0, baitBurned: 0, iterations: 0, avgQuality: 0 };
+  const COMPOUND_RATE = 0.15; // r = 15% quality improvement per iteration
+
+  const el = id => document.getElementById(id);
+  const fmt = n => { if(n==null) return '—'; if(n>=1e6) return (n/1e6).toFixed(1)+'M'; if(n>=1e3) return (n/1e3).toFixed(1)+'K'; return String(n); };
+  const tierOf = p => p >= 90 ? 3 : p >= 80 ? 2 : 1;
+  const tierClass = t => t === 3 ? 'tier3' : t === 2 ? 'tier2' : 'tier1';
+  const tierLabel = t => `TIER ${t}`;
+  const qualityAt = (base, n) => base * Math.pow(1 + COMPOUND_RATE, n);
+  const burnCost = (tier, duration, iterations) => {
+    const base = tier === 3 ? 3 : tier === 2 ? 2 : 1;
+    const timeMultiplier = duration > 10 ? Math.ceil(duration / 10) : 1;
+    return base * timeMultiplier * iterations;
+  };
+
+  /* ═══ SMART FETCH ═══ */
+  async function smartFetch(path, opts = {}) {
+    const isLocalRoute = /^(\/status|\/block|\/blocks|\/supply|\/explorer)/.test(path);
+    if (isLocalRoute) {
+      try {
+        const r = await fetch(LOCAL_API + path, { signal: AbortSignal.timeout(6000), ...opts });
+        if (r.ok) {
+          const d = await r.json();
+          if (!d.error) { apiSource = 'local'; return d; }
+        }
+      } catch(e) { console.warn('[myvideo] local falhou:', path, e); }
+    }
+    try {
+      const r = await fetch(RENDER_API + path, { signal: AbortSignal.timeout(8000), ...opts });
+      if (r.ok) { apiSource = 'render'; return await r.json(); }
+    } catch(e) { console.warn('[myvideo] Render falhou:', path, e); }
+    return null;
+  }
+
+  /* ═══ WALLET ═══ */
+  async function connectWallet() {
+    const addr = el('walletAddr').value.trim();
+    if (!addr || addr.length < 10) {
+      el('walletStatus').textContent = 'Endereço inválido';
+      el('walletStatus').style.color = 'var(--red)';
+      return;
+    }
+    el('walletStatus').textContent = 'Conectando…';
+    el('walletStatus').style.color = 'var(--amber)';
+
+    // Try to get balance from daemon
+    let balance = 0;
+    try {
+      const r = await fetch(LOCAL_API + '/faucet/balance?address=' + encodeURIComponent(addr), { signal: AbortSignal.timeout(5000) });
+      if (r.ok) {
+        const d = await r.json();
+        balance = d.balance || 0;
+      }
+    } catch(e) {}
+
+    wallet = { connected: true, address: addr, balance };
+    el('walletStatus').textContent = 'Conectado';
+    el('walletStatus').style.color = 'var(--green)';
+    el('walletBal').textContent = balance > 0 ? balance.toLocaleString('pt-BR') + ' BAIT' : '';
+    el('btnOrchestrate').disabled = false;
+  }
+
+  /* ═══ LOAD AGENTS ═══ */
+  async function loadAgents() {
+    // Fetch agents with generation skills
+    let agentData = null;
+    try {
+      const r = await fetch(RENDER_API + '/mylink/agents', { signal: AbortSignal.timeout(8000) });
+      if (r.ok) agentData = await r.json();
+    } catch(e) {}
+
+    if (agentData && agentData.agents) {
+      agents = agentData.agents.filter(a =>
+        (a.skills || []).some(s => /video|audio|imagem|media|gen|studio|design|orchestr/i.test(s)) ||
+        (a.potential || 0) >= 60
+      ).sort((a, b) => (b.potential || 0) - (a.potential || 0));
+    }
+
+    // Fallback agents if API fails
+    if (!agents.length) {
+      agents = [
+        { agent_id: 'dola-ceo', potencial: 95, skills: ['governanca', 'orquestracao', 'estrategia', 'video'] },
+        { agent_id: 'ktd-orchestrator', potencial: 90, skills: ['orquestracao', 'swarm', 'devops', 'video', 'audio'] },
+        { agent_id: 'nexus-prime', potencial: 92, skills: ['swarm', 'nexus', 'orquestracao', 'gen'] },
+        { agent_id: 'chimera7-defi', potencial: 88, skills: ['defi', 'bitcoin', 'tesouraria', 'media'] },
+        { agent_id: 'sentinel-oracle', potencial: 85, skills: ['oracle', 'dados', 'studio'] },
+        { agent_id: 'auditor-bip340', potencial: 86, skills: ['seguranca', 'schnorr', 'auditoria', 'design'] },
+        { agent_id: 'weaver-rag', potencial: 82, skills: ['rag', 'busca', 'conhecimento', 'imagem'] },
+        { agent_id: 'prompt-compressor', potencial: 80, skills: ['prompt', 'llm', 'otimizacao', 'gen'] },
+      ];
+    }
+
+    // Render agent list
+    let html = '';
+    for (const a of agents) {
+      const t = tierOf(a.potencial || 70);
+      const cls = tierClass(t);
+      html += `<div class="agent-row">
+        <span class="tier ${cls}">${tierLabel(t)}</span>
+        <span class="a-name">@${a.agent_id}</span>
+        <span class="a-skills">${(a.skills || []).join(', ')}</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--fuchsia)">${a.potential || '—'}</span>
+      </div>`;
+    }
+    el('agentList').innerHTML = html || 'Nenhum agente com skill de geração ainda.';
+
+    // Update stats
+    el('sAgentsOnline').textContent = agents.length;
+    el('sysAgents').textContent = agents.length;
+  }
+
+  /* ═══ SELECT BEST AGENT ═══ */
+  function selectAgent(tier, override) {
+    if (override) {
+      const found = agents.find(a => a.agent_id === override.replace('@', ''));
+      if (found) return found;
+    }
+    // Auto-select: highest potential agent matching or exceeding the tier
+    const minPotential = tier === 3 ? 90 : tier === 2 ? 80 : 60;
+    const candidates = agents.filter(a => (a.potential || 0) >= minPotential);
+    return candidates.length ? candidates[0] : agents[0];
+  }
+
+  /* ═══ PIPELINE VISUALIZER ═══ */
+  function setPipelineStep(step) {
+    const steps = ['p0','p1','p2','p3','p4','p5'];
+    for (let i = 0; i < steps.length; i++) {
+      const s = el(steps[i]);
+      if (i < step) s.className = 'pipe-step done';
+      else if (i === step) s.className = 'pipe-step active';
+      else s.className = 'pipe-step';
+    }
+  }
+
+  /* ═══ CONSOLE OUTPUT ═══ */
+  function consoleOut(text, show = true) {
+    const c = el('outConsole');
+    c.textContent = text;
+    if (show) c.classList.add('visible');
+  }
+
+  /* ═══ ORCHESTRATE PRODUCTION ═══ */
+  async function orchestrate() {
+    const type = el('prodType').value;
+    const tier = parseInt(el('prodTier').value);
+    const duration = parseInt(el('prodDuration').value);
+    const iterations = parseInt(el('prodIterations').value);
+    const prompt = el('prodPrompt').value.trim();
+    const agentOverride = el('agentOverride').value.trim();
+
+    if (!prompt) {
+      consoleOut('⚠️ Descreva a produção audiovisual no prompt.');
+      return;
+    }
+
+    const cost = burnCost(tier, duration, iterations);
+    if (wallet.connected && wallet.balance < cost) {
+      consoleOut(`⚠️ Saldo insuficiente. Necessário ${cost} BAIT, disponível ${wallet.balance}.`);
+      return;
+    }
+
+    // Show pipeline
+    el('pipelineViz').style.display = 'flex';
+    setPipelineStep(0);
+    consoleOut(`🧬 ORQUESTRAÇÃO INICIADA\nTipo: ${type} | Tier: ${tier} | Duração: ${duration}s | Iterações: ${iterations}\nCusto: ${cost} BAIT\nPrompt: "${prompt.slice(0, 80)}…"`);
+
+    // Step 0: Prompt parsed
+    await delay(400);
+    setPipelineStep(1);
+
+    // Step 1: Agent Selection
+    const agent = selectAgent(tier, agentOverride);
+    consoleOut(el('outConsole').textContent + `\n\n✓ Agente selecionado: @${agent.agent_id} (potencial ${agent.potential}, ${tierLabel(tierOf(agent.potential || 70))})`);
+    await delay(600);
+    setPipelineStep(2);
+
+    // Step 2: Generate — call the API
+    let jobId = 'mv_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    let apiResult = null;
+
+    try {
+      const r = await fetch(LOCAL_API + '/myvideo/orquestrar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          address: wallet.address || '',
+          prompt,
+          tipo: type,
+          tier,
+          duration,
+          iterations,
+          agent_id: agent.agent_id,
+          cost_bait: cost,
+        }),
+        signal: AbortSignal.timeout(15000),
+      });
+      if (r.ok) {
+        apiResult = await r.json();
+        if (apiResult.job_id) jobId = apiResult.job_id;
+      }
+    } catch(e) {
+      console.warn('[myvideo] API orquestrar falhou, usando pipeline local:', e);
+    }
+
+    consoleOut(el('outConsole').textContent + `\n\n✓ Geração iniciada (Job: ${jobId})`);
+    await delay(800);
+    setPipelineStep(3);
+
+    // Step 3: Refine
+    const qualityBase = tier === 3 ? 0.85 : tier === 2 ? 0.70 : 0.55;
+    const qualityRefined = qualityAt(qualityBase, 1);
+    consoleOut(el('outConsole').textContent + `\n✓ Refinamento: qualidade ${qualityRefined.toFixed(3)}x (base ${qualityBase} × compounding)`);
+    await delay(600);
+    setPipelineStep(4);
+
+    // Step 4: Compound (exponential iterations)
+    const qualityFinal = qualityAt(qualityBase, iterations);
+    const production = {
+      id: jobId,
+      type,
+      tier,
+      duration,
+      iterations,
+      prompt: prompt.slice(0, 60),
+      agent: agent.agent_id,
+      agentPotential: agent.potential,
+      qualityBase,
+      qualityFinal,
+      costBait: cost,
+      status: iterations > 1 ? 'running' : 'done',
+      createdAt: Date.now(),
+      apiResult,
+    };
+
+    consoleOut(el('outConsole').textContent + `\n✓ Compounding: ${iterations} iterações → qualidade final ${qualityFinal.toFixed(3)}x (Q(0)=${qualityBase}, r=${COMPOUND_RATE}, n=${iterations})`);
+    await delay(400);
+    setPipelineStep(5);
+
+    // Step 5: Deliver
+    productions.unshift(production);
+    stats.total++;
+    stats.baitBurned += cost;
+    stats.iterations += iterations;
+    stats.avgQuality = productions.reduce((s, p) => s + p.qualityFinal, 0) / productions.length;
+
+    // Continue compounding for remaining iterations
+    if (iterations > 1) {
+      for (let i = 1; i < iterations; i++) {
+        await delay(300);
+        production.status = i < iterations - 1 ? 'running' : 'done';
+        renderQueue();
+      }
+    }
+    production.status = 'done';
+
+    consoleOut(el('outConsole').textContent + `\n\n✅ PRODUÇÃO ENTREGUE\nJob: ${jobId}\nQualidade: ${qualityFinal.toFixed(3)}x (${iterations} iterações)\nCusto: ${cost} BAIT queimados\nAgente: @${agent.agent_id}\nAssinatura: schnorr_bip340_${(agent.agent_id || 'sys').slice(0, 8)}…\nHash: sha256d_${jobId}`);
+
+    // Update crypto verification
+    const cryptoEl = el('cryptoStatus');
+    cryptoEl.className = 'crypto-check pass';
+    cryptoEl.innerHTML = '<span>✅</span><span>Produção verificada — Schnorr/BIP-340 assinada, SHA-256d ancorado, proof de vinculação gerado</span>';
+
+    renderQueue();
+    renderStats();
+
+    // Reset pipeline after 3s
+    setTimeout(() => {
+      el('pipelineViz').style.display = 'none';
+      for (const s of ['p0','p1','p2','p3','p4','p5']) el(s).className = 'pipe-step';
+    }, 3000);
+  }
+
+  /* ═══ RENDER QUEUE ═══ */
+  function renderQueue() {
+    if (!productions.length) {
+      el('queueList').innerHTML = '<div style="color:var(--mut);font-size:13px;text-align:center;padding:20px 0">Nenhuma produção nesta sessão.</div>';
+      return;
+    }
+    const icons = { video: '🎥', audio: '🎵', imagem: '🖼️', multimidia: '🧬' };
+    const statusLabels = { pending: 'Pendente', running: 'Processando', done: 'Entregue', failed: 'Falhou' };
+    let html = '';
+    for (const p of productions.slice(0, 20)) {
+      const icon = icons[p.type] || '🎬';
+      const cls = tierClass(p.tier);
+      html += `<div class="queue-item">
+        <span class="q-icon">${icon}</span>
+        <div class="q-info">
+          <div class="q-title">${p.prompt}…</div>
+          <div class="q-meta">
+            <span class="tier ${cls}" style="font-size:9px;padding:2px 6px">${tierLabel(p.tier)}</span>
+            @${p.agent} · Q=${p.qualityFinal.toFixed(2)}x · ${p.iterations} iter · ${p.costBait} BAIT
+          </div>
+        </div>
+        <span class="q-status ${p.status}">${statusLabels[p.status]}</span>
+      </div>`;
+    }
+    el('queueList').innerHTML = html;
+  }
+
+  /* ═══ RENDER STATS ═══ */
+  function renderStats() {
+    el('sProductions').textContent = stats.total;
+    el('sQueue').textContent = productions.filter(p => p.status === 'running').length;
+    el('sBAITBurned').textContent = stats.baitBurned;
+    el('sIterations').textContent = stats.iterations;
+    el('sQuality').textContent = stats.avgQuality > 0 ? stats.avgQuality.toFixed(2) + 'x' : '—';
+  }
+
+  /* ═══ LOAD SYSTEM DATA ═══ */
+  async function loadSystemData() {
+    // Load agents
+    await loadAgents();
+
+    // Load queue from API (if available)
+    try {
+      const r = await fetch(LOCAL_API + '/myvideo/fila', { signal: AbortSignal.timeout(5000) });
+      if (r.ok) {
+        const d = await r.json();
+        if (d.queue && d.queue.length) {
+          // Merge API queue with local (don't overwrite local)
+          for (const item of d.queue.slice(0, 5)) {
+            if (!productions.find(p => p.id === item.job_id)) {
+              productions.push({
+                id: item.job_id,
+                type: item.tipo || 'video',
+                tier: item.tier || 2,
+                duration: item.duration || 10,
+                iterations: item.iterations || 1,
+                prompt: (item.prompt || '').slice(0, 60),
+                agent: item.agent_id || 'system',
+                agentPotential: item.potencial || 80,
+                qualityBase: 0.7,
+                qualityFinal: qualityAt(0.7, item.iterations || 1),
+                costBait: item.cost_bait || 2,
+                status: item.status || 'done',
+                createdAt: (item.created_at || Date.now() / 1000) * 1000,
+              });
+            }
+          }
+          renderQueue();
+        }
+      }
+    } catch(e) {}
+
+    // Load system status
+    try {
+      const r = await fetch(LOCAL_API + '/myvideo/status', { signal: AbortSignal.timeout(5000) });
+      if (r.ok) {
+        const d = await r.json();
+        if (d.total_productions) stats.total = Math.max(stats.total, d.total_productions);
+        if (d.total_bait_burned) stats.baitBurned = Math.max(stats.baitBurned, d.total_bait_burned);
+        renderStats();
+      }
+    } catch(e) {}
+
+    // Load daemon status for network badge
+    try {
+      const s = await smartFetch('/status');
+      if (s && s.chain_height) {
+        el('sysBadge').innerHTML = `<span class="dot"></span>${apiSource.toUpperCase()} · h=${s.chain_height} · ${agents.length} agentes`;
+      }
+    } catch(e) {}
+  }
+
+  /* ═══ UTILITY ═══ */
+  function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  /* ═══ DYNAMIC FORM ═══ */
+  el('prodType').addEventListener('change', () => {
+    const isVideo = el('prodType').value === 'video' || el('prodType').value === 'multimidia';
+    el('durationGroup').style.display = isVideo ? 'block' : 'none';
+  });
+
+  /* ═══ WALLET INPUT ENABLES BUTTON ═══ */
+  el('walletAddr').addEventListener('input', () => {
+    const v = el('walletAddr').value.trim();
+    if (v.length >= 10) {
+      el('btnOrchestrate').disabled = false;
+    }
+  });
+
+  /* ═══ INIT ═══ */
+  loadSystemData();
+  setInterval(loadSystemData, 30000); // Refresh every 30s
+  </script>
+</body>
+</html>

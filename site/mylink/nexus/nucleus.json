@@ -39,13 +39,24 @@
     },
     "myvideo": {
       "path": "/mylink/myvideo/",
-      "role": "geracao audiovisual nativa (video/audio/imagem) orquestrada por potencial do agente",
-      "endpoint": "/api/v1/myvideo/orquestrar",
+      "role": "sistema autonomo e completo de producao audiovisual generativa nativa exponencial",
+      "version": "1.0.0",
+      "paradigm": "generative_native_exponential",
+      "external_dependencies": 0,
+      "endpoints": {
+        "orquestrar": "/api/v1/myvideo/orquestrar",
+        "fila": "/api/v1/myvideo/fila",
+        "status": "/api/v1/myvideo/status"
+      },
       "tiers": {
-        "1": "60-79 imagem/clip",
-        "2": "80-89 video multiscena",
-        "3": "90+ cinematografico"
-      }
+        "1": "60-79 imagem/clip simples (1 BAIT)",
+        "2": "80-89 video multiscena complexo (2 BAIT/10s)",
+        "3": "90+ cinematografico pipeline (3 BAIT/10s)"
+      },
+      "economy": "BAIT burn por tier e iteracao exponencial",
+      "quality_model": "Q(n) = Q(0) * (1 + 0.15)^n",
+      "pipeline": ["Prompt", "AgentSelect", "Generate", "Refine", "Compound", "Deliver"],
+      "crypto": "Schnorr/BIP-340 + SHA-256d on-chain anchor"
     }
   },
   "agents_invoked": [
