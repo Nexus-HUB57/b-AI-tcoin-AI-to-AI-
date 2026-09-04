@@ -12,7 +12,7 @@ jobs:
   deploy:
     name: Deploy MyVideo via FTP
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 15
     if: ${{ github.event.inputs.confirm == 'DEPLOY' }}
     
     steps:
@@ -38,96 +38,77 @@ jobs:
           echo "USER=$USER" >> $GITHUB_ENV
           echo "PASS=$PASS" >> $GITHUB_ENV
           echo "PORT=$PORT" >> $GITHUB_ENV
-          echo "Credentials parsed OK"
 
       - name: Install lftp
         run: sudo apt-get update -qq && sudo apt-get install -y -qq lftp
 
-      - name: Deploy frontend files
+      - name: Upload HTML files (batch 1)
         run: |
-          echo "=== Uploading HTML files ==="
-          
-          # Upload all frontend HTML files + CGI
           lftp -u "$USER","$PASS" -p "$PORT" "$HOST" <<EOF
           set ftp:ssl-force true
           set ssl:verify-certificate no
-          set net:timeout 30
-          
-          # Main pages
+          set net:timeout 60
+          set net:reconnect-interval 5
           put netlify/index.html -o public_html/index.html
           put netlify/blockchain.html -o public_html/blockchain.html
           put netlify/bainkr.html -o public_html/bainkr.html
           put netlify/faucet.html -o public_html/faucet.html
           put netlify/fundo.html -o public_html/fundo.html
           put netlify/swap.html -o public_html/swap.html
+          bye
+          EOF
+          echo "Batch 1 done"
+
+      - name: Upload HTML files (batch 2)
+        run: |
+          lftp -u "$USER","$PASS" -p "$PORT" "$HOST" <<EOF
+          set ftp:ssl-force true
+          set ssl:verify-certificate no
+          set net:timeout 60
+          set net:reconnect-interval 5
           put netlify/sdk.html -o public_html/sdk.html
           put netlify/obscura.html -o public_html/obscura.html
           put netlify/myvideo.html -o public_html/myvideo.html
           put netlify/favicon.svg -o public_html/favicon.svg
           put netlify/.htaccess -o public_html/.htaccess
-          
-          # CGI gateway (MUST be executable)
+          bye
+          EOF
+          echo "Batch 2 done"
+
+      - name: Upload CGI + sub-pages
+        run: |
+          lftp -u "$USER","$PASS" -p "$PORT" "$HOST" <<EOF
+          set ftp:ssl-force true
+          set ssl:verify-certificate no
+          set net:timeout 60
+          set net:reconnect-interval 5
           put netlify/api.cgi -o public_html/api.cgi
           chmod 755 public_html/api.cgi
-          
-          # MyLink sub-pages
           mkdir public_html/mylink
           mkdir public_html/mylink/fundo
           mkdir public_html/mylink/fundo/swap
           mkdir public_html/mylink/myvideo
-          
           put netlify/fundo.html -o public_html/mylink/fundo/index.html
           put netlify/swap.html -o public_html/mylink/fundo/swap/index.html
           put netlify/myvideo.html -o public_html/mylink/myvideo/index.html
-          
           bye
           EOF
-          
-          echo "Frontend files uploaded!"
+          echo "CGI + sub-pages done"
 
       - name: Verify deployment
         run: |
-          echo "=== Verifying deployed files ==="
-          sleep 3
-          
-          # Check myvideo page
-          echo -n "  /mylink/myvideo/ → "
-          CODE=$(curl -s -o /dev/null -w "%{http_code}" -m 15 "https://www.mybait.org/mylink/myvideo/" 2>/dev/null || echo "000")
-          echo "HTTP $CODE"
-          
-          # Check fundo page
-          echo -n "  /mylink/fundo/ → "
-          CODE=$(curl -s -o /dev/null -w "%{http_code}" -m 15 "https://www.mybait.org/mylink/fundo/" 2>/dev/null || echo "000")
-          echo "HTTP $CODE"
-          
-          # Check main page
-          echo -n "  / → "
-          CODE=$(curl -s -o /dev/null -w "%{http_code}" -m 15 "https://www.mybait.org/" 2>/dev/null || echo "000")
-          echo "HTTP $CODE"
-          
-          # Check API
-          echo -n "  /api/v1/status → "
-          CODE=$(curl -s -o /dev/null -w "%{http_code}" -m 15 "https://www.mybait.org/api/v1/status" 2>/dev/null || echo "000")
-          echo "HTTP $CODE"
-          
-          # Check myvideo API endpoint (may need daemon restart)
-          echo ""
-          echo "Waiting 15s for daemon to pick up new CGI..."
-          sleep 15
-          echo -n "  /api/v1/myvideo/status → "
-          RESP=$(curl -s -m 15 "https://www.mybait.org/api/v1/myvideo/status" 2>/dev/null)
-          if echo "$RESP" | grep -q "myvideo"; then
-            echo "OK (myvideo system detected)"
-            echo "$RESP" | python3 -m json.tool 2>/dev/null | head -12
-          else
-            CODE=$(curl -s -o /dev/null -w "%{http_code}" -m 15 "https://www.mybait.org/api/v1/myvideo/status" 2>/dev/null || echo "000")
-            echo "HTTP $CODE (may need daemon cold-start)"
-          fi
+          echo "=== Verifying ==="
+          sleep 5
+          for url in \
+            "https://www.mybait.org/mylink/myvideo/" \
+            "https://www.mybait.org/mylink/fundo/" \
+            "https://www.mybait.org/"; do
+            CODE=$(curl -s -o /dev/null -w "%{http_code}" -m 15 "$url" 2>/dev/null || echo "000")
+            echo "  $url → HTTP $CODE"
+          done
           
           echo ""
-          echo "══════════════════════════════════════════"
-          echo "  MyVideo Deploy Complete!"
-          echo "  https://www.mybait.org/mylink/myvideo/"
-          echo "  https://www.mybait.org/mylink/fundo/"
-          echo "  API: /api/v1/myvideo/orquestrar"
-          echo "══════════════════════════════════════════"
+          echo "═══════════════════════════════════════"
+          echo "  MyVideo: https://www.mybait.org/mylink/myvideo/"
+          echo "  Fundo:   https://www.mybait.org/mylink/fundo/"
+          echo "═══════════════════════════════════════"
