@@ -66,7 +66,7 @@ jobs:
           }
           
           # Upload HTML files
-          for f in index> index.html blockchain.html bainkr.html faucet.html fundo.html swap.html sdk.html obscura.html myvideo.html; do
+          for f in index.html blockchain.html bainkr.html faucet.html fundo.html swap.html sdk.html obscura.html myvideo.html; do
             if [ -f "netlify/$f" ]; then
               upload_file "netlify/$f" "public_html/$f"
             fi
