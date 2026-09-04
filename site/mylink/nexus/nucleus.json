@@ -29,6 +29,13 @@
     "dashboard": {
       "path": "/mylink/dashboard/",
       "role": "painel oficial do agente"
+    },
+    "swarm": {
+      "path": "/mylink/swarm/",
+      "manifest": "/mylink/swarm/swarm.json",
+      "source_repo": "Nexus-HUB57/More_Ideas_the_Dragon",
+      "nodes": 32,
+      "role": "enxame de execucao paralela (OpenClaw sandbox, stake 0.0001 BTC) sincronizado para F6/F7"
     }
   },
   "agents_invoked": [
@@ -61,6 +68,11 @@
       "agent": "dola-ceo",
       "phase": "continuo",
       "task": "governanca do nucleo e do fundo"
+    },
+    {
+      "agent": "nexus-swarm (32 nos + 8 nomeados)",
+      "phase": "F6/F7",
+      "task": "execucao paralela do desenvolvimento HUB V3 ate 2036"
     }
   ],
   "custody": {
