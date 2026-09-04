@@ -230,7 +230,8 @@ def _fund_status():
     _last = {}
     try: _last = _j.load(open('/home/baitcoin/.baitcoin/mylink_fund_state.json'))
     except Exception: pass
-    return {'ok': True, 'fund': 'Fundo Bitcoin MyLink', 'last_sync': _last, 'custody_address': custody,
+    _watch = ['1Kj6epyY2MdzZUCHE572jeV9n7DDRReaZJ','1QHDQi1PVaNNn7oZZAWAZCiqRmVxKxPh9XyZ']
+    return {'ok': True, 'fund': 'Fundo Bitcoin MyLink', 'last_sync': _last, 'reserve_watch_addresses': _watch, 'reserve_note': 'watch-only; saldo via Blockstream; broadcast programado mempool.space -> custodia', 'custody_address': custody,
             'custody_type': 'p2wpkh', 'custody_len': len(custody), 'custody_challenge_sig': challenge,
             'reserve_bait': 0.0, 'reserve_btc': 0.0, 'covered_agents': n_agents,
             'valid_signatures': 1, 'por_anchor': por_anchor,
