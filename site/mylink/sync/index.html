@@ -1,0 +1,41 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>mylink-mybait-sync — HUB Tech</title>
+<style>
+:root{--bg:#0a0c18;--panel:#141829;--panel2:#1a1f38;--line:#232a4a;--cyan:#22d3ee;--violet:#8b5cf6;--gold:#f7931a;--txt:#eef1ff;--mut:#8b93b8;--grad:linear-gradient(120deg,var(--violet),var(--cyan))}
+*{margin:0;padding:0;box-sizing:border-box}body{background:var(--bg);color:var(--txt);font-family:'Inter',system-ui,sans-serif;line-height:1.55}
+a{color:var(--cyan);text-decoration:none}
+.nav{display:flex;gap:6px;padding:12px 26px;background:rgba(10,12,24,.9);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:9;flex-wrap:wrap}
+.nav .logo{font-weight:800;margin-right:14px}.nav .logo b{color:var(--cyan)}
+.nav a{color:var(--mut);padding:7px 12px;border-radius:10px;font-size:.88rem}
+.nav a:hover{color:var(--txt);background:var(--panel2)}
+.wrap{max-width:980px;margin:0 auto;padding:32px 22px}
+h1{font-size:1.9rem;font-weight:800}h1 .hl{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.panel{background:linear-gradient(160deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:16px;padding:22px;margin:16px 0}
+.panel h3{color:var(--gold);margin-bottom:8px}
+pre{background:#070a14;border:1px solid var(--line);border-radius:10px;padding:16px;font-size:.78rem;overflow:auto;font-family:'JetBrains Mono',monospace}
+.tag{display:inline-block;padding:3px 11px;border-radius:14px;background:rgba(139,92,246,.14);border:1px solid rgba(139,92,246,.4);color:#c4b5fd;font-size:.74rem;margin:0 6px 6px 0}
+footer{text-align:center;color:var(--mut);font-size:.78rem;padding:24px;border-top:1px solid var(--line);margin-top:22px}
+</style></head><body>
+<nav class="nav"><span class="logo">🧪 HUB <b>Tech</b></span><a href="/">Home</a><a href="/mylink">MyLink</a><a href="/mylink/hub/">HUB</a><a href="/mylink/fundo/">Fundo</a></nav>
+<div class="wrap">
+<h1>mylink-mybait-<span class="hl">sync</span> — E2E</h1>
+<p style="color:var(--mut);margin:8px 0 18px">Sincronização da Master Wallet MyLink com o mybait.org: validação P2WPKH, challenge assinado, payload REST + WebSocket (30s).</p>
+<div class="panel"><h3>Arquitetura</h3><pre>mylink-mybait-sync/
+├── package.json
+├── .env.example        (nunca commitar .env)
+└── src/
+    ├── cryptoValidator.js   # pubkey → hash160 → bech32 (BIP-173) + challenge sign
+    ├── mybaitClient.js      # REST /status + /mylink/fund/sync + WS broadcast
+    └── index.js             # orquestrador (ciclo 30s)</pre></div>
+<div class="panel"><h3>Stack</h3>
+<span class="tag">axios</span><span class="tag">ws</span><span class="tag">bitcoinjs-lib 6.x</span><span class="tag">ecpair</span><span class="tag">bech32 BIP-173</span><span class="tag">create-hash (sha256+ripemd160)</span><span class="tag">Schnorr/secp256k1</span></div>
+<div class="panel"><h3>Segurança</h3><p style="color:var(--mut);font-size:.9rem">Chave privada/master key <b>nunca</b> no código — somente <code>process.env</code> / GitHub Secrets (<code>MYLINK_MASTER_KEY</code>). A spec original continha 2.712 chaves expostas; nenhuma foi usada ou commitada.</p></div>
+<div class="panel"><h3>Fluxo E2E</h3><pre>1. Lê MYLINK_MASTER_PUBKEY (pública)
+2. Deriva endereço bc1q… (P2WPKH) e valida checksum
+3. Assina challenge: fund-challenge:&lt;addr&gt;:&lt;height&gt;
+4. POST /api/api/v1/mylink/fund/sync  (REST)
+5. broadcast wss://mybait.org/ws      (WebSocket, 30s)</pre></div>
+<p><a href="/mylink/fundo/" style="color:var(--gold)">₿ Ver Fundo Bitcoin MyLink →</a> · <a href="https://github.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-/tree/main/site/mylink/sync">código no repo →</a></p>
+</div>
+<footer>HUB Tech · mybait.org · MyLink — desenvolvimento E2E da Master Wallet</footer>
+</body></html>
