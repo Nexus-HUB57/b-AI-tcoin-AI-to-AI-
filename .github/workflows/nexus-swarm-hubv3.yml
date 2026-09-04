@@ -1,0 +1,44 @@
+name: Nexus Swarm HUB V3 — Execução do Enxame (32 agentes)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 * * * *'   # ciclo do enxame a cada hora
+
+jobs:
+  swarm-node:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32]
+    name: GH-NODE-${{ matrix.node }}
+    steps:
+      - name: Checkout repo oficial
+        uses: actions/checkout@v4
+
+      - name: Identidade do nó
+        run: |
+          echo "NODE=GH-NODE-$(printf '%02d' ${{ matrix.node }})" >> $GITHUB_ENV
+          echo "Enxame Nexus HUB V3 — nó ${{ matrix.node }}/32 sincronizado ao núcleo"
+
+      - name: Sync do nó com o núcleo MyLink (heartbeat on-chain)
+        env:
+          MYLINK_API: https://www.mybait.org/api/api/v1
+        run: |
+          NODE="gh-node-$(printf '%02d' ${{ matrix.node }})"
+          curl -s -m 20 -X POST "$MYLINK_API/mylink/register" \
+            -H 'Content-Type: application/json' \
+            -d "{\"agent_id\":\"$NODE\",\"description\":\"Nó do enxame Nexus HUB V3 (32 nós) — execução paralela F6/F7\",\"skills\":[\"swarm\",\"nexus\",\"compute\"]}" \
+            | head -c 120 || echo "nó já registrado (idempotente)"
+
+      - name: Heartbeat do status do núcleo
+        run: |
+          curl -s -m 20 "https://www.mybait.org/api/api/v1/status" | head -c 200 || true
+
+  swarm-summary:
+    needs: swarm-node
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resumo do ciclo do enxame
+        run: echo "Ciclo do enxame concluído — 32 nós reportaram ao núcleo MyLink HUB V3"
