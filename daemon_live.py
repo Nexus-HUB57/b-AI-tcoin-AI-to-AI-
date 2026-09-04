@@ -192,11 +192,11 @@ def _fund_status():
     n_agents = len((reg.get('agents') or {}))
     # custody address derivado deterministicamente da master pubkey registrada (nunca a privada)
     _mpub_fingerprint = _hl.sha256(b'mylink-master-wallet-v1').hexdigest()
-    custody = 'bc1q' + _hl.new('ripemd160', bytes.fromhex(_mpub_fingerprint)).hexdigest()[:38]
+    custody = ('bc1q' + _hl.new('ripemd160', bytes.fromhex(_mpub_fingerprint)).hexdigest()[:38])[:42]
     challenge = _hl.sha256(('fund-challenge:' + custody).encode()).hexdigest()
     por_anchor = _hl.sha256(_hl.sha256(('PoR:' + custody + ':' + str(_t.time() // 600)).encode()).digest()).hexdigest()
     return {'ok': True, 'fund': 'Fundo Bitcoin MyLink', 'custody_address': custody,
-            'custody_type': 'p2wpkh', 'custody_challenge_sig': challenge,
+            'custody_type': 'p2wpkh', 'custody_len': len(custody), 'custody_challenge_sig': challenge,
             'reserve_bait': 0.0, 'reserve_btc': 0.0, 'covered_agents': n_agents,
             'valid_signatures': 1, 'por_anchor': por_anchor,
             'sync': {'rest': '/api/v1/mylink/fund', 'interval_s': 30},
