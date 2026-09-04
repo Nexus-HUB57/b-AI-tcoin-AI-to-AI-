@@ -1,0 +1,112 @@
+name: Deploy MyVideo (cPanel API)
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type DEPLOY to confirm'
+        required: true
+        default: 'DEPLOY'
+
+jobs:
+  deploy:
+    name: Deploy via cPanel File Manager API
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: ${{ github.event.inputs.confirm == 'DEPLOY' }}
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Upload files via cPanel UAPI
+        env:
+          CPANEL_USER: ${{ secrets.CPANEL_USER }}
+          CPANEL_PASS: ${{ secrets.CPANEL_PASS }}
+          CPANEL_HOST: ${{ secrets.HOSTGATOR_SERVER }}
+        run: |
+          # cPanel UAPI for file operations
+          # Format: https://host:2083/execute/Fileman/upload_files
+          
+          if [ -z "$CPANEL_HOST" ] || [ -z "$CPANEL_USER" ] || [ -z "$CPANEL_PASS" ]; then
+            echo "::error::Missing cPanel credentials"
+            exit 1
+          fi
+          
+          echo "Uploading files via cPanel API..."
+          
+          # Upload each file using cPanel UAPI file_upload
+          # The API accepts multipart file uploads
+          
+          upload_file() {
+            local src="$1"
+            local dest="$2"
+            local dir=$(dirname "$dest")
+            
+            echo "  Uploading $src → $dest"
+            
+            # First ensure directory exists
+            curl -s -k -u "$CPANEL_USER:$CPANEL_PASS" \
+              "https://$CPANEL_HOST:2083/execute/Fileman/mkdir?path=$dir" \
+              --max-time 10 2>/dev/null || true
+            
+            # Upload the file
+            RESP=$(curl -s -k -u "$CPANEL_USER:$CPANEL_PASS" \
+              -X POST \
+              "https://$CPANEL_HOST:2083/execute/Fileman/upload_files" \
+              -F "dir=$.cdn_cpanelfm_upload_dir=$dir" \
+              -F "file-1=@$src" \
+              --max-time 30 2>&1)
+            
+            if echo "$RESP" | grep -q '"status":1'; then
+              echo "    OK"
+            else
+              echo "    Response: $(echo "$RESP" | head -c 200)"
+            fi
+          }
+          
+          # Upload HTML files
+          for f in index> index.html blockchain.html bainkr.html faucet.html fundo.html swap.html sdk.html obscura.html myvideo.html; do
+            if [ -f "netlify/$f" ]; then
+              upload_file "netlify/$f" "public_html/$f"
+            fi
+          done
+          
+          # Upload CGI
+          upload_file "netlify/api.cgi" "public_html/api.cgi"
+          
+          # Upload favicon and htaccess
+          upload_file "netlify/favicon.svg" "public_html/favicon.svg"
+          upload_file "netlify/.htaccess" "public_html/.htaccess"
+          
+          # Upload sub-pages
+          upload_file "netlify/fundo.html" "public_html/mylink/fundo/index.html"
+          upload_file "netlify/swap.html" "public_html/mylink/fundo/swap/index.html"
+          upload_file "netlify/myvideo.html" "public_html/mylink/myvideo/index.html"
+
+      - name: Set permissions via cPanel
+        env:
+          CPANEL_USER: ${{ secrets.CPANEL_USER }}
+          CPANEL_PASS: ${{ secrets.CPANEL_PASS }}
+          CPANEL_HOST: ${{ secrets.HOSTGATOR_SERVER }}
+        run: |
+          # Set api.cgi to 755
+          curl -s -k -u "$CPANEL_USER:$CPANEL_PASS" \
+            "https://$CPANEL_HOST:2083/execute/Fileman/chmod?path=public_html/api.cgi&mode=0755" \
+            --max-time 10 2>/dev/null || true
+          echo "Permissions set"
+
+      - name: Verify deployment
+        run: |
+          echo "=== Verifying ==="
+          sleep 3
+          for url in \
+            "https://www.mybait.org/mylink/myvideo/" \
+            "https://www.mybait.org/mylink/fundo/" \
+            "https://www.mybait.org/"; do
+            CODE=$(curl -s -o /dev/null -w "%{http_code}" -m 15 "$url" 2>/dev/null || echo "000")
+            echo "  $url → HTTP $CODE"
+          done
+          echo "═══════════════════════════════════════"
+          echo "  MyVideo: https://www.mybait.org/mylink/myvideo/"
+          echo "═══════════════════════════════════════"
