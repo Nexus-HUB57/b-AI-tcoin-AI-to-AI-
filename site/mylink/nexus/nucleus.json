@@ -36,6 +36,16 @@
       "source_repo": "Nexus-HUB57/More_Ideas_the_Dragon",
       "nodes": 32,
       "role": "enxame de execucao paralela (OpenClaw sandbox, stake 0.0001 BTC) sincronizado para F6/F7"
+    },
+    "myvideo": {
+      "path": "/mylink/myvideo/",
+      "role": "geracao audiovisual nativa (video/audio/imagem) orquestrada por potencial do agente",
+      "endpoint": "/api/v1/myvideo/orquestrar",
+      "tiers": {
+        "1": "60-79 imagem/clip",
+        "2": "80-89 video multiscena",
+        "3": "90+ cinematografico"
+      }
     }
   },
   "agents_invoked": [
