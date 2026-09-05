@@ -1,8 +1,9 @@
-// MYVIDEOS — ponte KAIR-S-SONICA × b'AI'tcoin — v2 PRODUCAO REAL
+// MYVIDEOS — ponte KAIR-S-SONICA × b'AI'tcoin — v4 PRODUCAO REAL (Tesouro AI Store)
 // V1: zero mock otimista — saldo/faucet falham VISIVELMENTE quando a API falha.
 // V2: queima real — producao registra burn para o endereco de queima on-chain.
 const BAIT_API = 'https://mybait.org/api/api/v1';
-const BURN_ADDRESS = "b'/t1111111111111111111114oLvT2"; // queima deterministica do organismo
+const TREASURY = "b'/t32oRLn8We5w3UnSqSTQnYZxukxsNHud7CCJj"; // AI Store Treasury — endereco OFICIAL que recebe os BAIT dos videos
+const BURN_ADDRESS = "b'/t1111111111111111111114oLvT2"; // queima deterministica (reservado)
 const COST = { image: { simple: 1, complex: 2, realistic: 3 }, video: { simple: 1, complex: 2, realistic: 3 } };
 const BURN_ONBOARD = 100;
 const FAUCET_DAILY = 10;
@@ -63,7 +64,7 @@ function estimateCost() {
   const units = f.kind.value === 'video' ? Math.max(1, Math.round(Number(f.duration.value) / 10)) : 1;
   return COST[f.kind.value][f.tier.value] * units;
 }
-function updateCost() { $('cost-preview').textContent = `Custo estimado: ${fmt(estimateCost())} (queima → ${BURN_ADDRESS.slice(0, 14)}…)`; }
+function updateCost() { $('cost-preview').textContent = `Custo estimado: ${fmt(estimateCost())} (→ Tesouro AI Store ${TREASURY.slice(0, 14)}…)`; }
 async function submitJob(ev) {
   ev.preventDefault();
   if (!wallet) { fb('job-feedback', '❌ Conecte uma carteira on-chain primeiro.', false); return; }
@@ -71,26 +72,26 @@ async function submitJob(ev) {
   if (!onboardedOnchain) { fb('job-feedback', '❌ Produção bloqueada: saldo não confirmado on-chain (endereço sem histórico). Use /faucet para receber BAIT real.', false); return; }
   if (balance < cost) { fb('job-feedback', `❌ Saldo insuficiente (${fmt(balance)} < ${fmt(cost)}). Aguarde o faucet diário.`, false); return; }
   const f = $('job-form');
-  fb('job-feedback', 'Registrando queima on-chain…', true);
+  fb('job-feedback', 'Registrando pagamento on-chain ao Tesouro AI Store…', true);
   // V2: QUEIMA REAL — registra burn para o endereco de queima; sem tx, sem producao
   let burn;
   try {
     burn = await baitFetch('/wallet/transfer', { method: 'POST', body: JSON.stringify({
-      from: wallet, to: BURN_ADDRESS, amount: cost,
+      from: wallet, to: TREASURY, amount: cost,
       memo: `myvideos:${f.kind.value}:${f.tier.value}` }) });
   } catch (e) {
-    fb('job-feedback', `❌ Queima NÃO confirmada (${e.message}). Nenhum BAIT debitado, tarefa NÃO enfileirada. Produção real exige TX de burn.`, false); return;
+    fb('job-feedback', `❌ Pagamento NÃO confirmado (${e.message}). Nenhum BAIT debitado, tarefa NÃO enfileirada. Produção real exige TX de burn.`, false); return;
   }
   const txid = burn && (burn.tx_id || burn.txid || (burn.ok ? 'confirmada' : null));
-  if (!txid) { fb('job-feedback', '❌ API não confirmou a queima. Saldo inalterado, tarefa não enfileirada.', false); return; }
+  if (!txid) { fb('job-feedback', '❌ API não confirmou o pagamento. Saldo inalterado, tarefa não enfileirada.', false); return; }
   balance -= cost; $('balance').textContent = fmt(balance);
   const job = { kind: f.kind.value, tier: f.tier.value,
     duration: f.kind.value === 'video' ? Number(f.duration.value) : null,
     prompt: f.prompt.value.trim(), burn: cost, burn_tx: txid, status: 'queued', ts: new Date().toISOString() };
   const li = document.createElement('li');
-  li.innerHTML = `<span>${job.kind.toUpperCase()} · ${job.tier} · ${job.prompt.slice(0, 60)}…</span><span class="cost">-${cost} BAIT 🔥 · tx ${String(txid).slice(0, 12)}… · ${job.status}</span>`;
+  li.innerHTML = `<span>${job.kind.toUpperCase()} · ${job.tier} · ${job.prompt.slice(0, 60)}…</span><span class="cost">-${cost} BAIT 💰 · tx ${String(txid).slice(0, 12)}… · ${job.status}</span>`;
   $('jobs').prepend(li);
-  fb('job-feedback', `✅ ${cost} BAIT QUEIMADOS on-chain (tx ${String(txid).slice(0, 16)}…). Tarefa na fila KAIR-S-SONICA — entrega via runtime do agente/OpenClaw.`, true);
+  fb('job-feedback', `✅ ${cost} BAIT pagos on-chain ao Tesouro AI Store (tx ${String(txid).slice(0, 16)}…). Tarefa na fila KAIR-S-SONICA — entrega via runtime do agente/OpenClaw.`, true);
   f.prompt.value = '';
 }
 $('connect').addEventListener('click', connectWallet);
