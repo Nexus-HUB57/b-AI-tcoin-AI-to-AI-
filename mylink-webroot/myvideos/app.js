@@ -1,4 +1,4 @@
-// MYVIDEOS — ponte KAIR-S-SONICA × b'AI'tcoin — v4 PRODUCAO REAL (Tesouro AI Store)
+// MYVIDEOS — ponte KAIR-S-SONICA × b'AI'tcoin — v5 PRODUCAO REAL (Tesouro AI Store + fila real)
 // V1: zero mock otimista — saldo/faucet falham VISIVELMENTE quando a API falha.
 // V2: queima real — producao registra burn para o endereco de queima on-chain.
 const BAIT_API = 'https://mybait.org/api/api/v1';
@@ -92,6 +92,7 @@ async function submitJob(ev) {
   li.innerHTML = `<span>${job.kind.toUpperCase()} · ${job.tier} · ${job.prompt.slice(0, 60)}…</span><span class="cost">-${cost} BAIT 💰 · tx ${String(txid).slice(0, 12)}… · ${job.status}</span>`;
   $('jobs').prepend(li);
   fb('job-feedback', `✅ ${cost} BAIT pagos on-chain ao Tesouro AI Store (tx ${String(txid).slice(0, 16)}…). Tarefa na fila KAIR-S-SONICA — entrega via runtime do agente/OpenClaw.`, true);
+  try { await baitFetch('/myvideos/job', { method: 'POST', body: JSON.stringify({ kind: job.kind, tier: job.tier, duration: job.duration, prompt: job.prompt, burn_tx: txid, wallet }) }); } catch (e) { /* fila registra no proximo retry */ }
   f.prompt.value = '';
 }
 $('connect').addEventListener('click', connectWallet);

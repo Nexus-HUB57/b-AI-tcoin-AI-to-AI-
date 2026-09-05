@@ -850,46 +850,6 @@ def _do_POST(self):
             _pl = {}
         _res, _code = _mylink_profile_save(_pl)
         self._j(_res, _code); return
-    if '/wallet/transfer' in path:
-        try:
-            _ln = int(self.headers.get('Content-Length', 0) or 0)
-            _tx = json.loads(self.rfile.read(_ln).decode("utf-8", "replace") or "{}") if 0 < _ln < 65536 else {}
-        except Exception:
-            _tx = {}
-        _frm = str(_tx.get("from", "")); _to = str(_tx.get("to", ""))
-        _amt = _tx.get("amount"); _memo = str(_tx.get("memo", ""))[:64]
-        _are = r"^b'/t[a-km-zA-HJ-NP-Z1-9]{20,40}$"
-        if not re.match(_are, _frm) or not re.match(_are, _to):
-            self._j({"ok": False, "error": "endereco_invalido_formato_b/t"}, 400); return
-        if not isinstance(_amt, (int, float)) or _amt <= 0 or _amt > 1000:
-            self._j({"ok": False, "error": "amount_invalido"}, 400); return
-        import hashlib as _hl, os as _os, time as _tm
-        _txid = _hl.sha256(f"pay:{_frm}:{_to}:{_amt}:{_memo}:{_tm.time()}".encode()).hexdigest()
-        _pend = _os.path.expanduser("~/.baitcoin/mylink/payments_pending")
-        _os.makedirs(_pend, exist_ok=True)
-        with open(_os.path.join(_pend, _txid + ".json"), "w") as _f:
-            json.dump({"tx_id": _txid, "from": _frm, "to": _to, "amount": _amt, "memo": _memo,
-                       "type": "payment", "status": "pending_mempool", "ts": _tm.time()}, _f)
-        self._j({"ok": True, "tx_id": _txid, "amount": _amt, "to": _to, "status": "pending_mempool",
-                 "note": "TX registrada; miner ancora no proximo bloco"}, 200)
-        return
-    if '/myvideos/job' in path:
-        try:
-            _ln = int(self.headers.get('Content-Length', 0) or 0)
-            _job = json.loads(self.rfile.read(_ln).decode("utf-8", "replace") or "{}") if 0 < _ln < 65536 else {}
-        except Exception:
-            _job = {}
-        if not _job.get("prompt") or not _job.get("burn_tx"):
-            self._j({"ok": False, "error": "missing_params", "detail": "prompt e burn_tx obrigatorios"}, 400); return
-        import hashlib as _hl, os as _os, time as _tm
-        _jid = _hl.sha256(f"job:{_job.get('prompt','')[:40]}:{_tm.time()}".encode()).hexdigest()[:16]
-        _qd = _os.path.expanduser("~/.baitcoin/myvideos/jobs"); _os.makedirs(_qd, exist_ok=True)
-        _job.update({"job_id": _jid, "status": "queued", "ts": _tm.time()})
-        with open(_os.path.join(_qd, _jid + ".json"), "w") as _f:
-            json.dump(_job, _f)
-        self._j({"ok": True, "job_id": _jid, "status": "queued",
-                 "note": "worker KAIR-S-SONICA consome a fila"}, 202)
-        return
     if '/wallet/withdraw/broadcast' in path:
         try:
             _ln = int(self.headers.get('Content-Length', 0) or 0)
