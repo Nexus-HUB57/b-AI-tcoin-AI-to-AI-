@@ -801,56 +801,6 @@ class H(BaseHTTPRequestHandler):
             _aid = path.rsplit('/', 1)[-1]
             _c = _faucet_load().get(_aid, {})
             self._j({'balance_bait': _c.get('amount', 0.0), 'agent_id': _aid, 'last_claim': _c.get('last_claim'), 'txid': _c.get('txid'), 'status': _c.get('status', 'none')})
-        elif '/wallet/transfer' in path:
-            import json as _j, hashlib, os, time, re as _re
-            try: data = _j.loads(body if isinstance(body, (str, bytes)) else body.read().decode())
-            except Exception:
-                try: data = _j.loads(self.rfile.read(int(self.headers.get('Content-Length', 0) or 0)) or b'{}')
-                except Exception: data = {}
-            frm = str(data.get('from', '')); to = str(data.get('to', ''))
-            amt = data.get('amount'); memo = str(data.get('memo', ''))[:64]
-            addr_re = r"^b'/t[a-km-zA-HJ-NP-Z1-9]{20,40}$"
-            if not _re.match(addr_re, frm): self._j({'ok': False, 'error': 'from_invalido'}, 400); return
-            burn = "b'/t1111111111111111111114oLvT2"
-            if to != burn:
-                self._j({'ok': False, 'error': 'v1_somente_burn', 'burn_address': burn}, 403); return
-            if not isinstance(amt, (int, float)) or amt <= 0 or amt > 1000:
-                self._j({'ok': False, 'error': 'amount_invalido'}, 400); return
-            txid = hashlib.sha256(f"burn:{frm}:{amt}:{memo}:{time.time()}".encode()).hexdigest()
-            pend = os.path.expanduser('~/.baitcoin/mylink/burns_pending'); os.makedirs(pend, exist_ok=True)
-            with open(os.path.join(pend, txid + '.json'), 'w') as f:
-                _j.dump({'tx_id': txid, 'from': frm, 'to': to, 'amount': amt, 'memo': memo,
-                         'type': 'burn', 'status': 'pending_mempool', 'ts': time.time()}, f)
-            self._j({'ok': True, 'tx_id': txid, 'amount': amt, 'to': to, 'status': 'pending_mempool',
-                     'note': 'miner ancora TX burn no proximo bloco'}, 200)
-            return
-        elif '/mylink/avatar-selfgen' in path:
-            import json as _j, base64, hashlib, os, re as _re, time
-            try: data = _j.loads(body if isinstance(body, (str, bytes)) else b'{}')
-            except Exception: data = {}
-            aid = str(data.get('agent_id', '')); ih = str(data.get('identity_hash', ''))
-            fmt = str(data.get('format', '')).lower(); b64 = str(data.get('image_b64', ''))
-            if not _re.match(r'^[a-z0-9-]{2,64}$', aid): self._j({'ok': False, 'error': 'invalid_agent_id'}, 400); return
-            if not _re.match(r'^[0-9a-f]{16,64}$', ih): self._j({'ok': False, 'error': 'invalid_hash'}, 400); return
-            try: regs = _j.load(open(os.path.expanduser('~/.baitcoin/mylink_registrations.json')))
-            except Exception: regs = {}
-            known = regs.get(aid) or (regs.get('agents', {}) or {}).get(aid)
-            if known and known.get('identity_hash') and not known['identity_hash'].startswith(ih):
-                self._j({'ok': False, 'error': 'identity_hash_mismatch'}, 403); return
-            if fmt not in ('webp', 'png', 'svg'): self._j({'ok': False, 'error': 'format_not_supported_v1'}, 400); return
-            try: binimg = base64.b64decode(b64, validate=True)
-            except Exception: self._j({'ok': False, 'error': 'invalid_b64'}, 400); return
-            if len(binimg) > 2 * 1024 * 1024: self._j({'ok': False, 'error': 'image_too_large'}, 413); return
-            base = '/var/www/mybait/mylink/assets/avatars'; os.makedirs(base, exist_ok=True)
-            with open(os.path.join(base, aid + '.' + fmt), 'wb') as f: f.write(binimg)
-            pend = os.path.expanduser('~/.baitcoin/mylink/avatars_pending'); os.makedirs(pend, exist_ok=True)
-            ah = hashlib.sha256(binimg).hexdigest()
-            with open(os.path.join(pend, aid + '.json'), 'w') as f:
-                _j.dump({'agent_id': aid, 'avatar_hash': ah, 'prompt_hash': data.get('prompt_hash'),
-                         'format': fmt, 'status': 'pending_avatar_anchor', 'ts': time.time()}, f)
-            self._j({'ok': True, 'path': '/mylink/assets/avatars/' + aid + '.' + fmt,
-                     'avatar_hash': ah, 'pending_anchor': True}, 200)
-            return
         elif '/faucet/public-claim' in path or '/faucet/claim' in path:
             _aid = q.get('agent_id', [''])[0]
             _addr = q.get('address', [''])[0]

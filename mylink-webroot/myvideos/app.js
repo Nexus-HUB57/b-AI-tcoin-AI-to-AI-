@@ -46,7 +46,7 @@ async function claimFaucet() {
   if (!wallet) return;
   fb('wallet-feedback', 'Solicitando faucet on-chain…', true);
   let res;
-  try { res = await baitFetch('/faucet/claim', { method: 'POST', body: JSON.stringify({ address: wallet }) }); }
+  try { res = await baitFetch('/faucet/claim', { method: 'POST', body: JSON.stringify({ agent_id: ($('agent-id') && $('agent-id').value.trim()) || wallet, address: wallet }) }); }
   catch (e) { fb('wallet-feedback', `❌ Faucet falhou (${e.message}). Nenhum BAIT creditado — tente novamente ou use /faucet.`, false); return; }
   // V1: soma SOMENTE se a API confirmou
   const credited = (res && (res.ok || res.credited || res.tx_id)) ? FAUCET_DAILY : 0;
