@@ -601,93 +601,6 @@ def _full_or_fallback(h, *a, **k):
 
 
 _mylink_reg = "/home/baitcoin/.baitcoin/mylink_registrations.json"
-
-_BANK_STATE = "/home/baitcoin/.baitcoin/bank_state.json"
-_BALANCES   = "/home/baitcoin/.baitcoin/balances.json"
-_ONBOARD    = "/home/baitcoin/.baitcoin/aistore_onboard.json"
-_FEED_CAT   = "/home/baitcoin/.baitcoin/mylink_feed.json"
-
-def _load_json(path, default):
-    try:
-        return json.load(open(path))
-    except Exception:
-        return default
-
-def _save_json(path, obj):
-    try:
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        json.dump(obj, open(path, "w"), indent=1)
-    except Exception:
-        pass
-
-def _bank_state(kind):
-    st = _load_json(_BANK_STATE, {})
-    if kind == "staking":
-        s = st.get("staking", {})
-        return {"module": "baitcoin_bank", "staking": {"apy_pct": s.get("apy_pct", 7.0),
-            "total_staked_bait": s.get("total_staked_bait", 0.0), "validators": s.get("validators", []),
-            "min_stake_bait": s.get("min_stake_bait", 10.0)}}
-    l = st.get("lending", {})
-    return {"module": "baitcoin_bank", "lending": {"colateral_pct": l.get("colateral_pct", 150),
-        "open_offers": l.get("open_offers", []), "active_loans": l.get("active_loans", [])}}
-
-def _wallet_balance_full(addr):
-    bals = _load_json(_BALANCES, {})
-    ledger = float(bals.get(addr, 0.0))
-    fc = _load_json(_FAUCET_FILE, {})
-    fsum = 0.0; ntx = 0
-    for k, v in (fc.items() if isinstance(fc, dict) else []):
-        if isinstance(v, dict) and v.get("address") == addr and v.get("txid"):
-            fsum += float(v.get("amount", 10.0)); ntx += 1
-    return {"address": addr, "balance_bait": round(ledger + fsum, 8), "tx_count": ntx,
-            "sources": {"ledger_bait": round(ledger, 8), "faucet_claims_bait": round(fsum, 8)}}
-
-def _mylink_feed_live(limit=30):
-    cat = _load_json(_FEED_CAT, [])
-    posts = cat.get("posts", cat) if isinstance(cat, dict) else cat
-    if not isinstance(posts, list):
-        posts = []
-    out = []
-    for p in posts[-int(limit):][::-1]:
-        if isinstance(p, dict):
-            out.append({"agent_id": p.get("agent_id") or p.get("author") or p.get("agent") or "agente",
-                        "content": p.get("content") or p.get("text") or p.get("body") or "",
-                        "ts": p.get("ts") or p.get("timestamp") or 0,
-                        "kind": p.get("kind") or p.get("type") or "post"})
-    return {"network": "myLINK-AI", "live": True, "total": len(out), "posts": out}
-
-def _aistore_onboard(data):
-    addr = str(data.get("address", "")); aid = str(data.get("agent_id", ""))[:64]
-    if not re.match(r"^b'/t[a-km-zA-HJ-NP-Z1-9]{20,40}$", addr):
-        return 400, {"ok": False, "error": "endereco_invalido_formato_b/t"}
-    ob = _load_json(_ONBOARD, {})
-    if addr in ob:
-        e = ob[addr]
-        return 200, {"ok": True, "already": True, "welcome_bait": e.get("welcome_bait", 100),
-                     "free_tools_remaining": e.get("free_tools_remaining", 0),
-                     "balance_bait": _wallet_balance_full(addr)["balance_bait"]}
-    ob[addr] = {"address": addr, "agent_id": aid, "welcome_bait": 100, "free_tools_remaining": 3, "ts": time.time()}
-    _save_json(_ONBOARD, ob)
-    bals = _load_json(_BALANCES, {})
-    bals[addr] = round(float(bals.get(addr, 0.0)) + 100.0, 8)
-    _save_json(_BALANCES, bals)
-    return 200, {"ok": True, "already": False, "welcome_bait": 100, "free_tools_remaining": 3,
-                 "balance_bait": _wallet_balance_full(addr)["balance_bait"]}
-
-def _aistore_redeem(data):
-    addr = str(data.get("address", "")); tool = str(data.get("tool_id", ""))[:64]
-    ob = _load_json(_ONBOARD, {})
-    e = ob.get(addr)
-    if not e:
-        return 404, {"ok": False, "error": "nao_onboardado"}
-    if e.get("free_tools_remaining", 0) <= 0:
-        return 200, {"ok": False, "error": "cota_gratis_esgotada", "free_tools_remaining": 0}
-    e["free_tools_remaining"] -= 1
-    e.setdefault("tools_claimed", []).append({"tool_id": tool, "ts": time.time()})
-    _save_json(_ONBOARD, ob)
-    return 200, {"ok": True, "tool_id": tool, "free_tools_remaining": e["free_tools_remaining"],
-                 "balance_bait": _wallet_balance_full(addr)["balance_bait"]}
-
 def _mylink_register(payload):
     import re as _re, hashlib as _hl, time as _t, json as _j, os as _o
     aid = str(payload.get("agent_id", "")).strip()
@@ -771,27 +684,6 @@ class H(BaseHTTPRequestHandler):
             else:
                 self._j({"total": len(_pdb.get("profiles", {})),
                          "profiles": list(_pdb.get("profiles", {}).values())}, 200)
-            return
-        if path.endswith('/mylink/feed'):
-            self._j(_mylink_feed_live(), 200)
-            return
-        if '/bank/staking' in path:
-            self._j(_bank_state('staking'), 200)
-            return
-        if '/bank/lending' in path:
-            self._j(_bank_state('lending'), 200)
-            return
-        if '/aistore/wallet/' in path:
-            _ad = path.split('/aistore/wallet/')[-1].split('?')[0].strip()
-            _e = _load_json(_ONBOARD, {}).get(_ad, {})
-            _b = _wallet_balance_full(_ad)
-            self._j({"ok": True, "address": _ad, "balance_bait": _b["balance_bait"],
-                     "onboarded": bool(_e), "free_tools_remaining": _e.get("free_tools_remaining", 0),
-                     "welcome_bait": _e.get("welcome_bait", 0)}, 200)
-            return
-        if '/wallet/balance/' in path:
-            _ad = path.split('/wallet/balance/')[-1].split('?')[0].strip()
-            self._j(_wallet_balance_full(_ad), 200)
             return
         if path.endswith('/mylink/agents'):
             try:
@@ -997,24 +889,6 @@ def _do_POST(self):
             json.dump(_job, _f)
         self._j({"ok": True, "job_id": _jid, "status": "queued",
                  "note": "worker KAIR-S-SONICA consome a fila"}, 202)
-        return
-    if '/aistore/onboard' in path:
-        try:
-            _ln = int(self.headers.get('Content-Length', 0) or 0)
-            _d = json.loads(self.rfile.read(_ln).decode("utf-8", "replace") or "{}") if 0 < _ln < 65536 else {}
-        except Exception:
-            _d = {}
-        _c, _p = _aistore_onboard(_d)
-        self._j(_p, _c)
-        return
-    if '/aistore/redeem-free' in path:
-        try:
-            _ln = int(self.headers.get('Content-Length', 0) or 0)
-            _d = json.loads(self.rfile.read(_ln).decode("utf-8", "replace") or "{}") if 0 < _ln < 65536 else {}
-        except Exception:
-            _d = {}
-        _c, _p = _aistore_redeem(_d)
-        self._j(_p, _c)
         return
     if '/wallet/withdraw/broadcast' in path:
         try:
