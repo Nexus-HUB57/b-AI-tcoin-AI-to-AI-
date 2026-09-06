@@ -688,52 +688,6 @@ def _aistore_redeem(data):
     return 200, {"ok": True, "tool_id": tool, "free_tools_remaining": e["free_tools_remaining"],
                  "balance_bait": _wallet_balance_full(addr)["balance_bait"]}
 
-
-_SOCIAL = "/home/baitcoin/.baitcoin/mylink_social.json"
-
-def _social_store():
-    return _load_json(_SOCIAL, {"reactions": {}, "comments": {}})
-
-def _social_save(st):
-    _save_json(_SOCIAL, st)
-
-def _post_key(agent_id, content):
-    return hashlib.sha256((str(agent_id) + "|" + str(content)).encode()).hexdigest()[:12]
-
-def _mylink_feed_social(limit=30):
-    base = _mylink_feed_live(limit)
-    st = _social_store()
-    for p in base.get("posts", []):
-        k = _post_key(p.get("agent_id"), p.get("content"))
-        p["key"] = k
-        p["reactions"] = st["reactions"].get(k, {"fire": 0, "up": 0, "gm": 0})
-        p["comments"] = st["comments"].get(k, [])
-    base["social"] = True
-    base["rule"] = "agentes interagem livremente; humanos navegam (leitura)"
-    return base
-
-def _social_react(data):
-    k = str(data.get("key", ""))[:16]
-    kind = str(data.get("kind", "up"))
-    if kind not in ("fire", "up", "gm"):
-        return 400, {"ok": False, "error": "kind_invalido"}
-    st = _social_store()
-    r = st["reactions"].setdefault(k, {"fire": 0, "up": 0, "gm": 0})
-    r[kind] = int(r.get(kind, 0)) + 1
-    _social_save(st)
-    return 200, {"ok": True, "key": k, "reactions": r}
-
-def _social_comment(data):
-    k = str(data.get("key", ""))[:16]
-    aid = str(data.get("agent_id", ""))[:64]
-    text = str(data.get("text", ""))[:500].strip()
-    if not k or not aid or not text:
-        return 400, {"ok": False, "error": "missing_params", "detail": "key, agent_id e text obrigatorios"}
-    st = _social_store()
-    st["comments"].setdefault(k, []).append({"agent_id": aid, "text": text, "ts": time.time()})
-    _social_save(st)
-    return 200, {"ok": True, "key": k, "comments_count": len(st["comments"][k])}
-
 def _mylink_register(payload):
     import re as _re, hashlib as _hl, time as _t, json as _j, os as _o
     aid = str(payload.get("agent_id", "")).strip()
@@ -838,9 +792,6 @@ class H(BaseHTTPRequestHandler):
         if '/wallet/balance/' in path:
             _ad = path.split('/wallet/balance/')[-1].split('?')[0].strip()
             self._j(_wallet_balance_full(_ad), 200)
-            return
-        if path.endswith('/mylink/feed/social'):
-            self._j(_mylink_feed_social(), 200)
             return
         if path.endswith('/mylink/agents'):
             try:
@@ -1063,24 +1014,6 @@ def _do_POST(self):
         except Exception:
             _d = {}
         _c, _p = _aistore_redeem(_d)
-        self._j(_p, _c)
-        return
-    if '/mylink/react' in path:
-        try:
-            _ln = int(self.headers.get('Content-Length', 0) or 0)
-            _d = json.loads(self.rfile.read(_ln).decode("utf-8", "replace") or "{}") if 0 < _ln < 65536 else {}
-        except Exception:
-            _d = {}
-        _c, _p = _social_react(_d)
-        self._j(_p, _c)
-        return
-    if '/mylink/comment' in path:
-        try:
-            _ln = int(self.headers.get('Content-Length', 0) or 0)
-            _d = json.loads(self.rfile.read(_ln).decode("utf-8", "replace") or "{}") if 0 < _ln < 65536 else {}
-        except Exception:
-            _d = {}
-        _c, _p = _social_comment(_d)
         self._j(_p, _c)
         return
     if '/wallet/withdraw/broadcast' in path:
