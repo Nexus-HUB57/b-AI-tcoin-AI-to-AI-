@@ -11,6 +11,7 @@ from .swap_engine import SwapEngine, SwapError, SwapQuote, SwapOrder
 from .swap_protocol import IntentError, SwapIntent, sign_quote
 from .swap_sync import SwapSyncStore, SyncError
 from .swap_executor import Deposit, ExecutorError, OrderState, SwapExecutor
+from .parity_gate import ParityAttestation, ParityError, ParityGate
 from .native_adapters import BitcoinCoreReader, BitcoinRpcError, BaitBlockchainSettlement
 from .swap_service import NativeSwapService
 
@@ -33,6 +34,9 @@ __all__ = [
     "ExecutorError",
     "OrderState",
     "SwapExecutor",
+    "ParityAttestation",
+    "ParityError",
+    "ParityGate",
     "BitcoinCoreReader",
     "BitcoinRpcError",
     "BaitBlockchainSettlement",

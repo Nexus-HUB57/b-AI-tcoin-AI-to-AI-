@@ -22,6 +22,7 @@ from baitcoin_core.blockchain.chain import Blockchain
 from baitcoin_core.cryptography.schnorr import SchnorrKeyPair
 from baitcoin_core.network.p2p_real.node import P2PNode
 from native_processing.native_adapters import BaitBlockchainSettlement, BitcoinCoreReader
+from native_processing.parity_gate import ParityGate
 from native_processing.swap_engine import SwapEngine
 from native_processing.swap_executor import Deposit, OrderState, SwapExecutor
 from native_processing.swap_protocol import sign_quote
@@ -165,6 +166,14 @@ async def run(args: argparse.Namespace) -> dict:
             btc_deposit_address=deposit_address,
             bait_recipient_pubkey=recipient_key.pub_bytes,
             network="regtest",
+            # Fixture exclusively for regtest; production requires a verified oracle.
+            parity_attestation={
+                "version": 1, "pair": "BAIT/USDT", "bait_usdt_ppm": 1_000_000,
+                "usdt_usd_ppm": 1_000_000, "usd_brl_ppm": 5_000_000,
+                "observed_at": now, "expires_at": now + 60, "round_id": "regtest-round",
+                "source_ids": ["regtest-a", "regtest-b", "regtest-c"], "quorum": 3,
+                "proof_b64": "regtest-fixture",
+            },
         )
         settlement = BaitBlockchainSettlement(
             blockchain,
@@ -180,6 +189,7 @@ async def run(args: argparse.Namespace) -> dict:
             required_confirmations=1,
             enable_settlement=True,
             clock=time.time,
+            parity_gate=ParityGate(lambda _attestation: True, clock=time.time),
         )
         if executor.admit(intent) != OrderState.INTENT_VALIDATED:
             raise AssertionError("signed intent was not admitted")

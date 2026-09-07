@@ -133,6 +133,21 @@ class SwapSyncStore:
             raise SyncError("invalid swap intent status")
         now = time.time() if now is None else float(now)
         with self._lock, self.db:
+            row = self.db.execute("SELECT status FROM swap_intents WHERE order_id=?", (order_id,)).fetchone()
+            if not row:
+                raise SyncError("unknown swap order")
+            transitions = {
+                "pending": {"pending", "intent_validated", "reconciling"},
+                "intent_validated": {"intent_validated", "btc_observed", "reconciling"},
+                "btc_observed": {"btc_observed", "btc_confirmed", "reconciling"},
+                "btc_confirmed": {"btc_confirmed", "bait_submitted", "reconciling"},
+                "bait_submitted": {"bait_submitted", "settled", "reconciling"},
+                "settled": {"settled"},
+                "reconciling": {"reconciling", "refunded"},
+                "refunded": {"refunded"},
+            }
+            if status not in transitions.get(str(row[0]), set()):
+                raise SyncError(f"illegal swap state transition: {row[0]} -> {status}")
             updated = self.db.execute(
                 "UPDATE swap_intents SET status=? WHERE order_id=?",
                 (status, order_id),

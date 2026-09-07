@@ -65,6 +65,7 @@ class SwapIntent:
     btc_deposit_address: str = ""
     bait_recipient_pubkey_b64: str = ""
     network: str = ""
+    parity_attestation_json: str = ""
 
     def unsigned_dict(self) -> dict[str, Any]:
         return {
@@ -83,6 +84,7 @@ class SwapIntent:
             "btc_deposit_address": self.btc_deposit_address,
             "bait_recipient_pubkey_b64": self.bait_recipient_pubkey_b64,
             "network": self.network,
+            "parity_attestation_json": self.parity_attestation_json,
         }
 
     def signing_bytes(self) -> bytes:
@@ -125,6 +127,7 @@ class SwapIntent:
                 btc_deposit_address=str(raw.get("btc_deposit_address", "")),
                 bait_recipient_pubkey_b64=str(raw.get("bait_recipient_pubkey_b64", "")),
                 network=str(raw.get("network", "")),
+                parity_attestation_json=str(raw.get("parity_attestation_json", "")),
             )
         except (TypeError, ValueError) as exc:
             raise IntentError("invalid swap intent field type") from exc
@@ -143,6 +146,13 @@ class SwapIntent:
             raise IntentError("swap intent expired or from the future")
         if self.network and self.network not in SUPPORTED_NETWORKS:
             raise IntentError("unsupported swap network")
+        if self.parity_attestation_json:
+            try:
+                parsed_parity = json.loads(self.parity_attestation_json)
+            except (TypeError, ValueError) as exc:
+                raise IntentError("invalid parity attestation encoding") from exc
+            if not isinstance(parsed_parity, Mapping):
+                raise IntentError("invalid parity attestation envelope")
 
         public_key = _decode_b64(self.public_key_b64, "public key")
         signature = _decode_b64(self.signature_b64, "signature")
@@ -177,6 +187,7 @@ def sign_quote(
     btc_deposit_address: str = "",
     bait_recipient_pubkey: bytes | str = b"",
     network: str = "",
+    parity_attestation: Optional[Mapping[str, Any]] = None,
 ) -> SwapIntent:
     """Assina uma cotação e, opcionalmente, seu roteamento de liquidação.
 
@@ -187,6 +198,12 @@ def sign_quote(
         raise IntentError("maker_id and client_order_id are required")
     if network and network not in SUPPORTED_NETWORKS:
         raise IntentError("unsupported swap network")
+    parity_json = ""
+    if parity_attestation is not None:
+        try:
+            parity_json = json.dumps(dict(parity_attestation), sort_keys=True, separators=(",", ":"), allow_nan=False)
+        except (TypeError, ValueError) as exc:
+            raise IntentError("invalid parity attestation") from exc
     now = time.time() if now is None else float(now)
     if not math.isfinite(now) or quote.expires_at <= now:
         raise IntentError("quote expired or invalid signing time")
@@ -220,6 +237,7 @@ def sign_quote(
         btc_deposit_address=btc_deposit_address,
         bait_recipient_pubkey_b64=recipient_b64,
         network=network,
+        parity_attestation_json=parity_json,
     )
     signature_b64 = base64.b64encode(private_key.sign(unsigned.signing_bytes())).decode()
     return SwapIntent(**{**unsigned.__dict__, "signature_b64": signature_b64})

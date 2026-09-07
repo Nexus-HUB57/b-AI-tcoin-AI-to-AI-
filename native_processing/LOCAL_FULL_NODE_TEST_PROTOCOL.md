@@ -32,10 +32,11 @@ O script cria um diretório temporário isolado e, nesta ordem:
 6. cria dois `P2PNode` BAIT em portas efêmeras;
 7. conecta o nó B ao nó A e valida o canal TCP;
 8. cria funding BAIT local para o bridge;
-9. submete o settlement BAIT no nó A;
-10. retransmite a transação para o nó B;
-11. minera e confirma a transação BAIT;
-12. encerra o daemon e remove o diretório temporário, salvo se `--keep-data` for usado.
+9. valida uma attestation de paridade fixture, explicitamente limitada ao regtest;
+10. submete o settlement BAIT no nó A;
+11. retransmite a transação para o nó B;
+12. minera e confirma a transação BAIT;
+13. encerra o daemon e remove o diretório temporário, salvo se `--keep-data` for usado.
 
 ## Resultado desta execução
 
@@ -88,3 +89,5 @@ O teste é aprovado somente se todos os critérios forem verdadeiros:
 - o daemon Bitcoin Core é encerrado no bloco `finally` do harness.
 
 Este protocolo valida integração local e não é uma autorização para habilitar settlement em Mainnet. A ativação de produção exige gestão de chaves, limites de valor, monitoramento, política de peers e procedimento de reconciliação.
+
+O verificador `lambda _attestation: True` usado pelo harness é deliberadamente uma fixture de regtest. Em produção ele deve ser substituído por verificação de assinatura e quorum de oráculo aprovado; sem essa substituição o settlement deve permanecer desabilitado.

@@ -4,7 +4,7 @@
 
 O fluxo end-to-end agora é composto por quatro camadas. `SwapEngine` gera a cotação e mantém a ordem idempotente em SQLite. `SwapIntent` transforma a ordem em uma mensagem Ed25519 auto-verificável, contendo a rede Bitcoin explícita, o endereço de depósito BTC e a chave pública BAIT de destino. `SwapSyncStore` valida, deduplica e replica a intenção por sequência através do TCP/P2P nativo. `SwapExecutor` observa o depósito em Bitcoin Core, exige o número configurado de confirmações e só então chama o settlement BAIT.
 
-O `BitcoinCoreReader` é watch-only: consulta `getblockchaininfo`, `scantxoutset` e `getblockcount`, confere a rede declarada e não importa chaves, assina ou transmite transações Bitcoin. O `BaitBlockchainSettlement` prepara uma transação BAIT nativa com UTXO do bridge, assina com a chave fornecida pelo processo hospedeiro, coloca a transação no mempool e só reporta `confirmed` depois da inclusão em bloco.
+O `BitcoinCoreReader` é watch-only: consulta `getblockchaininfo`, `scantxoutset`, `getrawtransaction`, `gettxout` e `getblockcount`, confere a rede declarada e só retorna depósitos com txid/vout/scriptPubKey em HEX válido e comprovadamente não gastos. Ele não importa chaves, assina ou transmite transações Bitcoin. O `BaitBlockchainSettlement` prepara uma transação BAIT nativa com UTXO do bridge, valida-a contra o UTXO set antes do mempool, assina com Schnorr através da chave fornecida pelo processo hospedeiro, vincula o digest da paridade ao payload e só reporta `confirmed` depois da inclusão em bloco.
 
 ## Estados
 
@@ -18,6 +18,8 @@ O `BitcoinCoreReader` é watch-only: consulta `getblockchaininfo`, `scantxoutset
 | `reconciling` | Rede, endereço, valor, outpoint ou settlement divergente | Pagamento automático interrompido |
 
 O executor começa com `enable_settlement=False`. A ativação deve ser feita apenas em ambiente controlado, com limites de valor, segregação de chaves, monitoramento e procedimento de reconciliação. O módulo não persiste a chave privada; o processo hospedeiro deve fornecer um signer protegido por carteira/HSM ou equivalente.
+
+Quando `enable_settlement=True`, o executor exige um `ParityGate` com verificador externo de attestation. A attestation precisa provar `BAIT/USDT` dentro da tolerância configurada, ter quorum, timestamp, expiração e fontes distintas. Sem essa prova, o executor rejeita a intenção antes de observar/liquidar o depósito. O fixture aceito pelo harness regtest é exclusivamente local e não é um oráculo de produção.
 
 ## Integração mínima
 

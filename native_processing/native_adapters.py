@@ -14,6 +14,7 @@ import hashlib
 import inspect
 import json
 import logging
+import re
 import sqlite3
 import threading
 import time
@@ -131,6 +132,27 @@ class BitcoinCoreReader:
                 height = int(item["height"])
             except (KeyError, TypeError, ValueError, BitcoinRpcError):
                 continue
+            if not re.fullmatch(r"[0-9a-fA-F]{64}", txid) or vout < 0 or height < 0:
+                continue
+            raw_hex = self._rpc("getrawtransaction", [txid, False])
+            if not isinstance(raw_hex, str) or len(raw_hex) % 2 or not re.fullmatch(r"[0-9a-fA-F]+", raw_hex):
+                continue
+            try:
+                bytes.fromhex(raw_hex)
+            except ValueError:
+                continue
+            verbose = self._rpc("getrawtransaction", [txid, True])
+            tx_outputs = verbose.get("vout", []) if isinstance(verbose, Mapping) else []
+            if not isinstance(verbose, Mapping) or str(verbose.get("txid", "")).lower() != txid.lower() or vout >= len(tx_outputs):
+                continue
+            output = tx_outputs[vout]
+            script = output.get("scriptPubKey", {}) if isinstance(output, Mapping) else {}
+            script_hex = str(script.get("hex", "")) if isinstance(script, Mapping) else ""
+            if not script_hex or len(script_hex) % 2 or not re.fullmatch(r"[0-9a-fA-F]+", script_hex):
+                continue
+            txout = self._rpc("gettxout", [txid, vout, True])
+            if not isinstance(txout, Mapping) or txout.get("bestblock") is None:
+                continue
             confirmations = 0 if height <= 0 else max(0, chain_height - height + 1)
             if amount_sats == expected_sats:
                 candidates.append(Deposit(
@@ -139,8 +161,10 @@ class BitcoinCoreReader:
                     confirmations=confirmations,
                     recipient=address,
                     network=self.network,
-                    block_hash=str(item.get("scriptPubKey", "")),
+                    block_hash=str(verbose.get("blockhash", "")),
                     vout=vout,
+                    script_pubkey_hex=script_hex,
+                    validated_hex=True,
                 ))
         if not candidates:
             return None
@@ -245,6 +269,9 @@ class BaitBlockchainSettlement:
                     "btc_txid": deposit.txid,
                     "btc_vout": deposit.vout,
                     "network": self.network,
+                    "parity_digest": hashlib.sha256(
+                        str(getattr(intent, "parity_attestation_json", "")).encode("utf-8")
+                    ).hexdigest(),
                 }, sort_keys=True, separators=(",", ":")).encode(),
             )
             # Keep the bridge change output deterministic and pay the fee from change.
@@ -257,7 +284,7 @@ class BaitBlockchainSettlement:
                 script_pubkey=self.bridge_key.pub_bytes,
             ))
             tx.signature = self.bridge_key.sign(tx.tx_id).raw
-            if not self.blockchain.add_transaction(tx, fee_rate=self.fee_rate):
+            if not self.blockchain.add_transaction(tx, fee_rate=self.fee_rate, validate=True):
                 raise ExecutorError("BAIT full node rejected settlement transaction")
             txid = tx.tx_id.hex()
             self._broadcast(tx)

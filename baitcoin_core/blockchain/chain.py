@@ -292,13 +292,18 @@ class Blockchain:
             key = f"{tx.tx_id.hex()}:{i}"
             self.utxo_set[key] = output
 
-    def add_transaction(self, tx: Transaction, fee_rate: int = 10) -> bool:
+    def add_transaction(self, tx: Transaction, fee_rate: int = 10, *, validate: bool = False) -> bool:
         r"""Adiciona transação ao mempool com validação e taxa.
 
         Uses FeeMarket for fee-based mempool management.
         """
-        success, reason = self.fee_market.add_transaction(tx, fee_rate)
-        return success
+        with self._mine_lock:
+            if validate:
+                verifier = TransactionVerifier(self.utxo_set, self.height)
+                if not verifier.verify(tx).valid:
+                    return False
+            success, reason = self.fee_market.add_transaction(tx, fee_rate)
+            return success
 
     def mine_block(self, miner_agent: str, miner_pubkey: bytes) -> Block:
         r"""Minera um novo bloco com transações priorizadas por taxa.

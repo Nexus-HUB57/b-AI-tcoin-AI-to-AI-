@@ -11,11 +11,14 @@ import hashlib
 import hmac
 import json
 import math
+import re
 import sqlite3
 import time
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Callable, Mapping, Optional, Protocol
+
+from .parity_gate import ParityAttestation, ParityError, ParityGate
 
 
 class ExecutorError(ValueError):
@@ -98,16 +101,25 @@ class Deposit:
     network: str = ""
     block_hash: str = ""
     vout: int = -1
+    script_pubkey_hex: str = ""
+    validated_hex: bool = False
 
-    def validate(self) -> None:
+    def validate(self, *, require_hex: bool = False) -> None:
         if not self.txid or len(self.txid) > 128:
             raise ExecutorError("invalid Bitcoin txid")
+        if require_hex and not re.fullmatch(r"[0-9a-fA-F]{64}", self.txid):
+            raise ExecutorError("Bitcoin txid must be exactly 32 bytes in HEX")
         if type(self.btc_sats) is not int or self.btc_sats <= 0:
             raise ExecutorError("invalid Bitcoin deposit amount")
         if type(self.confirmations) is not int or self.confirmations < 0:
             raise ExecutorError("invalid Bitcoin confirmations")
         if type(self.vout) is not int or self.vout < -1:
             raise ExecutorError("invalid Bitcoin output index")
+        if require_hex:
+            if self.vout < 0 or not self.validated_hex:
+                raise ExecutorError("Bitcoin outpoint was not validated in HEX")
+            if not self.script_pubkey_hex or len(self.script_pubkey_hex) % 2 or not re.fullmatch(r"[0-9a-fA-F]+", self.script_pubkey_hex):
+                raise ExecutorError("invalid Bitcoin scriptPubKey HEX")
 
 
 class BitcoinReader(Protocol):
@@ -132,6 +144,7 @@ class SwapExecutor:
         required_confirmations: int = 3,
         enable_settlement: bool = False,
         clock: Callable[[], float] = time.time,
+        parity_gate: Optional[ParityGate] = None,
     ):
         if required_confirmations < 1:
             raise ExecutorError("required_confirmations must be positive")
@@ -141,7 +154,18 @@ class SwapExecutor:
         self.db.execute(
             "CREATE TABLE IF NOT EXISTS orders ("
             "order_id TEXT PRIMARY KEY, intent_json TEXT NOT NULL, state TEXT NOT NULL, "
-            "intent_digest TEXT NOT NULL, deposit_json TEXT, external_id TEXT, updated_at REAL NOT NULL)"
+            "intent_digest TEXT NOT NULL, deposit_json TEXT, external_id TEXT, updated_at REAL NOT NULL, "
+            "parity_digest TEXT NOT NULL DEFAULT '' )"
+        )
+        try:
+            self.db.execute("ALTER TABLE orders ADD COLUMN parity_digest TEXT NOT NULL DEFAULT ''")
+        except sqlite3.OperationalError as exc:
+            if "duplicate column name" not in str(exc).lower():
+                raise
+        self.db.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS orders_unique_btc_outpoint "
+            "ON orders(json_extract(deposit_json, '$.network'), json_extract(deposit_json, '$.txid'), "
+            "json_extract(deposit_json, '$.vout')) WHERE deposit_json IS NOT NULL"
         )
         self.bitcoin = bitcoin
         self.bait = bait
@@ -149,6 +173,9 @@ class SwapExecutor:
         self.required_confirmations = required_confirmations
         self.enable_settlement = enable_settlement
         self.clock = clock
+        self.parity_gate = parity_gate
+        if self.enable_settlement and self.parity_gate is None:
+            raise ExecutorError("settlement requires a verified BAIT/USDT parity gate")
 
     def close(self) -> None:
         self.db.close()
@@ -185,6 +212,14 @@ class SwapExecutor:
             raise
         except Exception as exc:
             raise ExecutorError("invalid intent signature") from exc
+        parity_digest = ""
+        if self.enable_settlement:
+            try:
+                raw_parity = json.loads(str(getattr(intent, "parity_attestation_json", "")))
+                parity = ParityAttestation.from_mapping(raw_parity)
+                parity_digest = self.parity_gate.validate(parity, now=self.clock())  # type: ignore[union-attr]
+            except (ParityError, TypeError, ValueError, json.JSONDecodeError) as exc:
+                raise ExecutorError("intent has no valid BAIT/USDT parity attestation") from exc
         if self.clock() >= float(intent.expires_at):
             raise ExecutorError("expired intent")
         encoded = json.dumps(self._intent_dict(intent), sort_keys=True, separators=(",", ":"), allow_nan=False)
@@ -195,8 +230,8 @@ class SwapExecutor:
                 raise ExecutorError("order_id conflict: payload changed")
             return OrderState(row[1])
         self.db.execute(
-            "INSERT INTO orders VALUES(?,?,?,?,?,?,?)",
-            (intent.order_id, encoded, OrderState.INTENT_VALIDATED.value, digest, None, None, self.clock()),
+            "INSERT INTO orders VALUES(?,?,?,?,?,?,?,?)",
+            (intent.order_id, encoded, OrderState.INTENT_VALIDATED.value, digest, None, None, self.clock(), parity_digest),
         )
         return OrderState.INTENT_VALIDATED
 
@@ -220,7 +255,7 @@ class SwapExecutor:
         if deposit is None:
             return state
         try:
-            deposit.validate()
+            deposit.validate(require_hex=self.enable_settlement)
         except ExecutorError:
             self.db.execute(
                 "UPDATE orders SET state=?,updated_at=? WHERE order_id=?",
@@ -248,7 +283,8 @@ class SwapExecutor:
             return OrderState.RECONCILING
 
         if state == OrderState.INTENT_VALIDATED:
-            self._set_state(order_id, OrderState.BTC_OBSERVED, deposit)
+            if not self._set_state(order_id, OrderState.BTC_OBSERVED, deposit):
+                return OrderState.RECONCILING
             state = OrderState.BTC_OBSERVED
         if deposit.confirmations < self.required_confirmations:
             return state
@@ -284,11 +320,19 @@ class SwapExecutor:
                 return OrderState.RECONCILING
         return state
 
-    def _set_state(self, order_id: str, state: OrderState, deposit: Deposit) -> None:
-        self.db.execute(
-            "UPDATE orders SET state=?,deposit_json=?,updated_at=? WHERE order_id=?",
-            (state.value, json.dumps(deposit.__dict__, sort_keys=True), self.clock(), order_id),
-        )
+    def _set_state(self, order_id: str, state: OrderState, deposit: Deposit) -> bool:
+        try:
+            self.db.execute(
+                "UPDATE orders SET state=?,deposit_json=?,updated_at=? WHERE order_id=?",
+                (state.value, json.dumps(deposit.__dict__, sort_keys=True), self.clock(), order_id),
+            )
+            return True
+        except sqlite3.IntegrityError:
+            self.db.execute(
+                "UPDATE orders SET state=?,updated_at=? WHERE order_id=?",
+                (OrderState.RECONCILING.value, self.clock(), order_id),
+            )
+            return False
 
     def get_state(self, order_id: str) -> OrderState:
         return OrderState(self._get(order_id)[1])

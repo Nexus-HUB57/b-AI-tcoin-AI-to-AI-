@@ -8,6 +8,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from baitcoin_core.blockchain.chain import Blockchain
 from baitcoin_core.cryptography.schnorr import SchnorrKeyPair
 from native_processing.native_adapters import BitcoinCoreReader, BitcoinRpcError, BaitBlockchainSettlement
+from native_processing.parity_gate import ParityGate
 from native_processing.swap_engine import SwapEngine
 from native_processing.swap_executor import Deposit, OrderState, SwapExecutor
 from native_processing.swap_protocol import sign_quote
@@ -50,6 +51,13 @@ def make_signed_intent(now=1000.0, **kwargs):
     quote = engine.quote("buy_bait", 100_000, 2_000_000, now=now)
     maker = Ed25519PrivateKey.generate()
     recipient = kwargs.pop("bait_recipient_pubkey", b"r" * 32)
+    parity_attestation = kwargs.pop("parity_attestation", {
+        "version": 1, "pair": "BAIT/USDT", "bait_usdt_ppm": 1_000_000,
+        "usdt_usd_ppm": 1_000_000, "usd_brl_ppm": 5_000_000,
+        "observed_at": now, "expires_at": now + 60, "round_id": "test-round",
+        "source_ids": ["source-a", "source-b", "source-c"], "quorum": 3,
+        "proof_b64": "test-proof",
+    })
     intent = sign_quote(
         quote,
         "maker-native",
@@ -59,6 +67,7 @@ def make_signed_intent(now=1000.0, **kwargs):
         btc_deposit_address=kwargs.pop("btc_deposit_address", "bcrt1qswapdeposit"),
         bait_recipient_pubkey=recipient,
         network=kwargs.pop("network", "regtest"),
+        parity_attestation=parity_attestation,
     )
     engine.close()
     return intent
@@ -66,16 +75,17 @@ def make_signed_intent(now=1000.0, **kwargs):
 
 def test_executor_signed_intent_confirmation_and_idempotent_settlement(tmp_path: Path):
     intent = make_signed_intent()
-    bitcoin = FakeBitcoin(Deposit("btc-tx-1", 100_000, 1, "bcrt1qswapdeposit", "regtest", vout=0))
+    bitcoin = FakeBitcoin(Deposit("a" * 64, 100_000, 1, "bcrt1qswapdeposit", "regtest", vout=0, script_pubkey_hex="51", validated_hex=True))
     bait = FakeBait()
     executor = SwapExecutor(
         str(tmp_path / "orders.sqlite"), bitcoin, bait,
         required_confirmations=2, enable_settlement=True, clock=lambda: 1002.0,
+        parity_gate=ParityGate(lambda _attestation: True, clock=lambda: 1002.0),
     )
     try:
         assert executor.admit(intent) == OrderState.INTENT_VALIDATED
         assert executor.process(intent.order_id) == OrderState.BTC_OBSERVED
-        bitcoin.deposit = Deposit("btc-tx-1", 100_000, 2, "bcrt1qswapdeposit", "regtest", vout=0)
+        bitcoin.deposit = Deposit("a" * 64, 100_000, 2, "bcrt1qswapdeposit", "regtest", vout=0, script_pubkey_hex="51", validated_hex=True)
         assert executor.process(intent.order_id) == OrderState.BAIT_SUBMITTED
         assert bait.calls == 1
         bait.state = "confirmed"
@@ -117,6 +127,12 @@ def test_bitcoin_core_reader_checks_explicit_network_and_amount():
                 return {"success": True, "unspents": [{
                     "txid": "a" * 64, "vout": 0, "amount": "0.00100000", "height": 8,
                 }]}
+            if method == "getrawtransaction":
+                if params[1] is False:
+                    return "00" * 32
+                return {"txid": "a" * 64, "vout": [{"value": 0.001, "scriptPubKey": {"hex": "51"}}], "blockhash": "b" * 64}
+            if method == "gettxout":
+                return {"bestblock": "c" * 64, "value": 0.001, "scriptPubKey": {"hex": "51"}}
             raise AssertionError(method)
 
     intent = make_signed_intent()
@@ -126,7 +142,7 @@ def test_bitcoin_core_reader_checks_explicit_network_and_amount():
     assert deposit.btc_sats == 100_000
     assert deposit.confirmations == 3
     assert deposit.network == "regtest"
-    assert [call[0] for call in reader.calls] == ["getblockchaininfo", "scantxoutset", "getblockcount"]
+    assert [call[0] for call in reader.calls] == ["getblockchaininfo", "scantxoutset", "getblockcount", "getrawtransaction", "getrawtransaction", "gettxout"]
 
     mismatch = Reader("main")
     try:
@@ -147,7 +163,7 @@ def test_native_bait_full_node_settlement_is_confirmed_after_mining(tmp_path: Pa
             break
     assert any(output.script_pubkey == bridge_key.pub_bytes for output in blockchain.utxo_set.values())
     intent = make_signed_intent(bait_recipient_pubkey=recipient_key.pub_bytes)
-    deposit = Deposit("btc-tx-native", intent.btc_sats, 6, "bcrt1qswapdeposit", "regtest", vout=0)
+    deposit = Deposit("b" * 64, intent.btc_sats, 6, "bcrt1qswapdeposit", "regtest", vout=0, script_pubkey_hex=bridge_key.pub_bytes.hex(), validated_hex=True)
     p2p = FakeP2P()
     settlement = BaitBlockchainSettlement(
         blockchain, bridge_key, network="regtest", db_path=str(tmp_path / "settlement.sqlite"), p2p_node=p2p
@@ -155,6 +171,7 @@ def test_native_bait_full_node_settlement_is_confirmed_after_mining(tmp_path: Pa
     executor = SwapExecutor(
         str(tmp_path / "orders.sqlite"), FakeBitcoin(deposit), settlement,
         required_confirmations=1, enable_settlement=True, clock=lambda: 1002.0,
+        parity_gate=ParityGate(lambda _attestation: True, clock=lambda: 1002.0),
     )
     try:
         executor.admit(intent)
