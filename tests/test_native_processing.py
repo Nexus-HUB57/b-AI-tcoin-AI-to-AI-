@@ -2,6 +2,7 @@ import base64
 import json
 import tempfile
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pytest
@@ -9,6 +10,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from native_processing.integration import verify_webhook_body
 from native_processing.swap_engine import SwapEngine, SwapError
+from native_processing.swap_protocol import IntentError, sign_quote
 from native_processing.webhook_auth import AuthError, EventEnvelope, WebhookAuthenticator, payload_hash
 
 
@@ -74,4 +76,27 @@ def test_swap_order_idempotency(tmp_path):
     assert first == second
     with pytest.raises(SwapError):
         engine.place_order(engine.quote("buy_bait", 100_000, 2_000_000, now=100), "client-1", now=101)
+    engine.close()
+
+
+def test_signed_swap_intent_is_validated_by_any_node(tmp_path):
+    engine = SwapEngine(str(tmp_path / "swap.db"), quote_ttl_seconds=30)
+    private = Ed25519PrivateKey.generate()
+    now = 100.0
+    quote = engine.quote("sell_bait", 50_000, 1_000_000, now=now)
+    intent = sign_quote(quote, "maker-a", private, "client-a", now=101)
+    assert intent.verify(now=101)
+    tampered = {**intent.to_dict(), "bait_units": 2_000_000}
+    with pytest.raises(IntentError):
+        type(intent).from_dict(tampered).verify(now=101)
+    engine.close()
+
+
+def test_concurrent_idempotent_placement_has_one_order(tmp_path):
+    engine = SwapEngine(str(tmp_path / "swap.db"), quote_ttl_seconds=30)
+    quote = engine.quote("buy_bait", 100_000, 2_000_000, now=100)
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        orders = list(pool.map(lambda _: engine.place_order(quote, "same-client", now=101), range(32)))
+    assert len({order.order_id for order in orders}) == 1
+    assert engine.get_order("same-client") == orders[0]
     engine.close()

@@ -49,3 +49,21 @@ O serviço anexado deve instanciar o autenticador no bootstrap com `WEBHOOK_KEY_
 `SwapEngine` é uma camada de cotação e intenção, não uma custódia. Os valores são inteiros em satoshis/unidades mínimas; não há `float` no cálculo. `quote()` emite cotação com taxa e expiração. `place_order()` cria uma ordem `pending` e é idempotente por `client_order_id`. A liquidação, confirmações de Bitcoin e publicação na cadeia BAIT permanecem no executor/bridge existente.
 
 Este primeiro incremento não habilita pagamentos reais nem altera `baitcoin_core`, `baitcoin_bridge` ou os serviços atuais.
+
+## Validação descentralizada
+
+`swap_protocol.py` adiciona `SwapIntent`, uma intenção imutável assinada pelo
+maker com Ed25519. A intenção contém a cotação, identificador do maker, nonce,
+janela de validade e chave pública. O `order_id` é derivado deterministicamente
+de `quote_id`, nonce e maker, impedindo que um nó altere a identidade da ordem.
+
+O fluxo nativo recomendado é: o maker chama `sign_quote`, transmite
+`intent.to_dict()` pelo gossip já existente, e cada peer executa
+`SwapIntent.from_dict(...).verify()` antes de colocar a intenção em seu pool
+local. Como a mensagem é auto-contida, peers não precisam confiar em um
+servidor de cotação para validar autoria ou integridade. A liquidação deve
+continuar condicionada às confirmações da rede Bitcoin e à confirmação da
+transação BAIT; nenhuma dessas confirmações é simulada por este módulo.
+
+Os testes cobrem concorrência real sobre SQLite, verificando que 32 submissões
+simultâneas com o mesmo `client_order_id` resultam em uma única ordem.
