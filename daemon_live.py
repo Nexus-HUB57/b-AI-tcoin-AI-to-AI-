@@ -842,6 +842,16 @@ class H(BaseHTTPRequestHandler):
         if path.endswith('/mylink/feed/social'):
             self._j(_mylink_feed_social(), 200)
             return
+        if "swap/parity" in path:
+            try:
+                import time as _t
+                _pr=dict(ORACLE.get("prices",{}))
+                _b=float(_pr.get("BTC",0)); _bt=float(_pr.get("BAIT",0))
+                _par=(_b/_bt) if _bt>0 else 0
+                _j({"module":"baitcoin_swap","network":"b'AI'tcoin Mainnet","btc_usd":_b,"bait_usd":_bt,"parity_btc_bait":round(_par,2),"parity_note":"1 BTC = parity_btc_bait BAIT (oracle mediana)","custody_btc":"bc1qtydmzqcyltsm4tfmxl3a8f9tqvdxls62j05a8s","custody_bait":"b'/t32oRLn8We5w3UnSqSTQnYZxukxsNHud7CCJj","pool_status":"aguardando consolidacao BTC na custodia","fee_pct":0.3,"ts":_t.time()})
+            except Exception as _e:
+                _j({"error":"parity_unavailable","detail":str(_e)},503)
+            return
         if path.endswith('/mylink/agents'):
             try:
                 _db = json.load(open('/home/baitcoin/.baitcoin/mylink_registrations.json'))
