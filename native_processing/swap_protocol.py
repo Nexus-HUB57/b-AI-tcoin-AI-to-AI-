@@ -66,6 +66,8 @@ class SwapIntent:
         required = ("order_id", "quote_id", "side", "btc_sats", "bait_units", "maker_id", "created_at", "expires_at", "nonce", "public_key_b64", "signature_b64")
         if not isinstance(raw, Mapping) or any(k not in raw for k in required):
             raise IntentError("invalid swap intent envelope")
+        if raw.get("version") != 1:
+            raise IntentError("unsupported swap intent version")
         try:
             return cls(order_id=str(raw["order_id"]), quote_id=str(raw["quote_id"]), side=str(raw["side"]),
                        btc_sats=int(raw["btc_sats"]), bait_units=int(raw["bait_units"]), maker_id=str(raw["maker_id"]),

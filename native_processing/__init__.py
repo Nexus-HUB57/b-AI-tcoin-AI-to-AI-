@@ -9,6 +9,7 @@ from .webhook_auth import (
 )
 from .swap_engine import SwapEngine, SwapError, SwapQuote, SwapOrder
 from .swap_protocol import IntentError, SwapIntent, sign_quote
+from .swap_sync import SwapSyncStore, SyncError
 
 __all__ = [
     "AuthError",
@@ -23,6 +24,8 @@ __all__ = [
     "IntentError",
     "SwapIntent",
     "sign_quote",
+    "SwapSyncStore",
+    "SyncError",
 ]
 
 __version__ = "0.1.0"

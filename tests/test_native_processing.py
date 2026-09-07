@@ -11,7 +11,9 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from native_processing.integration import verify_webhook_body
 from native_processing.swap_engine import SwapEngine, SwapError
 from native_processing.swap_protocol import IntentError, sign_quote
+from native_processing.swap_sync import SwapSyncStore
 from baitcoin_core.network.gossip import GossipMessageType, GossipProtocol
+from baitcoin_core.network.p2p_real.protocol import MsgType, NetworkMessage, P2PProtocol
 from native_processing.webhook_auth import AuthError, EventEnvelope, WebhookAuthenticator, payload_hash
 
 
@@ -118,3 +120,26 @@ def test_swap_intent_gossip_round_trip_and_deduplication():
     assert GossipProtocol.validate_swap_intent_message(received[0]).order_id == intent.order_id
     assert receiver.receive(raw) == []
     engine.close()
+
+
+def test_swap_sync_store_replays_deltas_idempotently(tmp_path):
+    private = Ed25519PrivateKey.generate()
+    source = SwapSyncStore(str(tmp_path / "source.db"), "node-a")
+    target = SwapSyncStore(str(tmp_path / "target.db"), "node-b")
+    now = time.time()
+    quote = SwapEngine(":memory:").quote("buy_bait", 100_000, 2_000_000, now=now)
+    intent = sign_quote(quote, "maker-sync", private, "client-sync", now=now)
+    assert source.admit_intent(intent, "local", "transport-1", now=now) == "accepted"
+    items = source.deltas("node-a", 0)
+    assert target.apply_deltas("node-a", items, now=now) == (1, 0, 0)
+    assert target.apply_deltas("node-a", items, now=now) == (0, 1, 0)
+    assert target.get_intent(intent.order_id)["status"] == "pending"
+    source.close(); target.close()
+
+
+def test_p2p_swap_message_round_trip_and_unknown_type_rejection():
+    protocol = P2PProtocol("node-a")
+    raw = protocol.create_swap_sync_request_msg("node-b", from_seq=4, limit=10).encode()
+    decoded = NetworkMessage.decode(raw)
+    assert decoded is not None and decoded.msg_type is MsgType.SWAP_SYNC_REQUEST
+    assert NetworkMessage.decode(bytes.fromhex("000000080f0000000000000000")) is None

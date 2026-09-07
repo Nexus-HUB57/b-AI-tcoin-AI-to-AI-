@@ -82,6 +82,14 @@ A mensagem inicial deve entrar como `seen` ou `pending`, nunca como `settled`. A
 
 O protocolo usa a serialização canônica do módulo `native_processing.swap_protocol`. Não se deve assinar o JSON serializado pelo gossip, pois campos de transporte como `timestamp` e `nonce` podem mudar. O gossip atual oferece deduplicação em memória; para tolerar reinícios, o pool de intenções deve persistir `order_id`, `nonce`, estado e primeiro horário observado em SQLite ou no mecanismo de memória WAL da plataforma.
 
+## Transporte P2P TCP e sincronização
+
+Além do gossip JSON, o P2P TCP real possui os tipos aditivos `SWAP_INTENT` (`0x14`), `SWAP_SYNC_REQUEST` (`0x15`) e `SWAP_SYNC_RESPONSE` (`0x16`). O handshake `VERSION` anuncia a capability `swap_intent_sync_v1`. Um peer só recebe propagação automática de intents depois de anunciar essa capability; peers legados continuam recebendo somente os tipos antigos.
+
+`SwapSyncStore` persiste intenções em SQLite WAL. A admissão registra o envelope de transporte, o hash canônico, a identidade econômica (`order_id`, `maker_id`, nonce) e uma sequência de origem. `swap_sync_request` solicita deltas após um cursor. `swap_sync_response` transporta os envelopes assinados e seus hashes. Repetições do mesmo transporte ou da mesma intenção são idempotentes. Um mesmo `order_id` com conteúdo divergente resulta em `conflict` e não sobrescreve o registro original.
+
+O receptor deve validar a intenção antes de inserir, encaminhar ou executar qualquer ação. A sincronização dissemina fatos assinados e estados `pending`; ela não prova solvência, confirmação Bitcoin ou crédito BAIT. O executor de liquidação permanece separado.
+
 ## Referências
 
 [1]: https://www.mybait.org/api/api/v1/status "Status público da API b'AI'tcoin"
