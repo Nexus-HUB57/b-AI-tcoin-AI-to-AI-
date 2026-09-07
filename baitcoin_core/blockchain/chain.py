@@ -342,15 +342,6 @@ class Blockchain:
             result = self.tx_verifier.verify(tx)
             if result.valid:
                 verified_txs.append(tx)
-                # Remove UTXOs spent by this tx
-                for inp in tx.inputs:
-                    key = f"{inp.prev_tx_id.hex()}:{inp.prev_output_index}"
-                    self.utxo_set.pop(key, None)
-
-        # Phase A: Record fee data and prune mempool
-        self.fee_market.prune_selected(verified_txs)
-        if verified_txs:
-            self.fee_market.record_block_median(median_fee)
 
         header = BlockHeader(
             version=1,
@@ -365,6 +356,16 @@ class Blockchain:
         if mined:
             block.finalize()
             self.chain.append(block)
+            # Only mutate the UTXO set and mempool after PoW succeeds. A
+            # failed mining attempt must leave selected transactions safely
+            # retryable instead of silently losing a settlement.
+            for tx in verified_txs:
+                for inp in tx.inputs:
+                    key = f"{inp.prev_tx_id.hex()}:{inp.prev_output_index}"
+                    self.utxo_set.pop(key, None)
+            self.fee_market.prune_selected(verified_txs)
+            if verified_txs:
+                self.fee_market.record_block_median(median_fee)
             self._update_utxo(coinbase)
             for tx in verified_txs:
                 self._update_utxo(tx)

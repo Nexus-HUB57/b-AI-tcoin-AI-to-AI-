@@ -46,9 +46,11 @@ O serviço anexado deve instanciar o autenticador no bootstrap com `WEBHOOK_KEY_
 
 ## Motor swap BTC/BAIT
 
-`SwapEngine` é uma camada de cotação e intenção, não uma custódia. Os valores são inteiros em satoshis/unidades mínimas; não há `float` no cálculo. `quote()` emite cotação com taxa e expiração. `place_order()` cria uma ordem `pending` e é idempotente por `client_order_id`. A liquidação, confirmações de Bitcoin e publicação na cadeia BAIT permanecem no executor/bridge existente.
+`SwapEngine` é uma camada de cotação e intenção, não uma custódia. Os valores são inteiros em satoshis/unidades mínimas; não há `float` no cálculo. `quote()` emite cotação com taxa e expiração. `place_order()` cria uma ordem `pending` e é idempotente por `client_order_id`.
 
-Este primeiro incremento não habilita pagamentos reais nem altera `baitcoin_core`, `baitcoin_bridge` ou os serviços atuais.
+O executor nativo em `swap_executor.py` valida intenções Ed25519, observa depósitos, exige confirmações e persiste o identificador do settlement antes de consultar seu status. A liquidação permanece desabilitada por padrão. `native_adapters.py` fornece um leitor watch-only para Bitcoin Core e um settlement para a `Blockchain` BAIT nativa, sem importar ou persistir chaves privadas.
+
+O fluxo completo pode ser conectado com `NativeSwapService`, que une cotação, ordem, intenção assinada, `SwapSyncStore`, P2P e executor. A configuração operacional, controles e teste end-to-end estão em [`SWAP_BTC_BAIT_NATIVE.md`](SWAP_BTC_BAIT_NATIVE.md).
 
 ## Validação descentralizada
 

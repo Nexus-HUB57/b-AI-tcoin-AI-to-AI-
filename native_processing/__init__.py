@@ -10,6 +10,9 @@ from .webhook_auth import (
 from .swap_engine import SwapEngine, SwapError, SwapQuote, SwapOrder
 from .swap_protocol import IntentError, SwapIntent, sign_quote
 from .swap_sync import SwapSyncStore, SyncError
+from .swap_executor import Deposit, ExecutorError, OrderState, SwapExecutor
+from .native_adapters import BitcoinCoreReader, BitcoinRpcError, BaitBlockchainSettlement
+from .swap_service import NativeSwapService
 
 __all__ = [
     "AuthError",
@@ -26,6 +29,14 @@ __all__ = [
     "sign_quote",
     "SwapSyncStore",
     "SyncError",
+    "Deposit",
+    "ExecutorError",
+    "OrderState",
+    "SwapExecutor",
+    "BitcoinCoreReader",
+    "BitcoinRpcError",
+    "BaitBlockchainSettlement",
+    "NativeSwapService",
 ]
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"

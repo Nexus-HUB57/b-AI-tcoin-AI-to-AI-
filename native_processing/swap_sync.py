@@ -111,6 +111,35 @@ class SwapSyncStore:
         result = json.loads(row[0]); result.update({"status": row[1], "origin_node": row[2], "origin_seq": row[3]})
         return result
 
+    def pending_order_ids(self, limit: int = 100) -> list[str]:
+        """Retorna intenções não terminais, de forma determinística."""
+        if limit < 1 or limit > 500:
+            raise SyncError("invalid pending order limit")
+        rows = self.db.execute(
+            "SELECT order_id FROM swap_intents "
+            "WHERE status NOT IN ('settled','refunded','reconciling') "
+            "ORDER BY first_seen_at, origin_seq LIMIT ?",
+            (limit,),
+        ).fetchall()
+        return [str(row[0]) for row in rows]
+
+    def set_status(self, order_id: str, status: str, now: Optional[float] = None) -> None:
+        """Atualiza o espelho de estado sem alterar a intenção assinada."""
+        allowed = {
+            "pending", "intent_validated", "btc_observed", "btc_confirmed",
+            "bait_submitted", "settled", "reconciling", "refunded",
+        }
+        if status not in allowed:
+            raise SyncError("invalid swap intent status")
+        now = time.time() if now is None else float(now)
+        with self._lock, self.db:
+            updated = self.db.execute(
+                "UPDATE swap_intents SET status=? WHERE order_id=?",
+                (status, order_id),
+            ).rowcount
+            if not updated:
+                raise SyncError("unknown swap order")
+
     def deltas(self, origin_node: str, from_seq: int = 0, limit: int = 50) -> list[dict[str, Any]]:
         if limit < 1 or limit > 500 or from_seq < 0:
             raise SyncError("invalid sync range")

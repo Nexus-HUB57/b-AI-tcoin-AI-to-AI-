@@ -66,7 +66,7 @@ class P2PNode:
         self.port = port
         self.node_id = node_id or hashlib.sha256(f"{host}:{port}:{time.time()}".encode()).hexdigest()[:16]
         self.agent_id = agent_id
-        self.seeds = seeds or self.DEFAULT_SEEDS
+        self.seeds = self.DEFAULT_SEEDS if seeds is None else list(seeds)
 
         self.protocol = P2PProtocol(self.node_id)
         self.handler = MessageHandler()
@@ -175,8 +175,14 @@ class P2PNode:
             writer.close()
             return
         self._connections[peer_id] = (reader, writer)
+        self.protocol.add_peer(peer_id, host, port, is_outbound=False)
         logger.info(f"Peer connected: {peer_id}")
         try:
+            height = self._get_height_fn() if self._get_height_fn else 0
+            await self._send_msg(
+                peer_id,
+                self.protocol.create_version_msg(height=height, agent_id=self.agent_id),
+            )
             await self._read_loop(peer_id, reader)
         except (asyncio.IncompleteReadError, ConnectionError, OSError):
             pass
@@ -478,6 +484,7 @@ class P2PNode:
             "known_peers": len(self.protocol.peers),
             "known_blocks": len(self.protocol._known_blocks),
             "known_txs": len(self.protocol._known_txs),
+            "swap_sync_enabled": self._swap_store is not None,
             "handler_stats": self.handler.get_stats(),
             "running": self._running,
         }
