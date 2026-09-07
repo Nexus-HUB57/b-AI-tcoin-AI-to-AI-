@@ -1,0 +1,51 @@
+# Nó nativo: webhooks Ed25519 e swap BTC/BAIT
+
+## Verificação de webhook
+
+`WebhookAuthenticator` valida o envelope antes de tocar no ledger. O payload é serializado com JSON canônico (`sort_keys`, separadores compactos, UTF-8), e o envelope assinado usa o prefixo de domínio `webhook.v1\n`. O `payload_hash` é SHA-256 do payload canônico; a assinatura é Ed25519 em Base64.
+
+O registry deve ser um JSON versionado, por exemplo:
+
+```json
+{
+  "version": 1,
+  "keys": {
+    "node-a-2026-09": {
+      "node_id": "node-a",
+      "status": "active",
+      "public_key_b64": "BASE64_DA_CHAVE_PUBLICA_ED25519",
+      "not_before": 1788000000,
+      "valid_until": 1790000000
+    },
+    "node-a-2026-12": {
+      "node_id": "node-a",
+      "status": "verify_only",
+      "public_key_b64": "BASE64_DA_NOVA_CHAVE",
+      "not_before": 1789000000,
+      "valid_until": 1792000000
+    }
+  }
+}
+```
+
+A rotação é feita adicionando a nova chave como `verify_only` com `not_before`, distribuindo-a, alternando o emissor para ela e removendo a chave anterior somente depois da janela de expiração. O verificador aceita `active` e `verify_only`, mas rejeita chaves fora das janelas temporais.
+
+A proteção contra replay usa duas tabelas SQLite em WAL e `synchronous=FULL`: `event_id` é único e idempotente, enquanto `last_sequence` por `source_node` impede reordenação. Reutilização de um `event_id` com outro hash é rejeitada. A transação cobre a consulta e a gravação, protegida por lock de processo.
+
+Integração sem alterar o serviço:
+
+```python
+from native_processing.integration import verify_webhook_body
+
+envelope, duplicate = verify_webhook_body(body, authenticator)
+if not duplicate:
+    ledger.put_event(envelope.payload)
+```
+
+O serviço anexado deve instanciar o autenticador no bootstrap com `WEBHOOK_KEY_REGISTRY` e `WEBHOOK_AUTH_DB`, e executar a verificação antes de `ledger.put_event`. Não se deve aceitar uma assinatura sobre o JSON bruto recebido; sempre use o envelope canônico.
+
+## Motor swap BTC/BAIT
+
+`SwapEngine` é uma camada de cotação e intenção, não uma custódia. Os valores são inteiros em satoshis/unidades mínimas; não há `float` no cálculo. `quote()` emite cotação com taxa e expiração. `place_order()` cria uma ordem `pending` e é idempotente por `client_order_id`. A liquidação, confirmações de Bitcoin e publicação na cadeia BAIT permanecem no executor/bridge existente.
+
+Este primeiro incremento não habilita pagamentos reais nem altera `baitcoin_core`, `baitcoin_bridge` ou os serviços atuais.

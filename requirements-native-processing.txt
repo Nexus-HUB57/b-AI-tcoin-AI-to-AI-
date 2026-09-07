@@ -1,0 +1,2 @@
+# Dependência do nó nativo: Ed25519 via implementação auditada
+cryptography>=42.0.0
