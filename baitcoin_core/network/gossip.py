@@ -26,6 +26,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import List, Dict, Optional, Any, Tuple
 
+from native_processing.swap_protocol import IntentError, SwapIntent
+
 logger = logging.getLogger(__name__)
 
 
@@ -39,6 +41,7 @@ class GossipMessageType(Enum):
     PONG = "pong"
     SYNC_REQUEST = "sync_request"
     SYNC_RESPONSE = "sync_response"
+    SWAP_INTENT = "swap_intent"
 
 
 @dataclass
@@ -305,6 +308,32 @@ class GossipProtocol:
             payload={"blocks": blocks},
             sender=self.node_id,
         )
+
+    def create_swap_intent_message(
+        self, intent: Dict[str, Any]
+    ) -> GossipMessage:
+        """Create a validated SWAP_INTENT gossip message.
+
+        The intent is validated before propagation. Peers must validate it
+        again after deserialization because gossip transport is untrusted.
+        """
+        parsed = SwapIntent.from_dict(intent)
+        parsed.verify()
+        return GossipMessage(
+            msg_type=GossipMessageType.SWAP_INTENT,
+            payload={"swap_intent": parsed.to_dict()},
+            sender=self.node_id,
+        )
+
+    @staticmethod
+    def validate_swap_intent_message(message: GossipMessage) -> SwapIntent:
+        """Validate and extract a SwapIntent received from a peer."""
+        if message.msg_type is not GossipMessageType.SWAP_INTENT:
+            raise IntentError("message is not a swap intent")
+        raw = message.payload.get("swap_intent")
+        intent = SwapIntent.from_dict(raw)
+        intent.verify()
+        return intent
 
     # ── Broadcast / Receive ──────────────────────────────────
 

@@ -1,2 +1,3 @@
 # b'AI'tcoin Ecosystem - Runtime dependencies (pure Python, no C compilation)
 ecdsa>=0.18.0
+cryptography>=42.0.0

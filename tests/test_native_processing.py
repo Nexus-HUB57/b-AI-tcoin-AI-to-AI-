@@ -11,6 +11,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from native_processing.integration import verify_webhook_body
 from native_processing.swap_engine import SwapEngine, SwapError
 from native_processing.swap_protocol import IntentError, sign_quote
+from baitcoin_core.network.gossip import GossipMessageType, GossipProtocol
 from native_processing.webhook_auth import AuthError, EventEnvelope, WebhookAuthenticator, payload_hash
 
 
@@ -99,4 +100,21 @@ def test_concurrent_idempotent_placement_has_one_order(tmp_path):
         orders = list(pool.map(lambda _: engine.place_order(quote, "same-client", now=101), range(32)))
     assert len({order.order_id for order in orders}) == 1
     assert engine.get_order("same-client") == orders[0]
+    engine.close()
+
+
+def test_swap_intent_gossip_round_trip_and_deduplication():
+    engine = SwapEngine(":memory:", quote_ttl_seconds=30)
+    private = Ed25519PrivateKey.generate()
+    now = time.time()
+    quote = engine.quote("buy_bait", 100_000, 2_000_000, now=now)
+    intent = sign_quote(quote, "maker-gossip", private, "client-gossip", now=now)
+    origin = GossipProtocol("node-a")
+    receiver = GossipProtocol("node-b")
+    message = origin.create_swap_intent_message(intent.to_dict())
+    raw = origin.serialize(message)
+    received = receiver.receive(raw)
+    assert received[0].msg_type is GossipMessageType.SWAP_INTENT
+    assert GossipProtocol.validate_swap_intent_message(received[0]).order_id == intent.order_id
+    assert receiver.receive(raw) == []
     engine.close()
