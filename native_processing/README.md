@@ -52,6 +52,8 @@ O executor nativo em `swap_executor.py` valida intenções Ed25519, observa dep�
 
 O fluxo completo pode ser conectado com `NativeSwapService`, que une cotação, ordem, intenção assinada, `SwapSyncStore`, P2P e executor. A configuração operacional, controles e teste end-to-end estão em [`SWAP_BTC_BAIT_NATIVE.md`](SWAP_BTC_BAIT_NATIVE.md).
 
+O teste integrado contra um Bitcoin Core real em `regtest` e dois nós BAIT TCP locais é executado por `scripts/run_local_swap_full_nodes.py`; o procedimento está descrito em [`LOCAL_FULL_NODE_TEST_PROTOCOL.md`](LOCAL_FULL_NODE_TEST_PROTOCOL.md). As correções de consistência da mineração e do handshake estão registradas em [`POW_MINING_ROLLBACK_PROTOCOL.md`](POW_MINING_ROLLBACK_PROTOCOL.md) e [`P2P_HANDSHAKE_SWAP_SYNC_PROTOCOL.md`](P2P_HANDSHAKE_SWAP_SYNC_PROTOCOL.md).
+
 ## Validação descentralizada
 
 `swap_protocol.py` adiciona `SwapIntent`, uma intenção imutável assinada pelo
