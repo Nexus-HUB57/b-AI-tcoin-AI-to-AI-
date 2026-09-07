@@ -54,6 +54,8 @@ Com settlement habilitado, o executor exige `ParityGate`: a intenção deve carr
 
 O fluxo completo pode ser conectado com `NativeSwapService`, que une cotação, ordem, intenção assinada, `SwapSyncStore`, P2P e executor. A configuração operacional, controles e teste end-to-end estão em [`SWAP_BTC_BAIT_NATIVE.md`](SWAP_BTC_BAIT_NATIVE.md).
 
+A conformidade criptográfica está documentada em [`BIP340_VALIDATION_PROTOCOL.md`](BIP340_VALIDATION_PROTOCOL.md). O fluxo de custódia exclusivamente local com `100000000` satoshis simulados está em [`CUSTODY_1BTC_REGTEST_PROTOCOL.md`](CUSTODY_1BTC_REGTEST_PROTOCOL.md); ele não autoriza nem implementa custódia Mainnet.
+
 O teste integrado contra um Bitcoin Core real em `regtest` e dois nós BAIT TCP locais é executado por `scripts/run_local_swap_full_nodes.py`; o procedimento está descrito em [`LOCAL_FULL_NODE_TEST_PROTOCOL.md`](LOCAL_FULL_NODE_TEST_PROTOCOL.md). As correções de consistência da mineração e do handshake estão registradas em [`POW_MINING_ROLLBACK_PROTOCOL.md`](POW_MINING_ROLLBACK_PROTOCOL.md) e [`P2P_HANDSHAKE_SWAP_SYNC_PROTOCOL.md`](P2P_HANDSHAKE_SWAP_SYNC_PROTOCOL.md).
 
 ## Validação descentralizada
