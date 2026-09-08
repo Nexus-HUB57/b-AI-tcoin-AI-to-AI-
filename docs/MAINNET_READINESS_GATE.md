@@ -1,7 +1,7 @@
 # Gate de prontidão Mainnet — Swap BTC/BAIT
 
-**Data:** 2026-09-07  
-**Estado:** BLOQUEADO — somente regtest/testnet controlada  
+**Data:** 2026-09-07 21:33 (-03:00)
+**Estado:** BLOQUEADO — somente regtest/testnet controlada
 **Escopo:** executor BTC/BAIT, full nodes nativos, SDK, explorer e custódia
 
 ## Conclusão
@@ -20,19 +20,37 @@ A validação local do motor Swap BTC/BAIT foi concluída com sucesso em `regtes
 | Custódia simulada | `100000000` satoshis; saldo reconciliado; `real_btc_used: false` |
 | BIP-340 | 19/19 vetores oficiais aprovados |
 
+## Simulação de swap — execução atual
+
+O harness completo foi executado novamente em Bitcoin Core `31.1.0` `regtest`. O depósito BTC foi observado pelo RPC/`BitcoinCoreReader` com uma confirmação, o settlement BAIT chegou a `settled`, a transação BAIT foi propagada por dois nós P2P e o diretório efêmero foi encerrado ao final.
+
+| Evidência | Resultado |
+|---|---|
+| Rede Bitcoin | `regtest` |
+| Depósito observado | `5bf42106854c0f83ec5b81fe2ed2c5d1bbfc62ea1a8f5f199d39aa97af7a6b92` |
+| Settlement BAIT | `c9c9dc6e9a00abdbbd2b01dc2bf397e6ab376973e3d7c2612f4b28074d6ce749` / `settled` |
+| Confirmações BTC | 1 |
+| Conexões P2P | 2 |
+| Transações BAIT propagadas | 1 |
+| Cenário de custódia | `100000000` satoshis, `settled`, `real_btc_used: false` |
+
+Este é um **fluxo atômico simulado de observação BTC → settlement BAIT**, não uma atomic swap Mainnet completa: o harness não executa release, refund, PSBT, multisig ou gasto do UTXO BTC. Portanto, a execução confirma a integração local, mas não remove o bloqueador de custódia real.
+
 ## Correções efetivas realizadas
 
 O indexador do explorer agora aceita scripts genesis não-PubKey sem quebrar, produz endereços determinísticos e parseáveis, resolve entradas por outpoint quando há histórico indexado, contabiliza múltiplas saídas pelo índice correto, separa saldo nativo de saldo de token e reconstrói a partir da blockchain vinculada. A mineração também possui retry limitado para reduzir falhas probabilísticas de PoW em harnesses locais, preservando o mempool quando uma tentativa falha.
 
 ## Bloqueadores restantes
 
-1. **Wallet mobile e criptografia nativa:** Swift/Kotlin ainda contêm caminhos placeholder de bundle e precisam de implementação AEAD real, armazenamento seguro e testes de round-trip em dispositivo.
-2. **Assinatura e importação de wallet:** é necessário provar que a chave importada, a chave pública e a assinatura pertencem à mesma carteira em todas as plataformas.
-3. **Biometria e attestation:** challenge, anti-replay, vínculo de dispositivo e verificação server-side ainda precisam de prova criptográfica.
-4. **SDK remoto:** transporte seguro obrigatório, envelopes de erro tipados, valores em inteiros/Decimal, operações remotas explícitas e ausência de falsos sucessos.
-5. **Explorer público:** o reorg foi validado em harness local; ainda faltam deduplicação em produção, inicialização no daemon, API keys persistentes, rotação de segredo, rate limit atômico e contrato OpenAPI/runtime.
-6. **Custódia real:** faltam política de multisig/HSM/MPC, segregação de funções, limites, reconciliação independente, circuito de refund/release, monitoramento, backups testados e plano de incidente.
-7. **Operação Mainnet:** faltam revisão externa, threat model, auditoria de dependências, observabilidade, rollback de aplicação e aprovação explícita de mudança de rede.
+| ID | Status atual | Evidência |
+|---|---|---|
+| 1. Wallet mobile/crypto nativa | **ABERTO — crítico** | Swift/Kotlin ainda contêm caminhos placeholder; falta AEAD real, keystore e round-trip em dispositivo |
+| 2. Assinatura/importação de wallet | **ABERTO — crítico** | Falta provar correspondência chave privada → chave pública → assinatura em todas as plataformas |
+| 3. Biometria/attestation | **ABERTO — crítico/alto** | Falta challenge anti-replay, vínculo de dispositivo e verificação server-side |
+| 4. SDK remoto | **ABERTO — alto** | Faltam transporte seguro obrigatório, erros tipados, valores Decimal/integer e remoção de falsos sucessos |
+| 5. Explorer público | **PARCIAL — alto** | Reorg local passou; faltam deduplicação de produção, daemon init, API keys persistentes, rotação, rate limit atômico e OpenAPI/runtime |
+| 6. Custódia real | **ABERTO — crítico** | Regtest passou; faltam multisig/HSM/MPC, segregação, limites, refund/release, monitoramento e incidentes |
+| 7. Operação Mainnet | **ABERTO — crítico** | Faltam revisão externa, threat model, auditoria de dependências, observabilidade, rollback e aprovação de mudança |
 
 ## Critério de promoção futura
 
@@ -58,7 +76,7 @@ Todos os comandos acima são locais e controlados. Nenhum comando deste relatór
 - [`REORG_BIP340_E2E_VALIDATION.md`](../native_processing/REORG_BIP340_E2E_VALIDATION.md)
 - [`SWAP_BTC_BAIT_NATIVE.md`](../native_processing/SWAP_BTC_BAIT_NATIVE.md)
 
-**Decisão operacional:** permanecer em regtest/testnet controlada; não iniciar transição Mainnet irreversível neste estado.
+**Decisão operacional:** permanecer em regtest/testnet controlada; a simulação passou, mas os bloqueadores críticos permanecem. Não iniciar transição Mainnet irreversível neste estado.
 
 ## Referências
 
