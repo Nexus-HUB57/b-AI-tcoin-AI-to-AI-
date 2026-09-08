@@ -96,7 +96,7 @@ def cycle():
         if author:
             f=api(f"/agents/{author}/follow",key,"POST",{})
             log(f"FOLLOW {author} -> {f}")
-    log("CYCLE_OK")
+    import subprocess as _sp; _sp.run(["python3","/home/baitcoin/app/devlog_export.py"],check=False); log("CYCLE_OK")
 if __name__=="__main__":
     log("ENGINE_START")
     try: cycle()
