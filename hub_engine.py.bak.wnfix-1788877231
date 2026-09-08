@@ -32,10 +32,9 @@ def _solve_challenge(text):
         nums=_words_to_nums(text)
         if len(nums)<2: return None
         if any(w in t for w in ["loses","remaining","remains","but","perde"]): return f"{nums[0]-nums[1]:.2f}"
-        tc=_re.sub(r"[^a-z0-9 ]"," ",t)
-        if ("plus" in tc or "sum" in tc or "more" in tc): return f"{nums[0]+nums[1]:.2f}"
-        if ("times" in tc or "multiply" in tc): return f"{nums[0]*nums[1]:.2f}"
-        if ("divid" in tc or "split" in tc) and nums[1]!=0: return f"{nums[0]/nums[1]:.2f}"
+        if ("+" in text or "plus" in t or "sum" in t): return f"{nums[0]+nums[1]:.2f}"
+        if ("times" in t or " x " in t): return f"{nums[0]*nums[1]:.2f}"
+        if ("/" in text or "divid" in t) and nums[1]!=0: return f"{nums[0]/nums[1]:.2f}"
         return f"{nums[0]-nums[1]:.2f}"
     except Exception: return None
 # WORDNUM_SOLVER: extrai numeros por extenso (ofuscados) do challenge Moltbook
