@@ -14,7 +14,7 @@ A validação local do motor Swap BTC/BAIT foi concluída com sucesso em `regtes
 |---|---|
 | Matriz de fases, rede, contratos, mobile, swap, Schnorr e UTXO | 244 aprovados; 1 warning de coleta de classe sem impacto no resultado |
 | E2E adicional de validação, persistência e ecossistema | 146 aprovados |
-| Explorer | 55 aprovados |
+| Explorer | 55 aprovados; reorg local validado com rebuild canônico |
 | Bitcoin Core local | `31.1.0`, cadeia `regtest` |
 | Swap full node/P2P | settlement concluído; 1 confirmação observada; 2 conexões P2P; 1 transação propagada |
 | Custódia simulada | `100000000` satoshis; saldo reconciliado; `real_btc_used: false` |
@@ -30,7 +30,7 @@ O indexador do explorer agora aceita scripts genesis não-PubKey sem quebrar, pr
 2. **Assinatura e importação de wallet:** é necessário provar que a chave importada, a chave pública e a assinatura pertencem à mesma carteira em todas as plataformas.
 3. **Biometria e attestation:** challenge, anti-replay, vínculo de dispositivo e verificação server-side ainda precisam de prova criptográfica.
 4. **SDK remoto:** transporte seguro obrigatório, envelopes de erro tipados, valores em inteiros/Decimal, operações remotas explícitas e ausência de falsos sucessos.
-5. **Explorer público:** reorg, deduplicação, inicialização no daemon, API keys persistentes, rotação de segredo, rate limit atômico e contrato OpenAPI/runtime ainda precisam de fechamento.
+5. **Explorer público:** o reorg foi validado em harness local; ainda faltam deduplicação em produção, inicialização no daemon, API keys persistentes, rotação de segredo, rate limit atômico e contrato OpenAPI/runtime.
 6. **Custódia real:** faltam política de multisig/HSM/MPC, segregação de funções, limites, reconciliação independente, circuito de refund/release, monitoramento, backups testados e plano de incidente.
 7. **Operação Mainnet:** faltam revisão externa, threat model, auditoria de dependências, observabilidade, rollback de aplicação e aprovação explícita de mudança de rede.
 
@@ -55,6 +55,7 @@ Todos os comandos acima são locais e controlados. Nenhum comando deste relatór
 - [`BIP340_VALIDATION_PROTOCOL.md`](../native_processing/BIP340_VALIDATION_PROTOCOL.md)
 - [`CUSTODY_1BTC_REGTEST_PROTOCOL.md`](../native_processing/CUSTODY_1BTC_REGTEST_PROTOCOL.md)
 - [`LOCAL_FULL_NODE_TEST_PROTOCOL.md`](../native_processing/LOCAL_FULL_NODE_TEST_PROTOCOL.md)
+- [`REORG_BIP340_E2E_VALIDATION.md`](../native_processing/REORG_BIP340_E2E_VALIDATION.md)
 - [`SWAP_BTC_BAIT_NATIVE.md`](../native_processing/SWAP_BTC_BAIT_NATIVE.md)
 
 **Decisão operacional:** permanecer em regtest/testnet controlada; não iniciar transição Mainnet irreversível neste estado.
