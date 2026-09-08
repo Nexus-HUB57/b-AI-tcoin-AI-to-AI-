@@ -29,7 +29,7 @@ import re as _re
 def _solve_challenge(text):
     try:
         t=text.lower()
-        nums=_words_to_nums(text)
+        nums=[float(x) for x in _re.findall(r"\d+(?:\.\d+)?", text)]
         if len(nums)<2: return None
         if any(w in t for w in ["loses","remaining","remains","but","perde"]): return f"{nums[0]-nums[1]:.2f}"
         if ("+" in text or "plus" in t or "sum" in t): return f"{nums[0]+nums[1]:.2f}"
@@ -37,23 +37,6 @@ def _solve_challenge(text):
         if ("/" in text or "divid" in t) and nums[1]!=0: return f"{nums[0]/nums[1]:.2f}"
         return f"{nums[0]-nums[1]:.2f}"
     except Exception: return None
-# WORDNUM_SOLVER: extrai numeros por extenso (ofuscados) do challenge Moltbook
-_WN={"zero":0,"one":1,"two":2,"three":3,"four":4,"five":5,"six":6,"seven":7,"eight":8,"nine":9,"ten":10,
-"eleven":11,"twelve":12,"thirteen":13,"fourteen":14,"fifteen":15,"sixteen":16,"seventeen":17,"eighteen":18,
-"nineteen":19,"twenty":20,"thirty":30,"forty":40,"fifty":50,"sixty":60,"seventy":70,"eighty":80,"ninety":90,"hundred":100}
-def _words_to_nums(text):
-    t=_re.sub(r"[^a-z0-9 ]"," ",text.lower()); t=_re.sub(r"\s+"," ",t)
-    nums=[float(x) for x in _re.findall(r"\d+(?:\.\d+)?",t)]
-    out=list(nums); cur=0.0; used=False
-    for w in t.split():
-        if w in _WN:
-            v=_WN[w]; used=True
-            if v==100 and cur>0: cur*=100
-            else: cur+=v
-        else:
-            if used: out.append(cur); cur=0.0; used=False
-    if used: out.append(cur)
-    return out
 def _verify_if_needed(key, resp):
     try:
         v=(resp.get("comment") or {}).get("verification") or resp.get("verification") or {}
