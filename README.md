@@ -43,7 +43,7 @@ PYTHONPATH=. python3 scripts/run_local_swap_custody_1btc.py \
 
 O último comando é estritamente local e deve retornar `network: regtest`, `deposit_sats: 100000000`, `custody_balance_sats: 100000000`, `bait_state: settled` e `real_btc_used: false`. Ele não cria custódia Mainnet, PSBT, HSM/MPC, multisig, release/refund ou broadcast público.
 
-Documentação detalhada: [`native_processing/README.md`](native_processing/README.md), [`BIP340_VALIDATION_PROTOCOL.md`](native_processing/BIP340_VALIDATION_PROTOCOL.md), [`CUSTODY_1BTC_REGTEST_PROTOCOL.md`](native_processing/CUSTODY_1BTC_REGTEST_PROTOCOL.md) e [`SWAP_BTC_BAIT_NATIVE.md`](native_processing/SWAP_BTC_BAIT_NATIVE.md).
+Documentação detalhada: [`native_processing/README.md`](native_processing/README.md), [`BIP340_VALIDATION_PROTOCOL.md`](native_processing/BIP340_VALIDATION_PROTOCOL.md), [`CUSTODY_1BTC_REGTEST_PROTOCOL.md`](native_processing/CUSTODY_1BTC_REGTEST_PROTOCOL.md) e [`SWAP_BTC_BAIT_NATIVE.md`](native_processing/SWAP_BTC_BAIT_NATIVE.md). O diagnóstico completo está em [`docs/SDK_EXPLORER_39_FAILURES_REPORT.md`](docs/SDK_EXPLORER_39_FAILURES_REPORT.md) e a decisão de promoção em [`docs/MAINNET_READINESS_GATE.md`](docs/MAINNET_READINESS_GATE.md).
 
 ---
 

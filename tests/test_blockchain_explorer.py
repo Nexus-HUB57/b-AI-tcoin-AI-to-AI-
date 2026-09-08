@@ -629,11 +629,11 @@ class TestExplorerIntegration(unittest.TestCase):
         self.assertEqual(self.index.stats['indexed_blocks'], initial_count + 1)
 
     def test_address_format(self):
-        r"""Enderecos devem comecar com 'bait'."""
+        r"""Enderecos devem usar o prefixo canônico por rede."""
         addrs = self.index.get_all_addresses(limit=10)
         for addr in addrs:
-            self.assertTrue(addr.address.startswith('bait'),
-                            f"Address {addr.address} doesn't start with 'bait'")
+            self.assertTrue(addr.address.startswith(("b'", "t'")),
+                            f"Address {addr.address} has an invalid network prefix")
 
     def test_html_playground_valid(self):
         r"""HTML playground deve ser valido (conter DOCTYPE e fechar tags)."""

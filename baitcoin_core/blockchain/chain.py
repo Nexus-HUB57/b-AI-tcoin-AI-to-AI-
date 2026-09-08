@@ -315,7 +315,12 @@ class Blockchain:
             O bloco minerado (mesmo se PoW falhar).
         """
         with self._mine_lock:
-            return self._mine_block_internal(miner_agent, miner_pubkey)
+            last_block = None
+            for _ in range(5):
+                last_block = self._mine_block_internal(miner_agent, miner_pubkey)
+                if last_block in self.chain:
+                    return last_block
+            return last_block
 
     def _mine_block_internal(self, miner_agent: str, miner_pubkey: bytes) -> Block:
         r"""Implementação interna de mineração (já com lock adquirido)."""

@@ -26,15 +26,24 @@ def _pubkey_to_bait_address(pubkey_hex: str) -> str:
     Formato: "bait" + Base58Check(0x00 + RIPEMD160(SHA256(pubkey_bytes)))
     Implementacao simplificada para uso interno nos indices.
     """
+    def fallback(value: str) -> str:
+        from baitcoin_core.blockchain.addresses import agent_to_address
+        return agent_to_address(f"explorer-invalid-script:{value}")
+
     try:
         pubkey_bytes = bytes.fromhex(pubkey_hex) if len(pubkey_hex) <= 128 else bytes.fromhex(pubkey_hex[:128])
         # Schnorr/BIP-340 uses x-only (32 bytes). Strip compression prefix.
         if len(pubkey_bytes) == 33 and pubkey_bytes[0] in (0x02, 0x03):
             pubkey_bytes = pubkey_bytes[1:33]
     except (ValueError, TypeError):
-        return f"b'unknown_{hashlib.sha256(str(pubkey_hex).encode()).hexdigest()[:12]}"
+        return fallback(str(pubkey_hex))
+    if len(pubkey_bytes) not in (32, 33):
+        return fallback(str(pubkey_hex))
     from baitcoin_core.blockchain.addresses import pubkey_to_address
-    return pubkey_to_address(pubkey_bytes)
+    try:
+        return pubkey_to_address(pubkey_bytes)
+    except (ValueError, TypeError):
+        return fallback(pubkey_bytes.hex())
 
 
 def _sats_to_bait(sats: int) -> float:
@@ -106,6 +115,7 @@ class AddressInfo:
     """
     address: str
     balance_sats: int = 0
+    token_balance_sats: int = 0
     total_received_sats: int = 0
     total_sent_sats: int = 0
     tx_count: int = 0
@@ -120,6 +130,8 @@ class AddressInfo:
             "address": self.address,
             "balance_bait": _sats_to_bait(self.balance_sats),
             "balance_sats": self.balance_sats,
+            "token_balance_bait": _sats_to_bait(self.token_balance_sats),
+            "token_balance_sats": self.token_balance_sats,
             "total_received_bait": _sats_to_bait(self.total_received_sats),
             "total_sent_bait": _sats_to_bait(self.total_sent_sats),
             "tx_count": self.tx_count,
@@ -223,6 +235,10 @@ class BlockchAInIndex:
         self._txs_by_address: Dict[str, List[str]] = {}  # address -> [tx_ids]
         self._txs_by_agent: Dict[str, List[str]] = {}   # agent_id -> [tx_ids]
         self._address_by_agent: Dict[str, str] = {}     # agent_id -> address
+        self._outpoint_address: Dict[Tuple[str, int], str] = {}
+        self._outpoint_amount: Dict[Tuple[str, int], int] = {}
+        self._spent_outpoints = set()
+        self._blockchain = None
         # Metadados
         self._total_txs: int = 0
         self._total_blocks: int = 0
@@ -263,6 +279,10 @@ class BlockchAInIndex:
             self._txs_by_address.clear()
             self._txs_by_agent.clear()
             self._address_by_agent.clear()
+            self._outpoint_address.clear()
+            self._outpoint_amount.clear()
+            self._spent_outpoints.clear()
+            self._blockchain = blockchain
             self._total_txs = 0
             self._total_blocks = 0
 
@@ -282,9 +302,11 @@ class BlockchAInIndex:
 
     def _auto_rebuild_if_lag(self):  # AUTO_REBUILD_ON_LAG
         try:
-            h = self.chain.blocks[-1].get("index", 0)
+            if self._blockchain is None or not self._blockchain.chain:
+                return
+            h = self._blockchain.chain[-1].index
             if self._last_indexed_height < h:
-                self.rebuild()
+                self.rebuild(self._blockchain)
         except Exception:
             pass
 
@@ -368,14 +390,24 @@ class BlockchAInIndex:
             total_out = 0
 
             for inp in tx.inputs:
-                addr = inp.prev_tx_id.hex()[:16] + f":{inp.prev_output_index}"
+                outpoint = (inp.prev_tx_id.hex(), inp.prev_output_index)
+                addr = self._outpoint_address.get(outpoint)
+                if addr is None:
+                    addr = inp.prev_tx_id.hex()[:16] + f":{inp.prev_output_index}"
                 input_addrs.append(addr)
-            for out in tx.outputs:
+                amount = self._outpoint_amount.get(outpoint, 0)
+                total_in += amount
+                if amount and addr in self._address_info:
+                    self._address_info[addr].balance_sats -= amount
+                    self._address_info[addr].total_sent_sats += amount
+                self._spent_outpoints.add(outpoint)
+            for output_index, out in enumerate(tx.outputs):
                 out_addr = _pubkey_to_bait_address(out.script_pubkey.hex())
                 output_addrs.append(out_addr)
                 total_out += out.amount_sats
-
-            total_in = sum(o.amount_sats for o in tx.inputs) if tx.inputs else 0
+                outpoint = (tx_id, output_index)
+                self._outpoint_address[outpoint] = out_addr
+                self._outpoint_amount[outpoint] = out.amount_sats
             fee = max(0, total_in - total_out) if not tx.is_coinbase else 0
 
             tx_info = TxInfo(
@@ -402,15 +434,16 @@ class BlockchAInIndex:
             txs_indexed += 1
 
             # Atualizar indices invertidos por endereco
-            for addr in output_addrs:
+            for output_index, addr in enumerate(output_addrs):
                 self._txs_by_address.setdefault(addr, []).append(tx_id)
                 # Atualizar AddressInfo
                 addr_info = self._address_info.get(addr)
                 if addr_info is None:
                     addr_info = AddressInfo(address=addr)
                     self._address_info[addr] = addr_info
-                addr_info.balance_sats += out.amount_sats
-                addr_info.total_received_sats += out.amount_sats
+                amount = tx.outputs[output_index].amount_sats
+                addr_info.balance_sats += amount
+                addr_info.total_received_sats += amount
                 addr_info.tx_count += 1
                 if tx_id not in addr_info.tx_ids:
                     addr_info.tx_ids.append(tx_id)
@@ -437,7 +470,7 @@ class BlockchAInIndex:
         for agent_id, balance_sats in token.balances.items():
             addr = self._address_by_agent.get(agent_id)
             if addr and addr in self._address_info:
-                self._address_info[addr].balance_sats = balance_sats
+                self._address_info[addr].token_balance_sats = balance_sats
 
     def _enrich_with_agents(self, registry) -> None:
         r"""Enriquece os indices com informacoes do AgentRegistry."""
