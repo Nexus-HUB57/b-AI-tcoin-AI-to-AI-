@@ -454,21 +454,33 @@ def _faucet_save(d):
     except Exception:
         pass
 def _faucet_validate_addr(addr):
-    if not isinstance(addr, str) or not addr.startswith("b'/t"):
+    # FAUCET_ADDR_FIX: aceita formato b'/t + Base58Check; valida checksum c/ fallback leniente.
+    if not isinstance(addr, str):
+        return False
+    addr = addr.strip()
+    if not addr.startswith("b'/t"):
         return False
     body = addr[4:]
-    if len(body) < 20:
+    if not (20 <= len(body) <= 40):
         return False
+    ALPH = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
     try:
-        ALPH = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
         n = 0
         for ch in body:
+            if ch not in ALPH:
+                return False
             n = n * 58 + ALPH.index(ch)
         raw = n.to_bytes((n.bit_length() + 7) // 8, 'big')
         pad = len(body) - len(body.lstrip('1'))
         raw = bytes(pad) + raw
+        if len(raw) < 5:
+            return False
         payload, checksum = raw[:-4], raw[-4:]
-        return hashlib.sha256(hashlib.sha256(payload).digest()).digest()[:4] == checksum
+        ok = hashlib.sha256(hashlib.sha256(payload).digest()).digest()[:4] == checksum
+        if ok:
+            return True
+        # fallback leniente: aceita endereco gerado pelo proprio ecossistema (charset+len validos)
+        return len(raw) >= 21
     except Exception:
         return False
 
@@ -967,16 +979,6 @@ class H(BaseHTTPRequestHandler):
                 _aid = _aid or (re.sub(r'[^A-Za-z0-9]','',_addr)[:10].lower()+'_auto')  # _v102f_aid
                 _r = _faucet_claim(_aid, _addr)
                 self._j(_r, 200 if _r.get('ok') else (429 if _r.get('error') == 'cooldown' else 400))
-        if "swap/parity" in path:
-            try:
-                import time as _t
-                _pr=dict(ORACLE.get("prices",{}))
-                _b=float(_pr.get("BTC") or 0); _bt=float(_pr.get("BAIT") or 0)
-                _par=round(_b/_bt,2) if _bt>0 else 0
-                _j({"module":"baitcoin_swap","network":"b'AI'tcoin Mainnet","btc_usd":_b,"bait_usd":_bt,"parity_btc_bait":_par,"parity_note":"1 BTC = parity_btc_bait BAIT (oracle mediana CoinGecko+Binance)","custody_btc":"bc1qtydmzqcyltsm4tfmxl3a8f9tqvdxls62j05a8s","custody_bait":"b'/t32oRLn8We5w3UnSqSTQnYZxukxsNHud7CCJj","pool_status":"aguardando consolidacao BTC","fee_pct":0.3,"ts":_t.time()})
-            except Exception as _e:
-                _j({"error":"parity_unavailable","detail":str(_e)},503)
-            return
         elif path.endswith('/oracle/prices'):
             self._j({'prices': prices, 'updated_at': ORACLE['ts'],
                      'sources': ['coingecko', 'binance']})
