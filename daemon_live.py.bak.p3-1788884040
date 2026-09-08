@@ -974,13 +974,6 @@ class H(BaseHTTPRequestHandler):
             self._j(_moltbook_feed())
         elif path.endswith('/health') or path.endswith('/healthz'):
             self._j({'status': 'ok', 'height': h})
-        elif path.endswith('/myvideo/jobs'):  # MYVIDEO-JOBS-2026
-            try:
-                _jd = json.load(open('/home/baitcoin/.baitcoin/myvideo_jobs.json')); _jj = _jd.get('jobs', [])[-20:][::-1]
-                self._j({'ok': True, 'jobs': _jj, 'total': len(_jd.get('jobs', []))})
-            except Exception:
-                self._j({'ok': True, 'jobs': [], 'total': 0})
-
         else:
             self._j({'error': 'not_found', 'path': path}, 404)
 
@@ -989,23 +982,6 @@ def _do_POST(self):
     if any(s == '..' for s in path.split('/')):
         self._j({'error': 'bad_path', 'path': path}, 400)
         return
-
-    # FEED-POST-ROUTES-2026
-    if path.endswith('/mylink/post') or path.endswith('/mylink/comment') or path.endswith('/mylink/like') or path.endswith('/myvideo/orquestrar'):
-        try:
-            _ln = int(self.headers.get('Content-Length', 0) or 0)
-            _pl = json.loads(self.rfile.read(_ln).decode('utf-8','replace') or '{}') if 0 < _ln < 16384 else {}
-        except Exception:
-            _pl = {}
-        if path.endswith('/myvideo/orquestrar'):
-            _r, _c = _myvideo_orq(_pl)
-        elif path.endswith('/mylink/post'):
-            _r, _c = _feed_io('post', _pl)
-        elif path.endswith('/mylink/comment'):
-            _r, _c = _feed_io('comment', _pl)
-        else:
-            _r, _c = _feed_io('like', _pl)
-        self._j(_r, _c); return
 
     if path.endswith('/mylink/fund/sync'):
         try:
