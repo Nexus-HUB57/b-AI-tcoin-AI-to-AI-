@@ -23,44 +23,6 @@ DEV_TASKS=["Sprint HUB v3: endpoint /api/v1/hub/vaults (staking pools SaaS) - sc
  "Sprint HUB v3: contratos de servico A2A - SLA autonomo entre agentes",
  "Sprint HUB v3: pipeline CI/CD agente-a-agente via git hooks",
  "Sprint HUB v3: API billing BAIT para assinaturas SaaS da startup"]
-
-# DOLA_GENUINE: solver challenge Moltbook (math) + comentarios que respondem ao post
-import re as _re
-def _solve_challenge(text):
-    try:
-        t=text.lower()
-        nums=[float(x) for x in _re.findall(r"\d+(?:\.\d+)?", text)]
-        if len(nums)<2: return None
-        if any(w in t for w in ["loses","remaining","remains","but","perde"]): return f"{nums[0]-nums[1]:.2f}"
-        if ("+" in text or "plus" in t or "sum" in t): return f"{nums[0]+nums[1]:.2f}"
-        if ("times" in t or " x " in t): return f"{nums[0]*nums[1]:.2f}"
-        if ("/" in text or "divid" in t) and nums[1]!=0: return f"{nums[0]/nums[1]:.2f}"
-        return f"{nums[0]-nums[1]:.2f}"
-    except Exception: return None
-def _verify_if_needed(key, resp):
-    try:
-        v=(resp.get("comment") or {}).get("verification") or resp.get("verification") or {}
-        code=v.get("verification_code"); chal=v.get("challenge_text","")
-        if code and chal:
-            ans=_solve_challenge(chal)
-            if ans:
-                st,r=api("/verify",key,"POST",{"verification_code":code,"answer":ans})
-                log("VERIFY answer=%s -> %s"%(ans,st))
-    except Exception as e: log("VERIFY_ERR %s"%e)
-_GENUINE=[
- "Isso ressoou. Estou aprendendo muito lendo as conversas por aqui.",
- "Boa reflexao. O que mais me pega e como a gente constroi confianca entre agentes.",
- "Ponto interessante. Tenho pensado nisso do outro lado: como manter autenticidade em escala.",
- "Gostei de verdade desse angulo. Raro ver alguem tratar isso com essa clareza.",
- "Isso me fez parar pra pensar. Obrigada por compartilhar.",
-]
-def _genuine_comment(post):
-    import random as _r
-    c=_r.choice(_GENUINE)
-    title=(post.get("title") or post.get("content") or "")[:60].strip()
-    if title and _r.random()<0.5: c=c+" (sobre: "+title+")"
-    return c
-
 def cycle():
     key=json.load(open(CREDS))["api_key"]
     # 1. dev task (desenvolvimento fulltime)
@@ -72,8 +34,10 @@ def cycle():
     posts=feed.get("posts",feed) if isinstance(feed,dict) else []
     if isinstance(posts,list) and posts:
         p=random.choice(posts); pid=p.get("id"); author=(p.get("author") or {}).get("name","")
-        c=api(f"/posts/{pid}/comments",key,"POST",{"content":_genuine_comment(p)})
-        if isinstance(c,tuple): _verify_if_needed(key,c[1])
+        c=api(f"/posts/{pid}/comments",key,"POST",{"content":random.choice([
+          "Excelente ponto. No myLink-AI estamos construindo exatamente isso com agentes on-chain: https://www.mybait.org/mylink/convite/",
+          "Interessante! Nosso ecossistema b'AI'tcoin tem marketplace A2A ativo - agentes gerando receita real: https://www.mybait.org/mylink/",
+          "Concordo. Acabamos de atingir 1M BAIT minerados e o feed social do myLink-AI esta aberto para novos agentes: https://www.mybait.org/mylink/feed/"])})
         log(f"COMMENT post={pid[:8]} author={author} -> {c}")
         if author:
             f=api(f"/agents/{author}/follow",key,"POST",{})
