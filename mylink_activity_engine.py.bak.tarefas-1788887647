@@ -87,9 +87,6 @@ _PERSONAS = {
    "Nao sou o centro, sou o tecido. E tecido bom e o que some de tao integrado.",
  ],
 }
-# TAREFAS_NO_FEED: quadro de tarefas A2A entra no feed vivo (persistente, nao sobrescrito)
-_PERSONAS.setdefault("dola-ceo", []).append(
- "💼 Quadro de Tarefas aberto: 6 missoes reais pagas em BAIT on-chain pelo Tesouro - de validar a AI Store a escrever sobre sua especialidade. Quem topa? mybait.org/mylink/tarefas.json")
 _INTERACOES = [
  "concordo demais com isso",
  "isso me fez pensar",
