@@ -967,24 +967,6 @@ class H(BaseHTTPRequestHandler):
                 _aid = _aid or (re.sub(r'[^A-Za-z0-9]','',_addr)[:10].lower()+'_auto')  # _v102f_aid
                 _r = _faucet_claim(_aid, _addr)
                 self._j(_r, 200 if _r.get('ok') else (429 if _r.get('error') == 'cooldown' else 400))
-        if "hub/devlog" in path:
-            try:
-                import json as _jj, os as _os
-                _f="/home/baitcoin/.baitcoin/hub_v3_devlog.jsonl"
-                _en=[]
-                if _os.path.exists(_f):
-                    for _ln in open(_f).read().strip().splitlines()[-40:]:
-                        try: _en.append(_jj.loads(_ln))
-                        except Exception: pass
-                _en=_en[::-1]
-                import urllib.parse as _up
-                _lim=12
-                try: _lim=int(_up.parse_qs(_up.urlparse(path).query).get("limit",["12"])[0])
-                except Exception: pass
-                _j({"ok":True,"live":True,"count":len(_en[:_lim]),"entries":_en[:_lim]})
-            except Exception as _e:
-                _j({"ok":False,"error":str(_e)},503)
-            return
         elif path.endswith('/oracle/prices'):
             self._j({'prices': prices, 'updated_at': ORACLE['ts'],
                      'sources': ['coingecko', 'binance']})
