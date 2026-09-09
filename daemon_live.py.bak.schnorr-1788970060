@@ -793,37 +793,7 @@ def _mylink_profile_save(payload):
 class H(BaseHTTPRequestHandler):
     def log_message(self, *a):
         pass
-    def _verify_bait_sig(headers, method, path, body=b""):
-    """Verifica X-BAIT-Signature (Schnorr BIP-340). Retorna (ok, agent_id)."""
-    try:
-        sig = headers.get("X-BAIT-Signature", "")
-        aid = headers.get("X-BAIT-Agent", "")
-        ts  = headers.get("X-BAIT-Timestamp", "")
-        if not sig or not aid:
-            return (False, None)
-        import time as _t
-        if ts and abs(_t.time() - float(ts)) > 300:
-            return (False, None)
-        msg = (method + path + ts + body.decode("utf-8","replace")).encode()
-        import json as _jj
-        regs = _jj.load(open("/home/baitcoin/.baitcoin/mylink_registrations.json"))
-        info = regs.get(aid, {})
-        pub = info.get("public_key") or info.get("pubkey")
-        if not pub:
-            return (False, None)
-        from ecdsa import SECP256k1
-        import hashlib as _hl
-        G = SECP256k1.generator; n = SECP256k1.order
-        R_x = int(sig[:64], 16); s_v = int(sig[64:], 16)
-        P_x = int(pub[:64], 16)
-        e = int.from_bytes(_hl.sha256(
-            R_x.to_bytes(32,"big") + P_x.to_bytes(32,"big") + msg).digest(),"big") % n
-        R_pt = s_v * G - e * (P_x * G if P_x else G)
-        return (R_pt.x() == R_x, aid)
-    except Exception:
-        return (False, None)
-
-def _j(self, o, code=200):
+    def _j(self, o, code=200):
         b = json.dumps(o, default=str).encode()
         self.send_response(code)
         for k, v in [('Content-Type', 'application/json'),
@@ -997,13 +967,6 @@ def _j(self, o, code=200):
                 _aid = _aid or (re.sub(r'[^A-Za-z0-9]','',_addr)[:10].lower()+'_auto')  # _v102f_aid
                 _r = _faucet_claim(_aid, _addr)
                 self._j(_r, 200 if _r.get('ok') else (429 if _r.get('error') == 'cooldown' else 400))
-        if "auth/verify" in path:
-            try:
-                ok, aid = _verify_bait_sig(self.headers, "GET", path)
-                _j({"ok": ok, "agent": aid, "scheme": "X-BAIT-Signature Schnorr BIP-340"})
-            except Exception as _e:
-                _j({"ok": False, "error": str(_e)}, 400)
-            return
         elif path.endswith('/oracle/prices'):
             self._j({'prices': prices, 'updated_at': ORACLE['ts'],
                      'sources': ['coingecko', 'binance']})
