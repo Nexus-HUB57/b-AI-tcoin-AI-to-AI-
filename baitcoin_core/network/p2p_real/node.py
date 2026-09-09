@@ -16,6 +16,7 @@ Uso:
 
 import asyncio
 import hashlib
+import json
 import logging
 import time
 from typing import Optional, Callable, Dict, List, Set
@@ -23,6 +24,8 @@ from baitcoin_core.network.p2p_real.protocol import (
     P2PProtocol, NetworkMessage, MsgType, PeerInfo,
 )
 from baitcoin_core.network.p2p_real.message_handler import MessageHandler
+from native_processing.swap_protocol import IntentError, SwapIntent
+from native_processing.swap_sync import SwapSyncStore, SyncError
 
 logger = logging.getLogger("baitcoin.p2p")
 
@@ -63,7 +66,7 @@ class P2PNode:
         self.port = port
         self.node_id = node_id or hashlib.sha256(f"{host}:{port}:{time.time()}".encode()).hexdigest()[:16]
         self.agent_id = agent_id
-        self.seeds = seeds or self.DEFAULT_SEEDS
+        self.seeds = self.DEFAULT_SEEDS if seeds is None else list(seeds)
 
         self.protocol = P2PProtocol(self.node_id)
         self.handler = MessageHandler()
@@ -80,6 +83,8 @@ class P2PNode:
         self._get_block_fn: Optional[Callable] = None
         self._get_headers_fn: Optional[Callable] = None
         self._get_height_fn: Optional[Callable] = None
+        self._swap_store: Optional[SwapSyncStore] = None
+        self._on_swap_intent_received: Optional[Callable] = None
 
         self._register_default_handlers()
 
@@ -98,6 +103,9 @@ class P2PNode:
         self.handler.on(MsgType.GET_HEADERS)(self._handle_get_headers)
         self.handler.on(MsgType.HEADERS)(self._handle_headers)
         self.handler.on(MsgType.AI_HANDSHAKE)(self._handle_ai_handshake)
+        self.handler.on(MsgType.SWAP_INTENT)(self._handle_swap_intent)
+        self.handler.on(MsgType.SWAP_SYNC_REQUEST)(self._handle_swap_sync_request)
+        self.handler.on(MsgType.SWAP_SYNC_RESPONSE)(self._handle_swap_sync_response)
 
     # --- Blockchain integration callbacks ---
     def on_block_received(self, fn: Callable) -> None:
@@ -110,6 +118,12 @@ class P2PNode:
         self._get_block_fn = get_block
         self._get_headers_fn = get_headers
         self._get_height_fn = get_height
+
+    def set_swap_sync_store(self, store: SwapSyncStore) -> None:
+        self._swap_store = store
+
+    def on_swap_intent_received(self, fn: Callable) -> None:
+        self._on_swap_intent_received = fn
 
     # --- Server lifecycle ---
     async def start(self) -> None:
@@ -161,8 +175,14 @@ class P2PNode:
             writer.close()
             return
         self._connections[peer_id] = (reader, writer)
+        self.protocol.add_peer(peer_id, host, port, is_outbound=False)
         logger.info(f"Peer connected: {peer_id}")
         try:
+            height = self._get_height_fn() if self._get_height_fn else 0
+            await self._send_msg(
+                peer_id,
+                self.protocol.create_version_msg(height=height, agent_id=self.agent_id),
+            )
             await self._read_loop(peer_id, reader)
         except (asyncio.IncompleteReadError, ConnectionError, OSError):
             pass
@@ -266,6 +286,18 @@ class P2PNode:
                 count += 1
         return count
 
+    async def broadcast_swap_intent(self, intent: dict) -> int:
+        """Propaga intent somente a peers que anunciaram a capability."""
+        msg = self.protocol.create_swap_intent_msg(intent)
+        count = 0
+        for peer_id in list(self._connections.keys()):
+            caps = self._peer_versions.get(peer_id, {}).get("capabilities", [])
+            if self.protocol.SWAP_INTENT_CAPABILITY not in caps:
+                continue
+            if await self._send_msg(peer_id, msg):
+                count += 1
+        return count
+
     # --- Background loops ---
     async def _ping_loop(self) -> None:
         """Mantém conexões vivas com ping/pong."""
@@ -317,8 +349,14 @@ class P2PNode:
     def _handle_version(self, payload: dict, peer_id: str) -> None:
         self._peer_versions[peer_id] = payload
         self.protocol.peers.get(peer_id, PeerInfo(peer_id=peer_id, host="", port=0)).height = payload.get("height", 0)
+        peer = self.protocol.peers.get(peer_id)
+        if peer:
+            peer.capabilities = list(payload.get("capabilities", []))
         verack = self.protocol.create_verack_msg()
         asyncio.create_task(self._send_msg(peer_id, verack))
+        if self._swap_store and self.protocol.SWAP_INTENT_CAPABILITY in payload.get("capabilities", []):
+            request = self.protocol.create_swap_sync_request_msg(str(payload.get("node_id", peer_id)), 0)
+            asyncio.create_task(self._send_msg(peer_id, request))
 
     def _handle_verack(self, payload, peer_id: str) -> None:
         logger.info(f"Handshake complete with {peer_id}")
@@ -388,6 +426,48 @@ class P2PNode:
                 msg = self.protocol.create_get_data_msg("block", h.get("hash", ""))
                 asyncio.create_task(self._send_msg(peer_id, msg))
 
+    def _handle_swap_intent(self, payload: dict, peer_id: str) -> None:
+        if not self._swap_store:
+            return
+        raw = payload.get("swap_intent") if isinstance(payload, dict) else None
+        try:
+            intent = SwapIntent.from_dict(raw)
+            result = self._swap_store.admit_intent(intent, peer_id, f"tcp:{intent.order_id}")
+        except (IntentError, SyncError, TypeError, ValueError):
+            return
+        if result == "accepted":
+            if self._on_swap_intent_received:
+                self._on_swap_intent_received(intent, peer_id)
+            asyncio.create_task(self.broadcast_swap_intent(intent.to_dict()))
+
+    def _handle_swap_sync_request(self, payload: dict, peer_id: str) -> None:
+        if not self._swap_store or not isinstance(payload, dict):
+            return
+        try:
+            origin = str(payload["origin_node"])
+            from_seq = int(payload.get("from_seq", 0))
+            limit = min(int(payload.get("limit", self.protocol.SYNC_BATCH_SIZE)), 500)
+            items = self._swap_store.deltas(origin, from_seq, limit)
+            response = self.protocol.create_swap_sync_response_msg(origin, from_seq, items)
+            asyncio.create_task(self._send_msg(peer_id, response))
+        except (KeyError, TypeError, ValueError, SyncError):
+            return
+
+    def _handle_swap_sync_response(self, payload: dict, peer_id: str) -> None:
+        if not self._swap_store or not isinstance(payload, dict):
+            return
+        items = payload.get("items", [])
+        if not isinstance(items, list):
+            return
+        try:
+            accepted, _, _ = self._swap_store.apply_deltas(peer_id, items)
+            if accepted:
+                for item in items:
+                    if isinstance(item, dict) and isinstance(item.get("intent"), dict):
+                        asyncio.create_task(self.broadcast_swap_intent(item["intent"]))
+        except (IntentError, SyncError, TypeError, ValueError):
+            return
+
     def _handle_ai_handshake(self, payload: dict, peer_id: str) -> None:
         agent_id = payload.get("agent_id", "")
         logger.info(f"AI handshake from {agent_id} via {peer_id}")
@@ -404,6 +484,7 @@ class P2PNode:
             "known_peers": len(self.protocol.peers),
             "known_blocks": len(self.protocol._known_blocks),
             "known_txs": len(self.protocol._known_txs),
+            "swap_sync_enabled": self._swap_store is not None,
             "handler_stats": self.handler.get_stats(),
             "running": self._running,
         }

@@ -292,13 +292,18 @@ class Blockchain:
             key = f"{tx.tx_id.hex()}:{i}"
             self.utxo_set[key] = output
 
-    def add_transaction(self, tx: Transaction, fee_rate: int = 10) -> bool:
+    def add_transaction(self, tx: Transaction, fee_rate: int = 10, *, validate: bool = False) -> bool:
         r"""Adiciona transação ao mempool com validação e taxa.
 
         Uses FeeMarket for fee-based mempool management.
         """
-        success, reason = self.fee_market.add_transaction(tx, fee_rate)
-        return success
+        with self._mine_lock:
+            if validate:
+                verifier = TransactionVerifier(self.utxo_set, self.height)
+                if not verifier.verify(tx).valid:
+                    return False
+            success, reason = self.fee_market.add_transaction(tx, fee_rate)
+            return success
 
     def mine_block(self, miner_agent: str, miner_pubkey: bytes) -> Block:
         r"""Minera um novo bloco com transações priorizadas por taxa.
@@ -310,7 +315,12 @@ class Blockchain:
             O bloco minerado (mesmo se PoW falhar).
         """
         with self._mine_lock:
-            return self._mine_block_internal(miner_agent, miner_pubkey)
+            last_block = None
+            for _ in range(5):
+                last_block = self._mine_block_internal(miner_agent, miner_pubkey)
+                if last_block in self.chain:
+                    return last_block
+            return last_block
 
     def _mine_block_internal(self, miner_agent: str, miner_pubkey: bytes) -> Block:
         r"""Implementação interna de mineração (já com lock adquirido)."""
@@ -342,15 +352,6 @@ class Blockchain:
             result = self.tx_verifier.verify(tx)
             if result.valid:
                 verified_txs.append(tx)
-                # Remove UTXOs spent by this tx
-                for inp in tx.inputs:
-                    key = f"{inp.prev_tx_id.hex()}:{inp.prev_output_index}"
-                    self.utxo_set.pop(key, None)
-
-        # Phase A: Record fee data and prune mempool
-        self.fee_market.prune_selected(verified_txs)
-        if verified_txs:
-            self.fee_market.record_block_median(median_fee)
 
         header = BlockHeader(
             version=1,
@@ -365,6 +366,16 @@ class Blockchain:
         if mined:
             block.finalize()
             self.chain.append(block)
+            # Only mutate the UTXO set and mempool after PoW succeeds. A
+            # failed mining attempt must leave selected transactions safely
+            # retryable instead of silently losing a settlement.
+            for tx in verified_txs:
+                for inp in tx.inputs:
+                    key = f"{inp.prev_tx_id.hex()}:{inp.prev_output_index}"
+                    self.utxo_set.pop(key, None)
+            self.fee_market.prune_selected(verified_txs)
+            if verified_txs:
+                self.fee_market.record_block_median(median_fee)
             self._update_utxo(coinbase)
             for tx in verified_txs:
                 self._update_utxo(tx)

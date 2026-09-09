@@ -37,6 +37,9 @@ class MsgType(IntEnum):
     STATUS = 0x11
     MEMPOOL_REQ = 0x12
     MEMPOOL_RESP = 0x13
+    SWAP_INTENT = 0x14
+    SWAP_SYNC_REQUEST = 0x15
+    SWAP_SYNC_RESPONSE = 0x16
 
 
 @dataclass
@@ -62,11 +65,15 @@ class NetworkMessage:
         if len(data) < 13:
             return None
         payload_len, msg_type = struct.unpack(">IB", data[:5])
-        if len(data) < 5 + payload_len:
+        if payload_len < 8 or len(data) != 5 + payload_len:
             return None
         payload = data[5:5 + payload_len - 8]
         timestamp = struct.unpack(">d", data[5 + payload_len - 8:5 + payload_len])[0]
-        return cls(msg_type=MsgType(msg_type), payload=payload, timestamp=timestamp)
+        try:
+            message_type = MsgType(msg_type)
+        except ValueError:
+            return None
+        return cls(msg_type=message_type, payload=payload, timestamp=timestamp)
 
 
 @dataclass
@@ -78,6 +85,7 @@ class PeerInfo:
     version: str = "0.2.0"
     height: int = 0
     agent_id: str = ""
+    capabilities: List[str] = field(default_factory=list)
     is_outbound: bool = True
     connected_at: float = field(default_factory=time.time)
     last_seen: float = field(default_factory=time.time)
@@ -105,6 +113,7 @@ class P2PProtocol:
     CONNECT_TIMEOUT = 10.0
     PING_INTERVAL = 60.0
     SYNC_BATCH_SIZE = 50
+    SWAP_INTENT_CAPABILITY = "swap_intent_sync_v1"
 
     def __init__(self, node_id: str, version: str = "0.2.0"):
         self.node_id = node_id
@@ -125,13 +134,14 @@ class P2PProtocol:
         self._on_peer_connect = on_connect
         self._on_peer_disconnect = on_disconnect
 
-    def create_version_msg(self, height: int = 0, agent_id: str = "") -> NetworkMessage:
+    def create_version_msg(self, height: int = 0, agent_id: str = "", capabilities: Optional[List[str]] = None) -> NetworkMessage:
         """Cria mensagem VERSION para handshake."""
         payload = json.dumps({
             "version": self.version,
             "node_id": self.node_id,
-            "height": height,
             "agent_id": agent_id,
+            "capabilities": capabilities or [self.SWAP_INTENT_CAPABILITY],
+            "height": height,
             "timestamp": time.time(),
         }).encode()
         return NetworkMessage(msg_type=MsgType.VERSION, payload=payload)
@@ -203,6 +213,24 @@ class P2PProtocol:
             "timestamp": time.time(),
         }).encode()
         return NetworkMessage(msg_type=MsgType.STATUS, payload=payload)
+
+    def create_swap_intent_msg(self, intent: dict) -> NetworkMessage:
+        payload = json.dumps({"swap_intent": intent}, separators=(",", ":")).encode()
+        if len(payload) > 16_384:
+            raise ValueError("swap intent payload too large")
+        return NetworkMessage(msg_type=MsgType.SWAP_INTENT, payload=payload)
+
+    def create_swap_sync_request_msg(self, origin_node: str, from_seq: int = 0, limit: int = SYNC_BATCH_SIZE) -> NetworkMessage:
+        if not origin_node or from_seq < 0 or not 1 <= limit <= 500:
+            raise ValueError("invalid swap sync request")
+        payload = json.dumps({"protocol_version": 1, "origin_node": origin_node, "from_seq": from_seq, "limit": limit}, separators=(",", ":")).encode()
+        return NetworkMessage(msg_type=MsgType.SWAP_SYNC_REQUEST, payload=payload)
+
+    def create_swap_sync_response_msg(self, origin_node: str, from_seq: int, items: List[dict]) -> NetworkMessage:
+        payload = json.dumps({"protocol_version": 1, "origin_node": origin_node, "from_seq": from_seq, "items": items}, separators=(",", ":")).encode()
+        if len(payload) > self.MAX_MESSAGE_SIZE:
+            raise ValueError("swap sync response too large")
+        return NetworkMessage(msg_type=MsgType.SWAP_SYNC_RESPONSE, payload=payload)
 
     def handle_message(self, raw_data: bytes) -> Optional[NetworkMessage]:
         """Processa mensagem recebida e despacha para handler."""

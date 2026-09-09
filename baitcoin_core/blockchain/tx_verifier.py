@@ -84,10 +84,15 @@ class TransactionVerifier:
             return TxVerificationResult(False, "Transaction has no inputs")
         if not tx.outputs:
             return TxVerificationResult(False, "Transaction has no outputs")
+        if len(tx.inputs) != 1:
+            return TxVerificationResult(False, "Only single-input Schnorr transactions are supported")
 
         # 3. Validate UTXOs and calculate input sum
         input_sum = 0
+        seen_inputs: Set[str] = set()
         for inp in tx.inputs:
+            if len(inp.prev_tx_id) != 32 or inp.prev_output_index < 0:
+                return TxVerificationResult(False, "Invalid transaction outpoint")
             key = f"{inp.prev_tx_id.hex()}:{inp.prev_output_index}"
 
             # Check UTXO exists
@@ -97,6 +102,9 @@ class TransactionVerifier:
             # Check not already spent in this block
             if key in self._block_spent:
                 return TxVerificationResult(False, f"Double-spend detected: {key[:24]}...")
+            if key in seen_inputs:
+                return TxVerificationResult(False, f"Duplicate input detected: {key[:24]}...")
+            seen_inputs.add(key)
 
             utxo = self.utxo_set[key]
             input_sum += utxo.amount_sats
@@ -160,12 +168,10 @@ class TransactionVerifier:
                 return False
 
             pubkey_bytes = utxo.script_pubkey
-            if len(pubkey_bytes) != 32 and len(pubkey_bytes) != 33:
-                # Try to extract 32-byte x-only from compressed pubkey
-                if len(pubkey_bytes) == 33 and pubkey_bytes[0] in (0x02, 0x03):
-                    pubkey_bytes = pubkey_bytes[1:]
-                else:
-                    return False
+            if len(pubkey_bytes) == 33 and pubkey_bytes[0] in (0x02, 0x03):
+                pubkey_bytes = pubkey_bytes[1:]
+            elif len(pubkey_bytes) != 32:
+                return False
 
             sig = SchnorrSignature(
                 s=int.from_bytes(tx.signature[32:64], byteorder='big'),

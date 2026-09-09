@@ -1,204 +1,184 @@
-r"""
-Criptografia Schnorr / BIP-340 para b'AI'tcoin.
+"""Schnorr BIP-340 sobre secp256k1.
 
-Implementa chaves e assinaturas Schnorr sobre a curva secp256k1,
-compatíveis com o padrão BIP-340 do Bitcoin.
-
-Por que Schnorr?
-- Compatibilidade com Taproot
-- Assinaturas agregáveis (batch)
-- Provas de conhecimento mais simples
-- Ideal para transações AI-to-AI com múltiplos signatários
+A implementação mantém a API local (SchnorrKeyPair/SchnorrSignature), mas usa
+integralmente os domínios BIP0340/aux, BIP0340/nonce e BIP0340/challenge.
 """
+from __future__ import annotations
 
-import os
 import hashlib
+import os
+from typing import Optional
+
 import ecdsa
-from typing import Optional, Tuple
+
+
+_CURVE = ecdsa.SECP256k1
+_P = _CURVE.curve.p()
+_N = _CURVE.order
+_G = _CURVE.generator
+_INFINITE = ecdsa.ellipticcurve.INFINITY
+
+
+def _tagged_hash(tag: str, message: bytes) -> bytes:
+    tag_hash = hashlib.sha256(tag.encode("ascii")).digest()
+    return hashlib.sha256(tag_hash + tag_hash + message).digest()
+
+
+def _bytes32(value: int) -> bytes:
+    return value.to_bytes(32, byteorder="big")
 
 
 def _lift_x(x: int, even_y: bool = True):
-    r"""Reconstrói ponto na curva a partir de coordenada x.
-
-    BIP-340 requer y par (even_y=True por padrão).
-    Retorna PointJacobi ou None se x não for válido na curva.
-    """
-    curve = ecdsa.SECP256k1.curve
-    p = curve.p()
-    y_sq = (pow(x, 3, p) + 7) % p
-    y = pow(y_sq, (p + 1) // 4, p)
-    # Verificar se y² = x³ + 7
-    if pow(y, 2, p) != y_sq:
+    """Return the unique secp256k1 point with x and requested y parity."""
+    if not isinstance(x, int) or x < 0 or x >= _P:
         return None
-    # Se a paridade de y não bater, usar p - y
-    if (y % 2 == 0) != even_y:
-        y = p - y
-    return ecdsa.ellipticcurve.PointJacobi(curve, x, y, 1)
+    y_sq = (pow(x, 3, _P) + 7) % _P
+    y = pow(y_sq, (_P + 1) // 4, _P)
+    if pow(y, 2, _P) != y_sq:
+        return None
+    if (y & 1) != (0 if even_y else 1):
+        y = _P - y
+    return ecdsa.ellipticcurve.PointJacobi(_CURVE.curve, x, y, 1)
+
+
+def _affine(point):
+    if point is None or point == _INFINITE:
+        return None
+    try:
+        affine = point.to_affine()
+        if affine == _INFINITE:
+            return None
+        return affine
+    except Exception:
+        return None
 
 
 class SchnorrKeyPair:
-    r"""Par de chaves Schnorr sobre secp256k1.
-
-    Gera chave privada aleatória e deriva a chave pública
-    no formato x-only (apenas coordenada x, 32 bytes),
-    conforme especificação BIP-340 (y par obrigatório).
-    """
+    """BIP-340 key pair with x-only public key representation."""
 
     def __init__(self, private_key: Optional[int] = None):
-        self.curve = ecdsa.SECP256k1
-        self.n = self.curve.order
-        self.G = self.curve.generator
-
-        if private_key is not None:
-            self.priv_key = private_key % (self.n - 1) + 1
+        self.curve = _CURVE
+        self.n = _N
+        self.G = _G
+        if private_key is None:
+            while True:
+                candidate = int.from_bytes(os.urandom(32), "big")
+                if 1 <= candidate < self.n:
+                    break
         else:
-            self.priv_key = int.from_bytes(os.urandom(32), byteorder='big') % (self.n - 1) + 1
+            if type(private_key) is not int or not 1 <= private_key < self.n:
+                raise ValueError("private key must be an integer in [1, n-1]")
+            candidate = private_key
 
-        pub_point = self.priv_key * self.G
-
-        # BIP-340: se y for ímpar, negar chave privada para garantir y par
-        if pub_point.y() % 2 != 0:
-            self.priv_key = self.n - self.priv_key
-            pub_point = self.priv_key * self.G
-
-        self.pub_bytes = pub_point.x().to_bytes(32, byteorder='big')
-        self.pub_point = pub_point
+        point = candidate * self.G
+        if point.y() & 1:
+            candidate = self.n - candidate
+            point = candidate * self.G
+        self.priv_key = candidate
+        self.pub_point = point
+        self.pub_bytes = _bytes32(point.x())
 
     @property
     def private_key_hex(self) -> str:
-        return format(self.priv_key, '064x')
+        return self.priv_key.to_bytes(32, "big").hex()
 
     @property
     def public_key_hex(self) -> str:
         return self.pub_bytes.hex()
 
-    def sign(self, message: bytes, aux_rand: Optional[bytes] = None) -> 'SchnorrSignature':
-        r"""Assina uma mensagem usando Schnorr/BIP-340 sobre secp256k1.
-
-        O aux_rand é usado APENAS na derivação do nonce (anti-side-channel),
-        não no cálculo da assinatura. Conforme BIP-340:
-        - d' = d + H(aux_rand || P) mod n  (apenas para nonce)
-        - k = H(P'.x || P.x || msg) mod n
-        - e = H(R.x || P.x || msg) mod n
-        - s = (k + e * d) mod n  (chave ORIGINAL, não tweakada)
-        """
+    def sign(self, message: bytes, aux_rand: Optional[bytes] = None) -> "SchnorrSignature":
+        if not isinstance(message, bytes):
+            raise TypeError("message must be bytes")
         if aux_rand is None:
             aux_rand = os.urandom(32)
+        if not isinstance(aux_rand, bytes) or len(aux_rand) != 32:
+            raise ValueError("aux_rand must be exactly 32 bytes")
 
-        # Tweak para derivação de nonce (BIP-340 aux_rand)
-        t = int.from_bytes(
-            hashlib.sha256(aux_rand + self.pub_bytes).digest(),
-            byteorder='big'
-        ) % self.n
-        d_prime = (t + self.priv_key) % self.n
-        P_prime = d_prime * self.G
-
-        # Nonce determinístico derivado de P' e P original
-        nonce_input = bytes(P_prime.x().to_bytes(32, 'big')) + self.pub_bytes + message
-        k = int.from_bytes(hashlib.sha256(nonce_input).digest(), byteorder='big') % self.n
-
-        # Verificar que k != 0
-        if k == 0:
-            return self.sign(message, os.urandom(32))
-
-        R = k * self.G
-
-        # BIP-340: R deve ter y par; se ímpar, negar k
-        if R.y() % 2 != 0:
-            k = self.n - k
+        d = self.priv_key
+        # The constructor already normalizes d so that the public point is even.
+        t = bytes(a ^ b for a, b in zip(_bytes32(d), _tagged_hash("BIP0340/aux", aux_rand)))
+        nonce_input = t + self.pub_bytes + message
+        k0 = int.from_bytes(_tagged_hash("BIP0340/nonce", nonce_input), "big") % self.n
+        if k0 == 0:
+            raise RuntimeError("BIP-340 nonce generation returned zero")
+        R = k0 * self.G
+        k = k0 if (R.y() & 1) == 0 else self.n - k0
+        if k != k0:
             R = k * self.G
+        r_bytes = _bytes32(R.x())
+        e = int.from_bytes(
+            _tagged_hash("BIP0340/challenge", r_bytes + self.pub_bytes + message), "big"
+        ) % self.n
+        s = (k + e * d) % self.n
+        return SchnorrSignature(s=s, r_bytes=r_bytes)
 
-        # Hash para desafio 'e'
-        e_input = bytes(R.x().to_bytes(32, 'big')) + self.pub_bytes + message
-        e = int.from_bytes(hashlib.sha256(e_input).digest(), byteorder='big') % self.n
-
-        # Assinatura: s = k + e*d mod n (chave ORIGINAL)
-        sig = (k + e * self.priv_key) % self.n
-        return SchnorrSignature(sig, R.x().to_bytes(32, 'big'))
+    @classmethod
+    def from_pubkey_hex(cls, pubkey_hex: str) -> "SchnorrKeyPair":
+        if not isinstance(pubkey_hex, str):
+            raise TypeError("pubkey_hex must be a string")
+        raw = bytes.fromhex(pubkey_hex)
+        if len(raw) == 33 and raw[0] in (2, 3):
+            raw = raw[1:]
+        if len(raw) != 32:
+            raise ValueError("expected a 32-byte x-only public key")
+        point = _lift_x(int.from_bytes(raw, "big"), even_y=True)
+        if point is None:
+            raise ValueError("invalid x-only public key")
+        kp = cls.__new__(cls)
+        kp.curve, kp.n, kp.G = _CURVE, _N, _G
+        kp.priv_key = None
+        kp.pub_point = point
+        kp.pub_bytes = raw
+        return kp
 
     def __repr__(self) -> str:
         return f"SchnorrKeyPair(pub={self.public_key_hex[:16]}...)"
 
 
-    @classmethod
-    def from_pubkey_hex(cls, pubkey_hex: str) -> 'SchnorrKeyPair':
-        r"""Create a keypair from an existing x-only public key hex string.
-
-        The private key will be a dummy (signing will produce invalid signatures).
-        This is useful for signature verification only.
-        """
-        kp = cls.__new__(cls)
-        kp._private_key = None  # No private key — verify-only
-        pubkey_bytes = bytes.fromhex(pubkey_hex)
-        if len(pubkey_bytes) == 33:
-            # Compressed pubkey — extract x-only
-            kp._pub_bytes = pubkey_bytes[1:33]
-        elif len(pubkey_bytes) == 32:
-            kp._pub_bytes = pubkey_bytes
-        else:
-            raise ValueError(f"Expected 32 or 33-byte pubkey, got {len(pubkey_bytes)}")
-        kp._public_key = None  # Lazy init if needed
-        kp.public_key_hex = kp._pub_bytes.hex()
-        return kp
-
 class SchnorrSignature:
-    r"""Assinatura Schnorr (64 bytes = r || s)."""
+    """BIP-340 signature represented as r || s (64 bytes)."""
 
     def __init__(self, s: int, r_bytes: bytes):
+        if type(s) is not int:
+            raise TypeError("s must be an integer")
+        if not isinstance(r_bytes, bytes) or len(r_bytes) != 32:
+            raise ValueError("r must be exactly 32 bytes")
         self.s = s
         self.r_bytes = r_bytes
 
     @property
     def raw(self) -> bytes:
-        return self.r_bytes + self.s.to_bytes(32, byteorder='big')
+        if not 0 <= self.s < _N:
+            raise ValueError("s is outside the BIP-340 range")
+        return self.r_bytes + _bytes32(self.s)
 
     @property
     def hex(self) -> str:
         return self.raw.hex()
 
     def verify(self, pubkey_bytes: bytes, message: bytes) -> bool:
-        r"""Verifica assinatura Schnorr contra pubkey x-only (BIP-340).
-
-        Reconstrói P assumindo y par (BIP-340), então verifica
-        s*G - e*P == R onde R.x == r.
-        """
-        try:
-            curve = ecdsa.SECP256k1
-            G = curve.generator
-            n = curve.order
-            p = curve.curve.p()
-
-            r = int.from_bytes(self.r_bytes, byteorder='big')
-            if r >= p:
-                return False
-
-            e = int.from_bytes(
-                hashlib.sha256(self.r_bytes + pubkey_bytes + message).digest(),
-                byteorder='big'
-            ) % n
-
-            # Reconstruir P com y par (BIP-340)
-            x = int.from_bytes(pubkey_bytes, byteorder='big')
-            P = _lift_x(x, even_y=True)
-            if P is None:
-                return False
-
-            # s*G - e*P deve ter x == r
-            R = self.s * G + (n - e) * P
-
-            # Verificar que R nao e ponto no infinito
-            try:
-                R.to_affine()
-            except Exception:
-                return False
-
-            # BIP-340: R.y deve ser par
-            if R.y() % 2 != 0:
-                return False
-
-            return R.x() == r
-        except Exception:
+        if not isinstance(pubkey_bytes, bytes) or len(pubkey_bytes) != 32:
             return False
+        if not isinstance(message, bytes) or len(self.r_bytes) != 32:
+            return False
+        if type(self.s) is not int or self.s < 0 or self.s >= _N:
+            return False
+        r = int.from_bytes(self.r_bytes, "big")
+        if r >= _P:
+            return False
+        P = _lift_x(int.from_bytes(pubkey_bytes, "big"), even_y=True)
+        if P is None:
+            return False
+        e = int.from_bytes(
+            _tagged_hash("BIP0340/challenge", self.r_bytes + pubkey_bytes + message), "big"
+        ) % _N
+        R = self.s * _G + (_N - e) * P
+        R_affine = _affine(R)
+        if R_affine is None:
+            return False
+        if R_affine.y() & 1:
+            return False
+        return R_affine.x() == r
 
     def __repr__(self) -> str:
         return f"SchnorrSignature(r={self.r_bytes.hex()[:16]}...)"
