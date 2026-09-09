@@ -111,3 +111,4 @@ temp/
 .project-config.json
 server/nexus_genesis_key.json
 server/API_Key*.json
+audit_package/
