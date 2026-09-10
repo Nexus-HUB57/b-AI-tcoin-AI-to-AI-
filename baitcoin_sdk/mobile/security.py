@@ -128,19 +128,8 @@ class MobileSecurity:
             ciphertext = ct_and_tag[:-16]
             auth_tag = ct_and_tag[-16:]
             algorithm_name = "aes-256-gcm"
-        except ImportError:
-            # Fallback: HMAC-SHA256 keyed stream cipher (still better than plain XOR)
-            key_stream = hashlib.sha256(derived_key + iv).digest()
-            # Generate extended key stream using HKDF-like expansion
-            stream = b''
-            counter = 0
-            while len(stream) < len(plaintext):
-                block = hashlib.sha256(derived_key + iv + counter.to_bytes(4, 'big')).digest()
-                stream += block
-                counter += 1
-            ciphertext = bytes(a ^ b for a, b in zip(plaintext, stream[:len(plaintext)]))
-            auth_tag = hmac.new(derived_key, iv + ciphertext, hashlib.sha256).digest()[:self.AUTH_TAG_LENGTH]
-            algorithm_name = "pbkdf2-sha256-hkdf-stream"
+        except ImportError as exc:
+            raise RuntimeError("cryptography provider required for AES-256-GCM") from exc
 
         return {
             "version": 2,
@@ -175,14 +164,6 @@ class MobileSecurity:
 
             derived_key, _ = self.derive_key(passphrase, salt)
 
-            # Verify HMAC
-            expected_tag = hmac.new(
-                derived_key, iv + ciphertext, hashlib.sha256
-            ).digest()[:self.AUTH_TAG_LENGTH]
-
-            if not hmac.compare_digest(auth_tag, expected_tag):
-                return {"error": "integrity_check_failed"}
-
             # Decrypt (Phase A Hardening — real crypto)
             version = encrypted.get("version", 1)
             if version >= 2 and encrypted.get("algorithm", "").startswith("aes-256-gcm"):
@@ -192,10 +173,16 @@ class MobileSecurity:
                     ct_and_tag = ciphertext + auth_tag
                     plaintext = aesgcm.decrypt(iv, ct_and_tag, None)
                 except ImportError:
-                    # Should not happen if encrypt used fallback, but handle gracefully
                     raise ValueError("cryptography library required for AES-256-GCM decryption")
+                except Exception:
+                    return {"error": "integrity_check_failed"}
             else:
-                # Legacy fallback decryption (HKDF stream cipher or XOR)
+                # Legacy bundles are migration-only and retain their original HMAC.
+                expected_tag = hmac.new(
+                    derived_key, iv + ciphertext, hashlib.sha256
+                ).digest()[:self.AUTH_TAG_LENGTH]
+                if not hmac.compare_digest(auth_tag, expected_tag):
+                    return {"error": "integrity_check_failed"}
                 stream = b''
                 counter = 0
                 while len(stream) < len(ciphertext):

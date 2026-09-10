@@ -1,0 +1,6 @@
+{
+  "description": "Minimal cross-platform contract fixture",
+  "private_key": "0101010101010101010101010101010101010101010101010101010101010101",
+  "message": "0202020202020202020202020202020202020202020202020202020202020202",
+  "requirements": ["x-only public key is 32 bytes", "signature is 64 bytes", "altered message is rejected"]
+}

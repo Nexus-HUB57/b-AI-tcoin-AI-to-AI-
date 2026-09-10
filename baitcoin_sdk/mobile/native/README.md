@@ -19,40 +19,40 @@ Both SDKs implement:
 
 ### iOS (Swift)
 
-1. Copy `BaitcoinKit.swift` into your Xcode project.
-2. In your target's **Build Phases**, ensure `Security.framework` is linked.
-3. For production use, add a secp256k1 Swift package (e.g., [secp256k1.swift](https://github.com/GigaBitcoin/secp256k1.swift)) and implement the `CryptoProvider` protocol with it.
+1. Add this directory as a Swift Package or copy the package manifest and
+   `BaitcoinKit.swift` into your Xcode project.
+2. Resolve the pinned `swift-secp256k1` dependency (`P256K` 0.23.2).
+3. In your target's **Build Phases**, ensure `Security.framework` and
+   `CommonCrypto` are available. Do not replace `P256KCryptoProvider` with
+   CryptoKit P-256: P-256 is not secp256k1 and is not BIP-340 compatible.
 
 ```bash
-# Or add via Swift Package Manager (when published)
-# File > Swift Packages > Add Package Dependency
+# Or add the local Package.swift through Xcode's Swift Package dependencies.
 ```
 
 ### Android (Kotlin)
 
 1. Copy `BaitcoinKit.kt` into your project's source set (e.g., `app/src/main/java/org/baitcoin/sdk/`).
-2. Add BouncyCastle as a dependency for RIPEMD-160 support:
+2. Add the pinned BouncyCastle dependency. It supplies the audited secp256k1
+   curve arithmetic and RIPEMD-160 implementation used by the SDK:
 
 ```groovy
-// build.gradle (app)
+// app/build.gradle
 implementation 'org.bouncycastle:bcprov-jdk18on:1.78'
 ```
 
-3. Register the BouncyCastle provider in your Application class:
+For Kotlin DSL use:
 
 ```kotlin
-import java.security.Security
-import org.bouncycastle.jce.provider.BouncyCastleProvider
-
-class MyApp : Application() {
-    override fun onCreate() {
-        super.onCreate()
-        Security.addProvider(BouncyCastleProvider())
-    }
-}
+// app/build.gradle.kts
+implementation("org.bouncycastle:bcprov-jdk18on:1.78")
 ```
 
-4. For production use, implement the `CryptoProvider` interface using BitcoinJ or BouncyCastle's secp256k1 operations.
+No JCA provider registration is required: `BouncyCastleCryptoProvider` calls
+BouncyCastle's secp256k1 and RIPEMD-160 primitives directly. The provider
+performs x-only public-key derivation, private-key range checks, and BIP-340
+Schnorr signing and verification. Java's standard cryptography APIs are not a
+secp256k1 implementation and are not used as one.
 
 ## Quick Start
 
@@ -221,13 +221,21 @@ The public key used is the 32-byte **x-only** coordinate (BIP-340 style), not th
    - **iOS**: Integrate with Apple's [Secure Enclave](https://developer.apple.com/documentation/security/certificate_key_and_trust_services/keys/protecting_keys_with_the_secure_enclave) for private key storage via `SecKeyCreateRandomKey` with `kSecAttrTokenIDSecureEnclave`.
    - **Android**: Use the [Android Keystore](https://developer.android.com/training/articles/keystore) system for hardware-backed key storage. The `exportKeyBundle` method provides a software fallback but should not be used as the primary storage mechanism in production.
 
-3. **Replace placeholder crypto.** The `PlaceholderCryptoProvider` / `PlaceholderCryptoProvider` is for development only. It uses SHA-256 instead of secp256k1 and provides no real cryptographic security. Replace with a real secp256k1 library before any production deployment.
+3. **Use the real Android provider.** The Android SDK defaults to
+   `BouncyCastleCryptoProvider`, backed by the documented
+   `org.bouncycastle:bcprov-jdk18on:1.78` dependency. There is no functional
+   placeholder provider or SHA-256 stand-in for secp256k1 operations; invalid
+   private keys, malformed x-only keys, and invalid BIP-340 signatures fail
+   closed.
 
 4. **Memory cleanup.** Private key data should be zeroed from memory as soon as possible after use. In Swift, use `mutableBytes` to clear bytes. In Kotlin, overwrite array elements with zeros.
 
 5. **Passphrase strength.** The `exportKeyBundle` passphrase should be at least 16 characters with mixed case, numbers, and symbols. Consider using a dedicated password manager.
 
-6. **Key bundle encryption.** The current `exportKeyBundle` uses XOR encryption as a placeholder. Production implementations should use AES-256-GCM with a proper key derivation function (PBKDF2, Argon2id, or scrypt).
+6. **Key bundle encryption.** `exportKeyBundle` uses AES-256-GCM with a
+   PBKDF2-HMAC-SHA256-derived 256-bit key, a random 12-byte nonce, and a
+   128-bit authentication tag. The Android and Python envelopes are versioned;
+   native interoperability still requires execution in the target toolchains.
 
 ## License
 

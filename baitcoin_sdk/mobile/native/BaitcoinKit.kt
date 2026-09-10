@@ -7,22 +7,28 @@
  * Kotlin 1.6+
  *
  * ============================================================================
- * IMPORTANT: This SDK uses a placeholder CryptoProvider interface for elliptic
- * curve operations. In production, replace PlaceholderCryptoProvider with a real
- * implementation using:
- *   - BitcoinJ (https://github.com/bitcoinj/bitcoinj)
- *   - BouncyCastle (https://www.bouncycastle.org/)
- *   - Or a dedicated secp256k1 JNI binding
+ * IMPORTANT: Android builds must include BouncyCastle (bcprov-jdk18on). The
+ * BouncyCastle-backed provider below performs the secp256k1 point operations;
+ * BIP-340 encoding, tagged hashing, signing, and verification are implemented
+ * directly from the published specification. There is deliberately no crypto
+ * placeholder or SHA-256 stand-in for elliptic-curve operations.
  * ============================================================================
  */
 
 package org.baitcoin.sdk
 
+import java.math.BigInteger
 import java.security.MessageDigest
 import java.security.SecureRandom
 import java.util.Base64
 import javax.crypto.Cipher
-import javax.crypto.spec.SecretKeySpec
+import javax.crypto.SecretKeyFactory
+import javax.crypto.spec.GCMParameterSpec
+import javax.crypto.spec.PBEKeySpec
+import org.bouncycastle.asn1.sec.SECNamedCurves
+import org.bouncycastle.asn1.x9.X9ECParameters
+import org.bouncycastle.crypto.digests.RIPEMD160Digest
+import org.bouncycastle.math.ec.ECPoint
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -60,7 +66,9 @@ enum class Network(val prefix: Char, val displayName: String) {
 
 /**
  * Interface abstracting elliptic curve cryptographic operations.
- * Replace PlaceholderCryptoProvider with a real secp256k1 implementation.
+ * Implementations must use a real secp256k1 primitive and BIP-340 semantics.
+ * The SDK default is [BouncyCastleCryptoProvider]; callers supplying a custom
+ * provider are responsible for equivalent validation and cryptographic security.
  */
 interface CryptoProvider {
     /**
@@ -95,49 +103,190 @@ interface CryptoProvider {
 }
 
 // ============================================================================
-// PlaceholderCryptoProvider
+// BouncyCastleCryptoProvider (secp256k1 + BIP-340)
 // ============================================================================
 
 /**
- * Placeholder cryptographic provider that simulates secp256k1 operations.
- * WARNING: This implementation is NOT cryptographically secure. It is provided
- * solely for SDK development and testing. Replace with a real secp256k1 library
- * (e.g., BitcoinJ or BouncyCastle) before production use.
+ * BouncyCastle-backed secp256k1 provider implementing BIP-340 Schnorr.
+ *
+ * BouncyCastle supplies the audited secp256k1 curve and scalar/point
+ * arithmetic. The BIP-340 rules that are not exposed as a high-level JCA API
+ * (x-only key lifting, even-Y normalization, tagged hashes, and Schnorr
+ * equation checking) are kept explicitly here so they can be reviewed against
+ * the specification. Java's standard cryptography APIs are not used as a
+ * substitute for secp256k1.
+ *
+ * @see <a href="https://github.com/bitcoin/bips/blob/master/bip-0340.mediawiki">BIP-340</a>
  */
-class PlaceholderCryptoProvider : CryptoProvider {
+class BouncyCastleCryptoProvider(
+    private val random: SecureRandom = SecureRandom()
+) : CryptoProvider {
 
-    private val random = SecureRandom()
+    private val curveParameters: X9ECParameters = requireNotNull(
+        SECNamedCurves.getByName("secp256k1")
+    ) { "BouncyCastle does not expose secp256k1" }
+    private val curve = curveParameters.curve
+    private val generator: ECPoint = curveParameters.g
 
     override fun generateKeyPair(): Pair<ByteArray, ByteArray> {
-        val privateKey = ByteArray(32)
-        random.nextBytes(privateKey)
-        val publicKey = derivePublicKey(privateKey)
-        return Pair(privateKey, publicKey)
+        val privateKey = ByteArray(BYTES_32)
+        do {
+            random.nextBytes(privateKey)
+        } while (!isValidPrivateKey(privateKey))
+        return privateKey.copyOf() to derivePublicKey(privateKey)
     }
 
     override fun derivePublicKey(privateKey: ByteArray): ByteArray {
-        // Placeholder: In production, compute the x-coordinate of the
-        // secp256k1 public point derived from this private key.
-        // This uses SHA-256 as a stand-in to produce 32 bytes.
-        val md = MessageDigest.getInstance("SHA-256")
-        return md.digest(privateKey)
+        val scalar = requirePrivateKey(privateKey)
+        val point = generator.multiply(scalar).normalize()
+        return toFixed32(point.affineXCoord.toBigInteger())
     }
 
     override fun schnorrSign(message: ByteArray, privateKey: ByteArray): ByteArray {
-        // Placeholder: In production, perform BIP-340 Schnorr signing.
-        // This concatenates hashes to produce 64 bytes.
-        val md = MessageDigest.getInstance("SHA-256")
-        val combined = privateKey + message
-        val h1 = md.digest(combined)
-        val combined2 = h1 + message
-        val h2 = md.digest(combined2)
-        return h1 + h2
+        requireMessage(message)
+        // BIP-340 requires a fresh 32-byte auxiliary random value. The
+        // overload taking auxRand exists for deterministic conformance tests.
+        val auxRand = ByteArray(BYTES_32).also(random::nextBytes)
+        return schnorrSign(message, privateKey, auxRand)
+    }
+
+    /**
+     * Sign with an explicit BIP-340 auxiliary randomness value. This is useful
+     * for reproducing the official vectors; production callers should use the
+     * interface method, which obtains fresh randomness from SecureRandom.
+     */
+    fun schnorrSign(message: ByteArray, privateKey: ByteArray, auxRand: ByteArray): ByteArray {
+        requireMessage(message)
+        require(auxRand.size == BYTES_32) { "BIP-340 auxiliary randomness must be 32 bytes" }
+
+        val d0 = requirePrivateKey(privateKey)
+        val publicPoint = generator.multiply(d0).normalize()
+        val d = if (isOdd(publicPoint.affineYCoord.toBigInteger())) {
+            ORDER.subtract(d0)
+        } else {
+            d0
+        }
+        val publicKeyX = toFixed32(publicPoint.affineXCoord.toBigInteger())
+        val maskedKey = xor(
+            toFixed32(d),
+            taggedHash("BIP0340/aux", auxRand)
+        )
+        val nonceHash = taggedHash("BIP0340/nonce", maskedKey + publicKeyX + message)
+        val k0 = BigInteger(1, nonceHash).mod(ORDER)
+        require(k0.signum() != 0) { "BIP-340 nonce generation produced zero" }
+
+        val noncePoint = generator.multiply(k0).normalize()
+        val k = if (isOdd(noncePoint.affineYCoord.toBigInteger())) {
+            ORDER.subtract(k0)
+        } else {
+            k0
+        }
+        val rX = toFixed32(noncePoint.affineXCoord.toBigInteger())
+        val challenge = BigInteger(1, taggedHash("BIP0340/challenge", rX + publicKeyX + message))
+            .mod(ORDER)
+        val s = k.add(challenge.multiply(d)).mod(ORDER)
+        return rX + toFixed32(s)
     }
 
     override fun schnorrVerify(signature: ByteArray, message: ByteArray, publicKey: ByteArray): Boolean {
-        // Placeholder: Always returns true for development purposes.
-        // In production, verify the BIP-340 Schnorr signature.
-        return signature.size == 64
+        if (signature.size != BYTES_64 || message.size != BYTES_32 || publicKey.size != BYTES_32) {
+            return false
+        }
+
+        return try {
+            val r = BigInteger(1, signature.copyOfRange(0, BYTES_32))
+            val s = BigInteger(1, signature.copyOfRange(BYTES_32, BYTES_64))
+            if (r.signum() < 0 || r >= FIELD_PRIME || s.signum() < 0 || s >= ORDER) {
+                return false
+            }
+
+            val publicPoint = liftX(publicKey) ?: return false
+            val challenge = BigInteger(
+                1,
+                taggedHash(
+                    "BIP0340/challenge",
+                    signature.copyOfRange(0, BYTES_32) + publicKey + message
+                )
+            ).mod(ORDER)
+            val result = generator.multiply(s)
+                .subtract(publicPoint.multiply(challenge))
+                .normalize()
+
+            !result.isInfinity &&
+                !isOdd(result.affineYCoord.toBigInteger()) &&
+                result.affineXCoord.toBigInteger() == r
+        } catch (_: RuntimeException) {
+            // Malformed encodings and invalid curve points fail closed.
+            false
+        }
+    }
+
+    private fun requirePrivateKey(privateKey: ByteArray): BigInteger {
+        require(isValidPrivateKey(privateKey)) {
+            "secp256k1 private key must be exactly 32 bytes and in [1, n-1]"
+        }
+        return BigInteger(1, privateKey)
+    }
+
+    private fun isValidPrivateKey(privateKey: ByteArray): Boolean {
+        if (privateKey.size != BYTES_32) return false
+        val scalar = BigInteger(1, privateKey)
+        return scalar.signum() > 0 && scalar < ORDER
+    }
+
+    private fun requireMessage(message: ByteArray) {
+        require(message.size == BYTES_32) { "BIP-340 message must be exactly 32 bytes" }
+    }
+
+    /** BIP-340 lift_x: return the unique secp256k1 point with even Y. */
+    private fun liftX(xBytes: ByteArray): ECPoint? {
+        if (xBytes.size != BYTES_32) return null
+        val x = BigInteger(1, xBytes)
+        if (x >= FIELD_PRIME) return null
+
+        val alpha = x.modPow(BigInteger.valueOf(3), FIELD_PRIME)
+            .add(BigInteger.valueOf(7))
+            .mod(FIELD_PRIME)
+        var beta = alpha.modPow(FIELD_PRIME.add(BigInteger.ONE).shiftRight(2), FIELD_PRIME)
+        if (beta.multiply(beta).mod(FIELD_PRIME) != alpha) return null
+        if (isOdd(beta)) beta = FIELD_PRIME.subtract(beta)
+
+        return try {
+            curve.createPoint(x, beta).normalize().takeIf { !it.isInfinity && it.isValid }
+        } catch (_: RuntimeException) {
+            null
+        }
+    }
+
+    private fun taggedHash(tag: String, data: ByteArray): ByteArray {
+        val tagHash = sha256(tag.toByteArray(Charsets.UTF_8))
+        return sha256(tagHash + tagHash + data)
+    }
+
+    private fun sha256(data: ByteArray): ByteArray = MessageDigest.getInstance("SHA-256").digest(data)
+
+    private fun xor(left: ByteArray, right: ByteArray): ByteArray {
+        require(left.size == right.size)
+        return ByteArray(left.size) { index -> (left[index].toInt() xor right[index].toInt()).toByte() }
+    }
+
+    private fun toFixed32(value: BigInteger): ByteArray {
+        val raw = value.toByteArray()
+        return when {
+            raw.size == BYTES_32 -> raw
+            raw.size == BYTES_32 + 1 && raw[0] == 0.toByte() -> raw.copyOfRange(1, raw.size)
+            raw.size < BYTES_32 -> ByteArray(BYTES_32 - raw.size) + raw
+            else -> error("integer does not fit in 32 bytes")
+        }
+    }
+
+    private fun isOdd(value: BigInteger): Boolean = value.testBit(0)
+
+    private companion object {
+        const val BYTES_32 = 32
+        const val BYTES_64 = 64
+        val FIELD_PRIME = BigInteger("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F", 16)
+        val ORDER = BigInteger("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 16)
     }
 }
 
@@ -165,19 +314,14 @@ object BaitcoinHash {
      * Compute RIPEMD-160 hash.
      * @param data Input byte array.
      * @return 20-byte RIPEMD-160 digest.
-     * @note Requires BouncyCastle provider. In production, add BouncyCastle as a
-     *       dependency and register the provider. Without BouncyCastle, this
-     *       falls back to a truncated SHA-256 (placeholder only).
+     * @note Requires the BouncyCastle `bcprov-jdk18on` dependency. The digest is
+     *       instantiated directly from BouncyCastle; no provider registration or
+     *       insecure hash fallback is permitted.
      */
     fun ripemd160(data: ByteArray): ByteArray {
-        return try {
-            val md = MessageDigest.getInstance("RIPEMD160", "BC")
-            md.digest(data)
-        } catch (e: Exception) {
-            // Fallback: Use first 20 bytes of SHA-256 as placeholder.
-            // PRODUCTION: Always install BouncyCastle for real RIPEMD-160.
-            sha256(data).copyOfRange(0, 20)
-        }
+        val digest = RIPEMD160Digest()
+        digest.update(data, 0, data.size)
+        return ByteArray(digest.digestSize).also { digest.doFinal(it, 0) }
     }
 
     /**
@@ -437,10 +581,10 @@ class BaitcoinKeyPair(
     companion object {
         /**
          * Generate a new random key pair.
-         * @param crypto The crypto provider (defaults to PlaceholderCryptoProvider).
+         * @param crypto The crypto provider (defaults to BouncyCastleCryptoProvider).
          * @return A new BaitcoinKeyPair with fresh random keys.
          */
-        fun generate(crypto: CryptoProvider = PlaceholderCryptoProvider()): BaitcoinKeyPair {
+        fun generate(crypto: CryptoProvider = BouncyCastleCryptoProvider()): BaitcoinKeyPair {
             val (privKey, pubKey) = crypto.generateKeyPair()
             return BaitcoinKeyPair(privKey, pubKey, crypto)
         }
@@ -448,18 +592,23 @@ class BaitcoinKeyPair(
         /**
          * Import a key pair from a hex-encoded private key string.
          * @param hex The 64-character hex string representing the 32-byte private key.
-         * @param crypto The crypto provider (defaults to PlaceholderCryptoProvider).
+         * @param crypto The crypto provider (defaults to BouncyCastleCryptoProvider).
          * @return A BaitcoinKeyPair, or null if the hex is invalid.
          */
         fun fromPrivateKeyHex(
             hex: String,
-            crypto: CryptoProvider = PlaceholderCryptoProvider()
+            crypto: CryptoProvider = BouncyCastleCryptoProvider()
         ): BaitcoinKeyPair? {
             val cleanHex = if (hex.startsWith("0x")) hex.substring(2) else hex
             if (cleanHex.length != 64) return null
             val privKey = hexToBytes(cleanHex) ?: return null
-            val pubKey = crypto.derivePublicKey(privKey)
-            return BaitcoinKeyPair(privKey, pubKey, crypto)
+            return try {
+                val pubKey = crypto.derivePublicKey(privKey)
+                BaitcoinKeyPair(privKey, pubKey, crypto)
+            } catch (_: IllegalArgumentException) {
+                // Invalid scalars (zero or >= secp256k1 order) fail closed.
+                null
+            }
         }
 
         /** Convert a hex string to a ByteArray. */
@@ -581,7 +730,7 @@ class BaitcoinTransaction(
     var nonce: Long,
     var signature: ByteArray? = null,
     var agentId: String? = null,
-    private val crypto: CryptoProvider = PlaceholderCryptoProvider()
+    private val crypto: CryptoProvider = BouncyCastleCryptoProvider()
 ) {
     /**
      * The transaction ID, computed from the serialized unsigned transaction.
@@ -623,11 +772,11 @@ class BaitcoinTransaction(
         ): String {
             val data = mutableListOf<Byte>()
             for (input in inputs) {
-                data.addAll(input.txId.toByteArray())
+                data.addAll(input.txId.toByteArray().toList())
                 data.add((input.outputIndex and 0xFF).toByte())
             }
             for (output in outputs) {
-                data.addAll(output.address.toByteArray())
+                data.addAll(output.address.toByteArray().toList())
                 val amountBytes = ByteArray(8)
                 var val_ = output.amount
                 for (i in 7 downTo 0) {
@@ -643,9 +792,7 @@ class BaitcoinTransaction(
                 n = n ushr 8
             }
             data.addAll(nonceBytes.toList())
-            if (agentId != null) {
-                data.addAll(agentId.toByteArray())
-            }
+            agentId?.let { data.addAll(it.toByteArray().toList()) }
             val hash = BaitcoinHash.sha256(data.toByteArray())
             return hash.joinToString("") { "%02x".format(it) }
         }
@@ -698,8 +845,8 @@ class BaitcoinTransaction(
         stream.addAll(longToLittleEndianBytes(nonce))
 
         // Agent ID (optional)
-        if (agentId != null) {
-            val agentBytes = agentId.toByteArray()
+        agentId?.let { id ->
+            val agentBytes = id.toByteArray()
             stream.addAll(intToLittleEndianBytes(agentBytes.size, 4))
             stream.addAll(agentBytes.toList())
         }
@@ -807,7 +954,7 @@ class BaitcoinWallet private constructor(
          */
         fun generate(
             network: Network = Network.MAINNET,
-            crypto: CryptoProvider = PlaceholderCryptoProvider()
+            crypto: CryptoProvider = BouncyCastleCryptoProvider()
         ): BaitcoinWallet {
             val keyPair = BaitcoinKeyPair.generate(crypto)
             val address = BaitcoinAddress.from(keyPair.publicKey, network)
@@ -824,7 +971,7 @@ class BaitcoinWallet private constructor(
         fun import(
             privateKeyHex: String,
             network: Network = Network.MAINNET,
-            crypto: CryptoProvider = PlaceholderCryptoProvider()
+            crypto: CryptoProvider = BouncyCastleCryptoProvider()
         ): BaitcoinWallet? {
             val keyPair = BaitcoinKeyPair.fromPrivateKeyHex(privateKeyHex, crypto) ?: return null
             val address = BaitcoinAddress.from(keyPair.publicKey, network)
@@ -866,17 +1013,23 @@ class BaitcoinWallet private constructor(
         }
         val jsonBytes = json.toString().toByteArray(Charsets.UTF_8)
 
-        // Derive encryption key from passphrase
-        val encKey = BaitcoinHash.sha256(passphrase.toByteArray(Charsets.UTF_8))
-
-        // Simple XOR encryption as placeholder (use AES-256-GCM in production)
-        val encrypted = ByteArray(jsonBytes.size) { i ->
-            (jsonBytes[i].toInt() xor encKey[i % encKey.size].toInt()).toByte()
-        }
-
-        // Append SHA-256 HMAC of the plaintext for integrity
-        val hmac = BaitcoinHash.sha256(jsonBytes)
-        return encrypted + hmac
+        val salt = ByteArray(16).also { SecureRandom().nextBytes(it) }
+        val nonce = ByteArray(12).also { SecureRandom().nextBytes(it) }
+        val spec = PBEKeySpec(passphrase.toCharArray(), salt, 210_000, 256)
+        val key = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
+            .generateSecret(spec).encoded
+        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+        cipher.init(Cipher.ENCRYPT_MODE, javax.crypto.spec.SecretKeySpec(key, "AES"), GCMParameterSpec(128, nonce))
+        val sealed = cipher.doFinal(jsonBytes)
+        return JSONObject().apply {
+            put("version", 2)
+            put("algorithm", "aes-256-gcm")
+            put("iterations", 210_000)
+            put("salt", Base64.getEncoder().encodeToString(salt))
+            put("iv", Base64.getEncoder().encodeToString(nonce))
+            put("ciphertext", Base64.getEncoder().encodeToString(sealed.copyOf(sealed.size - 16)))
+            put("auth_tag", Base64.getEncoder().encodeToString(sealed.copyOfRange(sealed.size - 16, sealed.size)))
+        }.toString().toByteArray(Charsets.UTF_8)
     }
 
     /**
@@ -921,7 +1074,7 @@ object BaitcoinKit {
     var network: Network = Network.MAINNET
 
     /** The crypto provider used across the SDK. */
-    var crypto: CryptoProvider = PlaceholderCryptoProvider()
+    var crypto: CryptoProvider = BouncyCastleCryptoProvider()
 
     /** The number of decimal places for BAIT amounts (8 decimal places). */
     const val DECIMAL_PLACES: Int = 8
