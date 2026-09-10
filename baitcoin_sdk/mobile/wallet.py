@@ -58,20 +58,20 @@ class WalletInfo:
             d["privkey_hex"] = self.privkey_hex
         return d
 
-    def to_key_bundle(self, passphrase: str = "") -> dict:
+    def to_key_bundle(self, passphrase: str = "", security=None) -> dict:
         r"""Export as encrypted key bundle for device storage.
 
-        In production, this would use AES-256-GCM with the
-        passphrase-derived key. For now, uses base64 encoding.
+        New bundles are encrypted with the SDK AES-256-GCM provider.
         """
-        import base64
-        bundle = json.dumps({
+        if security is None:
+            raise ValueError("security provider required for encrypted key bundle")
+        key_data = {
             "agent_id": self.agent_id,
             "pubkey_hex": self.pubkey_hex,
             "privkey_hex": self.privkey_hex,
             "created_at": self.created_at,
-        }).encode()
-        encrypted = base64.b64encode(bundle).decode()
+        }
+        encrypted = security.encrypt_key_bundle(key_data, passphrase)
         return {
             "key_bundle": encrypted,
             "wallet_id": self.wallet_id,
@@ -146,7 +146,13 @@ class MobileWallet:
         """
         from baitcoin_core.cryptography.schnorr import SchnorrKeyPair
 
-        kp = SchnorrKeyPair()
+        if not isinstance(privkey_hex, str) or len(privkey_hex) != 64:
+            raise ValueError("private key must be a 32-byte hex string")
+        try:
+            private_key = int(privkey_hex, 16)
+        except ValueError as exc:
+            raise ValueError("private key must be hexadecimal") from exc
+        kp = SchnorrKeyPair(private_key=private_key)
         pubkey_hex = kp.public_key_hex
         address = self._derive_address(pubkey_hex)
         wallet_id = uuid.uuid4().hex[:12]
@@ -180,7 +186,8 @@ class MobileWallet:
         wallet = self._wallets.get(agent_id)
         if not wallet:
             return {"error": "wallet_not_found"}
-        return wallet.to_key_bundle(passphrase)
+        security = getattr(self._sdk, "security", None)
+        return wallet.to_key_bundle(passphrase, security=security)
 
     def get_address(self, agent_id: str) -> str:
         r"""Get the b'AI'tcoin address for an agent."""
@@ -217,7 +224,7 @@ class MobileWallet:
         if not wallet:
             return {"error": "wallet_not_found"}
 
-        kp = SchnorrKeyPair()
+        kp = SchnorrKeyPair(private_key=int(wallet.privkey_hex, 16))
         msg_hash = hashlib.sha256(message.encode()).digest()
         sig = kp.sign(msg_hash)
 
@@ -351,4 +358,4 @@ class MobileWallet:
                 result = '1' + result
             else:
                 break
-        return "bait" + result
+        return "b'" + result

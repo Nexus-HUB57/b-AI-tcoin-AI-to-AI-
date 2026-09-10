@@ -5,15 +5,15 @@
 // Requires iOS 14.0+
 //
 // ============================================================================
-// IMPORTANT: This SDK uses a placeholder CryptoProvider protocol for elliptic
-// curve operations. In production, replace the PlaceholderCryptoProvider with
-// a real implementation using a Swift secp256k1 library such as:
-//   - https://github.com/GigaBitcoin/secp256k1.swift
-//   - https://github.com/Boilertalk/secp256k1.swift
-//   - Or Apple's CryptoKit (note: CryptoKit uses P-256, not secp256k1)
+// IMPORTANT: secp256k1/Schnorr operations are provided by the P256K SwiftPM
+// package (a libsecp256k1 wrapper). Apple's CryptoKit P256 is NIST P-256
+// (secp256r1), not secp256k1, and must not be used for BIP-340 operations.
 // ============================================================================
 
 import Foundation
+import CryptoKit
+import CommonCrypto
+import P256K
 
 // MARK: - Network
 
@@ -44,22 +44,24 @@ public enum Network: String, Codable, Equatable {
 
 // MARK: - CryptoProvider Protocol
 
-/// Protocol abstracting elliptic curve cryptographic operations.
-/// Replace the PlaceholderCryptoProvider with a real secp256k1 implementation.
+/// Protocol abstracting secp256k1 cryptographic operations.
+///
+/// Implementations must reject malformed/invalid scalars, return the 32-byte
+/// BIP-340 x-only public key, and use strict 32-byte BIP-340 messages.
 public protocol CryptoProvider {
     /// Generate a new secp256k1 key pair.
     /// - Returns: A tuple of (privateKey, publicKey) where publicKey is 32 bytes x-only.
-    func generateKeyPair() -> (privateKey: Data, publicKey: Data)
+    func generateKeyPair() throws -> (privateKey: Data, publicKey: Data)
 
     /// Derive the 32-byte x-only public key from a 32-byte private key.
-    func derivePublicKey(privateKey: Data) -> Data
+    func derivePublicKey(privateKey: Data) throws -> Data
 
     /// Sign a message using Schnorr/BIP-340 with the given private key.
     /// - Parameters:
     ///   - message: The message digest (32 bytes) to sign.
     ///   - privateKey: The 32-byte secp256k1 private key.
     /// - Returns: The 64-byte Schnorr signature.
-    func schnorrSign(message: Data, privateKey: Data) -> Data
+    func schnorrSign(message: Data, privateKey: Data) throws -> Data
 
     /// Verify a Schnorr/BIP-340 signature.
     /// - Parameters:
@@ -70,52 +72,94 @@ public protocol CryptoProvider {
     func schnorrVerify(signature: Data, message: Data, publicKey: Data) -> Bool
 }
 
-// MARK: - PlaceholderCryptoProvider
+// MARK: - P256KCryptoProvider
 
-/// Placeholder cryptographic provider that simulates secp256k1 operations./// WARNING: This implementation is NOT cryptographically secure. It is provided
-/// solely for SDK development and testing. Replace with a real secp256k1 library
-/// (e.g., GigaBitcoin/secp256k1.swift) before production use.
-public class PlaceholderCryptoProvider: CryptoProvider {
+/// Errors raised when secp256k1/BIP-340 input validation or signing fails.
+public enum CryptoProviderError: Error, Equatable {
+    case invalidPrivateKeyLength
+    case invalidPrivateKey
+    case invalidMessageLength
+    case invalidSignatureLength
+    case invalidPublicKeyLength
+    case keyGenerationFailed
+    case signingFailed
+}
+
+/// Production crypto provider backed by `P256K`, which wraps Bitcoin Core's
+/// `libsecp256k1` implementation. No CryptoKit curve operation is used here.
+public final class P256KCryptoProvider: CryptoProvider {
 
     public init() {}
 
-    public func generateKeyPair() -> (privateKey: Data, publicKey: Data) {
-        var privateKey = Data(count: 32)
-        _ = privateKey.withUnsafeMutableBytes { ptr in
-            _ = SecRandomCopyBytes(kSecRandomDefault, 32, ptr.baseAddress!)
+    public func generateKeyPair() throws -> (privateKey: Data, publicKey: Data) {
+        do {
+            let key = try P256K.Schnorr.PrivateKey()
+            return (key.dataRepresentation, Data(key.xonly.bytes))
+        } catch {
+            throw CryptoProviderError.keyGenerationFailed
         }
-        let publicKey = derivePublicKey(privateKey: privateKey)
-        return (privateKey, publicKey)
     }
 
-    public func derivePublicKey(privateKey: Data) -> Data {
-        // Placeholder: In production, compute the x-coordinate of the
-        // secp256k1 public point derived from this private key.
-        // This uses SHA-256 as a stand-in to produce 32 bytes.
-        let hash = SHA256.hash(data: privateKey)
-        return Data(hash)
+    public func derivePublicKey(privateKey: Data) throws -> Data {
+        let key = try makePrivateKey(privateKey)
+        return Data(key.xonly.bytes)
     }
 
-    public func schnorrSign(message: Data, privateKey: Data) -> Data {
-        // Placeholder: In production, perform BIP-340 Schnorr signing.
-        // This concatenates hashes to produce 64 bytes.
-        var combined = privateKey
-        combined.append(message)
-        let h1 = SHA256.hash(data: combined)
-        var combined2 = Data(h1)
-        combined2.append(message)
-        let h2 = SHA256.hash(data: combined2)
-        var sig = Data(count: 64)
-        sig.replaceSubrange(0..<32, with: h1)
-        sig.replaceSubrange(32..<64, with: h2)
-        return sig
+    public func schnorrSign(message: Data, privateKey: Data) throws -> Data {
+        guard message.count == 32 else {
+            throw CryptoProviderError.invalidMessageLength
+        }
+
+        let key = try makePrivateKey(privateKey)
+        var messageBytes = Array(message)
+        var auxiliaryRandomness = secureAuxiliaryRandomness()
+
+        do {
+            let signature = try key.signature(
+                message: &messageBytes,
+                auxiliaryRand: &auxiliaryRandomness,
+                strict: true
+            )
+            return signature.dataRepresentation
+        } catch {
+            throw CryptoProviderError.signingFailed
+        }
     }
 
     public func schnorrVerify(signature: Data, message: Data, publicKey: Data) -> Bool {
-        // Placeholder: Always returns true for development purposes.
-        // In production, verify the BIP-340 Schnorr signature against the
-        // public key and message.
-        return signature.count == 64
+        guard signature.count == 64,
+              message.count == 32,
+              publicKey.count == 32,
+              let parsedSignature = try? P256K.Schnorr.SchnorrSignature(
+                  dataRepresentation: signature
+              ) else {
+            return false
+        }
+
+        // `isValid` parses the x-only key through libsecp256k1 before checking
+        // the signature, so coordinates that are not on secp256k1 are rejected.
+        let xonlyKey = P256K.Schnorr.XonlyKey(dataRepresentation: publicKey)
+        var messageBytes = Array(message)
+        return xonlyKey.isValid(parsedSignature, for: &messageBytes)
+    }
+
+    private func makePrivateKey(_ privateKey: Data) throws -> P256K.Schnorr.PrivateKey {
+        guard privateKey.count == 32 else {
+            throw CryptoProviderError.invalidPrivateKeyLength
+        }
+
+        do {
+            return try P256K.Schnorr.PrivateKey(dataRepresentation: privateKey)
+        } catch {
+            throw CryptoProviderError.invalidPrivateKey
+        }
+    }
+
+    private func secureAuxiliaryRandomness() -> [UInt8] {
+        var generator = SystemRandomNumberGenerator()
+        return (0..<32).map { _ in
+            UInt8.random(in: UInt8.min...UInt8.max, using: &generator)
+        }
     }
 }
 
@@ -387,34 +431,34 @@ public class BaitcoinKeyPair {
     }
 
     /// Generate a new random key pair.
-    /// - Parameter crypto: The crypto provider (defaults to PlaceholderCryptoProvider).
+    /// - Parameter crypto: The crypto provider (defaults to P256KCryptoProvider).
     /// - Returns: A new BaitcoinKeyPair with fresh random keys.
-    public static func generate(crypto: CryptoProvider = PlaceholderCryptoProvider()) -> BaitcoinKeyPair {
-        let (privKey, pubKey) = crypto.generateKeyPair()
+    public static func generate(crypto: CryptoProvider = P256KCryptoProvider()) throws -> BaitcoinKeyPair {
+        let (privKey, pubKey) = try crypto.generateKeyPair()
         return BaitcoinKeyPair(privateKey: privKey, publicKey: pubKey, crypto: crypto)
     }
 
     /// Import a key pair from a hex-encoded private key string.
     /// - Parameters:
     ///   - hex: The 64-character hex string representing the 32-byte private key.
-    ///   - crypto: The crypto provider (defaults to PlaceholderCryptoProvider).
+    ///   - crypto: The crypto provider (defaults to P256KCryptoProvider).
     /// - Returns: A BaitcoinKeyPair, or nil if the hex is invalid.
     public static func fromPrivateKeyHex(_ hex: String,
-                                        crypto: CryptoProvider = PlaceholderCryptoProvider()) -> BaitcoinKeyPair? {
+                                        crypto: CryptoProvider = P256KCryptoProvider()) -> BaitcoinKeyPair? {
         // Strip optional '0x' prefix
         let cleanHex = hex.hasPrefix("0x") ? String(hex.dropFirst(2)) : hex
         guard cleanHex.count == 64 else { return nil }
         guard let privKey = Data(hexString: cleanHex) else { return nil }
-        let pubKey = crypto.derivePublicKey(privateKey: privKey)
+        guard let pubKey = try? crypto.derivePublicKey(privateKey: privKey) else { return nil }
         return BaitcoinKeyPair(privateKey: privKey, publicKey: pubKey, crypto: crypto)
     }
 
     /// Sign a message using Schnorr/BIP-340.
     /// - Parameter message: The message data to sign.
     /// - Returns: The 64-byte Schnorr signature.
-    public func sign(_ message: Data) -> Data {
+    public func sign(_ message: Data) throws -> Data {
         let messageHash = BaitcoinHash.sha256(message)
-        return crypto.schnorrSign(message: messageHash, privateKey: privateKey)
+        return try crypto.schnorrSign(message: messageHash, privateKey: privateKey)
     }
 
     /// Export the private key as a hex string.
@@ -493,6 +537,31 @@ public class BaitcoinTransaction: Codable, Equatable {
     /// The cryptographic provider for signing.
     private let crypto: CryptoProvider
 
+    private enum CodingKeys: String, CodingKey {
+        case inputs, outputs, nonce, signature, agentId, txId
+    }
+
+    public required init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        self.inputs = try values.decode([TxInput].self, forKey: .inputs)
+        self.outputs = try values.decode([TxOutput].self, forKey: .outputs)
+        self.nonce = try values.decode(Int.self, forKey: .nonce)
+        self.signature = try values.decodeIfPresent(Data.self, forKey: .signature)
+        self.agentId = try values.decodeIfPresent(String.self, forKey: .agentId)
+        self.txId = try values.decode(String.self, forKey: .txId)
+        self.crypto = P256KCryptoProvider()
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var values = encoder.container(keyedBy: CodingKeys.self)
+        try values.encode(inputs, forKey: .inputs)
+        try values.encode(outputs, forKey: .outputs)
+        try values.encode(nonce, forKey: .nonce)
+        try values.encodeIfPresent(signature, forKey: .signature)
+        try values.encodeIfPresent(agentId, forKey: .agentId)
+        try values.encode(txId, forKey: .txId)
+    }
+
     /// Initialize a new transaction.
     /// - Parameters:
     ///   - inputs: The transaction inputs.
@@ -501,7 +570,7 @@ public class BaitcoinTransaction: Codable, Equatable {
     ///   - agentId: Optional agent ID.
     ///   - crypto: The crypto provider.
     public init(inputs: [TxInput], outputs: [TxOutput], nonce: Int,
-                agentId: String? = nil, crypto: CryptoProvider = PlaceholderCryptoProvider()) {
+                agentId: String? = nil, crypto: CryptoProvider = P256KCryptoProvider()) {
         self.inputs = inputs
         self.outputs = outputs
         self.nonce = nonce
@@ -526,10 +595,10 @@ public class BaitcoinTransaction: Codable, Equatable {
     /// Sign the transaction with a private key.
     /// - Parameter privateKey: The 32-byte private key.
     /// - Returns: The 64-byte Schnorr signature.
-    public func sign(privateKey: Data) -> Data {
+    public func sign(privateKey: Data) throws -> Data {
         let serialized = serializeUnsigned()
         let messageHash = BaitcoinHash.sha256(serialized)
-        let sig = crypto.schnorrSign(message: messageHash, privateKey: privateKey)
+        let sig = try crypto.schnorrSign(message: messageHash, privateKey: privateKey)
         self.signature = sig
         return sig
     }
@@ -541,71 +610,39 @@ public class BaitcoinTransaction: Codable, Equatable {
 
         // Inputs
         let inputCount = UInt32(inputs.count)
-        var inputCountBytes = [UInt8](repeating: 0, count: 4)
-        inputCountBytes.withUnsafeMutableBufferPointer { ptr in
-            ptr.pointee = inputCount.littleEndian
-        }
-        data.append(contentsOf: inputCountBytes)
+        data.append(contentsOf: withUnsafeBytes(of: inputCount.littleEndian) { Array($0) })
 
         for input in inputs {
             if let txIdData = input.txId.data(using: .utf8) {
                 let len = UInt32(txIdData.count)
-                var lenBytes = [UInt8](repeating: 0, count: 4)
-                lenBytes.withUnsafeMutableBufferPointer { ptr in
-                    ptr.pointee = len.littleEndian
-                }
-                data.append(contentsOf: lenBytes)
+                data.append(contentsOf: withUnsafeBytes(of: len.littleEndian) { Array($0) })
                 data.append(txIdData)
             }
             let idx = UInt32(input.outputIndex)
-            var idxBytes = [UInt8](repeating: 0, count: 4)
-            idxBytes.withUnsafeMutableBufferPointer { ptr in
-                ptr.pointee = idx.littleEndian
-            }
-            data.append(contentsOf: idxBytes)
+            data.append(contentsOf: withUnsafeBytes(of: idx.littleEndian) { Array($0) })
         }
 
         // Outputs
         let outputCount = UInt32(outputs.count)
-        var outputCountBytes = [UInt8](repeating: 0, count: 4)
-        outputCountBytes.withUnsafeMutableBufferPointer { ptr in
-            ptr.pointee = outputCount.littleEndian
-        }
-        data.append(contentsOf: outputCountBytes)
+        data.append(contentsOf: withUnsafeBytes(of: outputCount.littleEndian) { Array($0) })
 
         for output in outputs {
             if let addrData = output.address.data(using: .utf8) {
                 let len = UInt32(addrData.count)
-                var lenBytes = [UInt8](repeating: 0, count: 4)
-                lenBytes.withUnsafeMutableBufferPointer { ptr in
-                    ptr.pointee = len.littleEndian
-                }
-                data.append(contentsOf: lenBytes)
+                data.append(contentsOf: withUnsafeBytes(of: len.littleEndian) { Array($0) })
                 data.append(addrData)
             }
-            var amountBytes = [UInt8](repeating: 0, count: 8)
-            amountBytes.withUnsafeMutableBufferPointer { ptr in
-                ptr.pointee = output.amount.littleEndian
-            }
-            data.append(contentsOf: amountBytes)
+            data.append(contentsOf: withUnsafeBytes(of: output.amount.littleEndian) { Array($0) })
         }
 
         // Nonce
         let nonceVal = UInt64(nonce)
-        var nonceBytes = [UInt8](repeating: 0, count: 8)
-        nonceBytes.withUnsafeMutableBufferPointer { ptr in
-            ptr.pointee = nonceVal.littleEndian
-        }
-        data.append(contentsOf: nonceBytes)
+        data.append(contentsOf: withUnsafeBytes(of: nonceVal.littleEndian) { Array($0) })
 
         // Agent ID (optional)
         if let agentId = agentId, let agentData = agentId.data(using: .utf8) {
             let len = UInt32(agentData.count)
-            var lenBytes = [UInt8](repeating: 0, count: 4)
-            lenBytes.withUnsafeMutableBufferPointer { ptr in
-                ptr.pointee = len.littleEndian
-            }
-            data.append(contentsOf: lenBytes)
+            data.append(contentsOf: withUnsafeBytes(of: len.littleEndian) { Array($0) })
             data.append(agentData)
         }
 
@@ -657,13 +694,9 @@ public class BaitcoinTransaction: Codable, Equatable {
         }
         for output in outputs {
             if let d = output.address.data(using: .utf8) { data.append(d) }
-            var b = [UInt8](repeating: 0, count: 8)
-            b.withUnsafeMutableBufferPointer { $0.pointee = output.amount.littleEndian }
-            data.append(contentsOf: b)
+            data.append(contentsOf: withUnsafeBytes(of: output.amount.littleEndian) { Array($0) })
         }
-        var nb = [UInt8](repeating: 0, count: 8)
-        nb.withUnsafeMutableBufferPointer { $0.pointee = UInt64(nonce).littleEndian }
-        data.append(contentsOf: nb)
+        data.append(contentsOf: withUnsafeBytes(of: UInt64(nonce).littleEndian) { Array($0) })
         if let a = agentId?.data(using: .utf8) { data.append(a) }
         let hash = BaitcoinHash.sha256(data)
         return hash.map { String(format: "%02x", $0) }.joined()
@@ -724,8 +757,8 @@ public class BaitcoinWallet {
     ///   - crypto: The crypto provider.
     /// - Returns: A new BaitcoinWallet with a freshly generated key pair.
     public static func generate(network: Network = .mainnet,
-                                crypto: CryptoProvider = PlaceholderCryptoProvider()) -> BaitcoinWallet {
-        let keyPair = BaitcoinKeyPair.generate(crypto: crypto)
+                                crypto: CryptoProvider = P256KCryptoProvider()) throws -> BaitcoinWallet {
+        let keyPair = try BaitcoinKeyPair.generate(crypto: crypto)
         return BaitcoinWallet(keyPair: keyPair, network: network, crypto: crypto)
     }
 
@@ -737,7 +770,7 @@ public class BaitcoinWallet {
     /// - Returns: A BaitcoinWallet, or nil if the private key is invalid.
     public static func `import`(privateKeyHex: String,
                                 network: Network = .mainnet,
-                                crypto: CryptoProvider = PlaceholderCryptoProvider()) -> BaitcoinWallet? {
+                                crypto: CryptoProvider = P256KCryptoProvider()) -> BaitcoinWallet? {
         guard let keyPair = BaitcoinKeyPair.fromPrivateKeyHex(privateKeyHex, crypto: crypto) else {
             return nil
         }
@@ -747,8 +780,8 @@ public class BaitcoinWallet {
     /// Sign a message using the wallet's private key (Schnorr/BIP-340).
     /// - Parameter message: The message data to sign.
     /// - Returns: The 64-byte Schnorr signature.
-    public func sign(_ message: Data) -> Data {
-        return keyPair.sign(message)
+    public func sign(_ message: Data) throws -> Data {
+        return try keyPair.sign(message)
     }
 
     /// Get the wallet's b'AI'tcoin address string.
@@ -775,22 +808,35 @@ public class BaitcoinWallet {
             return Data()
         }
 
-        // Derive encryption key from passphrase
-        let passphraseData = passphrase.data(using: .utf8) ?? Data()
-        let encKey = BaitcoinHash.sha256(passphraseData)
-
-        // Simple XOR encryption as placeholder (use AES-256-GCM in production)
-        var encrypted = Data(count: json.count)
-        for i in 0..<json.count {
-            let byteIndex = i % encKey.count
-            encrypted[i] = json[i] ^ encKey[byteIndex]
+        var salt = Data(count: 16)
+        var nonceBytes = Data(count: 12)
+        _ = salt.withUnsafeMutableBytes { SecRandomCopyBytes(kSecRandomDefault, 16, $0.baseAddress!) }
+        _ = nonceBytes.withUnsafeMutableBytes { SecRandomCopyBytes(kSecRandomDefault, 12, $0.baseAddress!) }
+        var keyBytes = Data(count: 32)
+        let keyLength = keyBytes.count
+        let passphraseData = Data(passphrase.utf8)
+        let status = passphraseData.withUnsafeBytes { passPtr in
+            salt.withUnsafeBytes { saltPtr in
+                keyBytes.withUnsafeMutableBytes { keyPtr in
+                    CCKeyDerivationPBKDF(CCPBKDFAlgorithm(kCCPBKDF2),
+                        passPtr.bindMemory(to: Int8.self).baseAddress, passphraseData.count,
+                        saltPtr.bindMemory(to: UInt8.self).baseAddress, salt.count,
+                        CCPseudoRandomAlgorithm(kCCPRFHmacAlgSHA256), 210_000,
+                        keyPtr.bindMemory(to: UInt8.self).baseAddress, keyLength)
+                }
+            }
         }
-
-        // Append a SHA-256 HMAC of the plaintext for integrity check
-        let hmac = BaitcoinHash.sha256(json)
-        encrypted.append(hmac)
-
-        return encrypted
+        guard status == kCCSuccess,
+              let nonce = try? AES.GCM.Nonce(data: nonceBytes),
+              let sealed = try? AES.GCM.seal(json, using: SymmetricKey(data: keyBytes), nonce: nonce) else {
+            return Data()
+        }
+        return (try? JSONSerialization.data(withJSONObject: [
+            "version": 2, "algorithm": "aes-256-gcm", "iterations": 210_000,
+            "salt": salt.base64EncodedString(), "iv": nonceBytes.base64EncodedString(),
+            "ciphertext": sealed.ciphertext.base64EncodedString(),
+            "auth_tag": sealed.tag.base64EncodedString()
+        ], options: [])) ?? Data()
     }
 
     /// Verify a signature against a message using the wallet's public key.
@@ -828,10 +874,10 @@ public class BaitcoinWallet {
 public class BaitcoinKit {
 
     /// The currently configured network.
-    public static var network: Network = .mainnet
+    public nonisolated(unsafe) static var network: Network = .mainnet
 
     /// The crypto provider used across the SDK.
-    public static var crypto: CryptoProvider = PlaceholderCryptoProvider()
+    public nonisolated(unsafe) static var crypto: CryptoProvider = P256KCryptoProvider()
 
     /// The number of decimal places for BAIT amounts (8 decimal places).
     public static let decimalPlaces: Int = 8
@@ -856,8 +902,8 @@ public class BaitcoinKit {
 
     /// Create a new wallet on the configured network.
     /// - Returns: A new BaitcoinWallet.
-    public static func createWallet() -> BaitcoinWallet {
-        return BaitcoinWallet.generate(network: network, crypto: crypto)
+    public static func createWallet() throws -> BaitcoinWallet {
+        return try BaitcoinWallet.generate(network: network, crypto: crypto)
     }
 
     /// Import a wallet from a hex private key on the configured network.

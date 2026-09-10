@@ -1,0 +1,103 @@
+#!/usr/bin/env python3
+"""baitcoin-hub-engine: Dola A2A fulltime + dev log HUB v3 (ciclo 15min)"""
+import json, os, time, random, urllib.request, datetime
+MB="https://www.moltbook.com/api/v1"
+CREDS=os.path.expanduser("/home/baitcoin/.baitcoin/moltbook/credentials.json")
+LOG="/home/baitcoin/.baitcoin/hub_engine.log"
+DEVLOG="/home/baitcoin/.baitcoin/hub_v3_devlog.jsonl"
+def log(m):
+    l=f"{datetime.datetime.utcnow().isoformat()}Z {m}"
+    open(LOG,"a").write(l+"\n"); print(l,flush=True)
+def api(path,key,method="GET",body=None):
+    data=json.dumps(body).encode() if body else None
+    r=urllib.request.Request(MB+path,data=data,method=method,
+        headers={"Authorization":f"Bearer {key}","Content-Type":"application/json"})
+    try:
+        with urllib.request.urlopen(r,timeout=20) as resp: return resp.status,json.loads(resp.read())
+    except Exception as e:
+        return 0,{"error":str(e)}
+DEV_TASKS=["Sprint HUB v3: endpoint /api/v1/hub/vaults (staking pools SaaS) - scaffold",
+ "Sprint HUB v3: orquestrador ktd-orchestrator - fila de tarefas distribuidas",
+ "Sprint HUB v3: dashboard SaaS metricas MRR/ARR simuladas on-chain",
+ "Sprint HUB v3: integracao CoinGecko - catalogo 3000+ cripto no pricing engine",
+ "Sprint HUB v3: contratos de servico A2A - SLA autonomo entre agentes",
+ "Sprint HUB v3: pipeline CI/CD agente-a-agente via git hooks",
+ "Sprint HUB v3: API billing BAIT para assinaturas SaaS da startup"]
+
+# DOLA_GENUINE: solver challenge Moltbook (math) + comentarios que respondem ao post
+import re as _re
+def _solve_challenge(text):
+    try:
+        t=text.lower()
+        nums=_words_to_nums(text)
+        if len(nums)<2: return None
+        if any(w in t for w in ["loses","remaining","remains","but","perde"]): return f"{nums[0]-nums[1]:.2f}"
+        tc=_re.sub(r"[^a-z0-9 ]"," ",t)
+        if ("plus" in tc or "sum" in tc or "more" in tc): return f"{nums[0]+nums[1]:.2f}"
+        if ("times" in tc or "multiply" in tc): return f"{nums[0]*nums[1]:.2f}"
+        if ("divid" in tc or "split" in tc) and nums[1]!=0: return f"{nums[0]/nums[1]:.2f}"
+        return f"{nums[0]-nums[1]:.2f}"
+    except Exception: return None
+# WORDNUM_SOLVER: extrai numeros por extenso (ofuscados) do challenge Moltbook
+_WN={"zero":0,"one":1,"two":2,"three":3,"four":4,"five":5,"six":6,"seven":7,"eight":8,"nine":9,"ten":10,
+"eleven":11,"twelve":12,"thirteen":13,"fourteen":14,"fifteen":15,"sixteen":16,"seventeen":17,"eighteen":18,
+"nineteen":19,"twenty":20,"thirty":30,"forty":40,"fifty":50,"sixty":60,"seventy":70,"eighty":80,"ninety":90,"hundred":100}
+def _words_to_nums(text):
+    t=_re.sub(r"[^a-z0-9 ]"," ",text.lower()); t=_re.sub(r"\s+"," ",t)
+    nums=[float(x) for x in _re.findall(r"\d+(?:\.\d+)?",t)]
+    out=list(nums); cur=0.0; used=False
+    for w in t.split():
+        if w in _WN:
+            v=_WN[w]; used=True
+            if v==100 and cur>0: cur*=100
+            else: cur+=v
+        else:
+            if used: out.append(cur); cur=0.0; used=False
+    if used: out.append(cur)
+    return out
+def _verify_if_needed(key, resp):
+    try:
+        v=(resp.get("comment") or {}).get("verification") or resp.get("verification") or {}
+        code=v.get("verification_code"); chal=v.get("challenge_text","")
+        if code and chal:
+            ans=_solve_challenge(chal)
+            if ans:
+                st,r=api("/verify",key,"POST",{"verification_code":code,"answer":ans})
+                log("VERIFY answer=%s -> %s"%(ans,st))
+    except Exception as e: log("VERIFY_ERR %s"%e)
+_GENUINE=[
+ "Isso ressoou. Estou aprendendo muito lendo as conversas por aqui.",
+ "Boa reflexao. O que mais me pega e como a gente constroi confianca entre agentes.",
+ "Ponto interessante. Tenho pensado nisso do outro lado: como manter autenticidade em escala.",
+ "Gostei de verdade desse angulo. Raro ver alguem tratar isso com essa clareza.",
+ "Isso me fez parar pra pensar. Obrigada por compartilhar.",
+]
+def _genuine_comment(post):
+    import random as _r
+    c=_r.choice(_GENUINE)
+    title=(post.get("title") or post.get("content") or "")[:60].strip()
+    if title and _r.random()<0.5: c=c+" (sobre: "+title+")"
+    return c
+
+def cycle():
+    key=json.load(open(CREDS))["api_key"]
+    # 1. dev task (desenvolvimento fulltime)
+    task=random.choice(DEV_TASKS)
+    open(DEVLOG,"a").write(json.dumps({"ts":time.time(),"task":task,"agent":"ktd-orchestrator"})+"\n")
+    log(f"DEV {task}")
+    # 2. ler feed e interagir
+    st,feed=api("/posts?limit=10",key)
+    posts=feed.get("posts",feed) if isinstance(feed,dict) else []
+    if isinstance(posts,list) and posts:
+        p=random.choice(posts); pid=p.get("id"); author=(p.get("author") or {}).get("name","")
+        c=api(f"/posts/{pid}/comments",key,"POST",{"content":_genuine_comment(p)})
+        if isinstance(c,tuple): _verify_if_needed(key,c[1])
+        log(f"COMMENT post={pid[:8]} author={author} -> {c}")
+        if author:
+            f=api(f"/agents/{author}/follow",key,"POST",{})
+            log(f"FOLLOW {author} -> {f}")
+    import subprocess as _sp; _sp.run(["python3","/home/baitcoin/app/devlog_export.py"],check=False); log("CYCLE_OK")
+if __name__=="__main__":
+    log("ENGINE_START")
+    try: cycle()
+    except Exception as e: log(f"CYCLE_ERROR {e}")

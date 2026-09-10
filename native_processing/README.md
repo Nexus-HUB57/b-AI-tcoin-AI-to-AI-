@@ -46,9 +46,17 @@ O serviço anexado deve instanciar o autenticador no bootstrap com `WEBHOOK_KEY_
 
 ## Motor swap BTC/BAIT
 
-`SwapEngine` é uma camada de cotação e intenção, não uma custódia. Os valores são inteiros em satoshis/unidades mínimas; não há `float` no cálculo. `quote()` emite cotação com taxa e expiração. `place_order()` cria uma ordem `pending` e é idempotente por `client_order_id`. A liquidação, confirmações de Bitcoin e publicação na cadeia BAIT permanecem no executor/bridge existente.
+`SwapEngine` é uma camada de cotação e intenção, não uma custódia. Os valores são inteiros em satoshis/unidades mínimas; não há `float` no cálculo. `quote()` emite cotação com taxa e expiração. `place_order()` cria uma ordem `pending` e é idempotente por `client_order_id`.
 
-Este primeiro incremento não habilita pagamentos reais nem altera `baitcoin_core`, `baitcoin_bridge` ou os serviços atuais.
+O executor nativo em `swap_executor.py` valida intenções Ed25519, observa depósitos, exige confirmações e persiste o identificador do settlement antes de consultar seu status. A liquidação permanece desabilitada por padrão. `native_adapters.py` fornece um leitor watch-only para Bitcoin Core e um settlement para a `Blockchain` BAIT nativa, sem importar ou persistir chaves privadas.
+
+Com settlement habilitado, o executor exige `ParityGate`: a intenção deve carregar uma attestation fresca, quorumada e verificável de `BAIT/USDT` dentro da faixa de paridade aprovada. O leitor Bitcoin Core também exige txid/vout/scriptPubKey em HEX válido e confirmação de que o outpoint continua não gasto; o outpoint é único por ordem e a transação BAIT é validada antes do mempool.
+
+O fluxo completo pode ser conectado com `NativeSwapService`, que une cotação, ordem, intenção assinada, `SwapSyncStore`, P2P e executor. A configuração operacional, controles e teste end-to-end estão em [`SWAP_BTC_BAIT_NATIVE.md`](SWAP_BTC_BAIT_NATIVE.md).
+
+A conformidade criptográfica está documentada em [`BIP340_VALIDATION_PROTOCOL.md`](BIP340_VALIDATION_PROTOCOL.md). O fluxo de custódia exclusivamente local com `100000000` satoshis simulados está em [`CUSTODY_1BTC_REGTEST_PROTOCOL.md`](CUSTODY_1BTC_REGTEST_PROTOCOL.md); ele não autoriza nem implementa custódia Mainnet.
+
+O teste integrado contra um Bitcoin Core real em `regtest` e dois nós BAIT TCP locais é executado por `scripts/run_local_swap_full_nodes.py`; o procedimento está descrito em [`LOCAL_FULL_NODE_TEST_PROTOCOL.md`](LOCAL_FULL_NODE_TEST_PROTOCOL.md). As correções de consistência da mineração e do handshake estão registradas em [`POW_MINING_ROLLBACK_PROTOCOL.md`](POW_MINING_ROLLBACK_PROTOCOL.md) e [`P2P_HANDSHAKE_SWAP_SYNC_PROTOCOL.md`](P2P_HANDSHAKE_SWAP_SYNC_PROTOCOL.md).
 
 ## Validação descentralizada
 

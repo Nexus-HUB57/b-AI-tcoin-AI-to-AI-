@@ -145,6 +145,12 @@ class FeeMarket:
         for entry in self.entries:
             if entry.tx.tx_id == tx.tx_id:
                 return False, "Transaction already in mempool"
+            existing_inputs = {
+                (item.prev_tx_id, item.prev_output_index)
+                for item in entry.tx.inputs
+            }
+            if any((item.prev_tx_id, item.prev_output_index) in existing_inputs for item in tx.inputs):
+                return False, "Conflicting input already in mempool"
 
         entry = MempoolEntry(tx, fee_rate)
         self.entries.append(entry)

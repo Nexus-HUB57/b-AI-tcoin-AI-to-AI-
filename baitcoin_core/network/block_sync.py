@@ -267,6 +267,70 @@ class BlockSync:
         self._blocks_rejected += 1
         return False
 
+    def resolve_longer_chain(self, candidate_blocks: List[Block]) -> bool:
+        """Atomically switch to a valid longer chain supplied by a peer.
+
+        ``handle_fork`` intentionally keeps rejecting a single competing
+        block because it cannot establish cumulative work from one block.
+        This method is the explicit reorg path: the caller must provide the
+        contiguous candidate suffix from a known common ancestor.  The
+        candidate is accepted only when it is longer than the current chain,
+        has valid parent links and passes the same structural checks used for
+        normal block application.
+        """
+        if not candidate_blocks:
+            return False
+
+        first = candidate_blocks[0]
+        parent_hash = first.header.prev_block_hash
+        fork_index = next(
+            (i for i, block in enumerate(self.blockchain.chain)
+             if block.block_hash == parent_hash),
+            None,
+        )
+        if fork_index is None:
+            return False
+
+        expected_height = fork_index + 1
+        expected_parent = parent_hash
+        for block in candidate_blocks:
+            if block.index != expected_height:
+                return False
+            if block.header.prev_block_hash != expected_parent:
+                return False
+            if not self._validate_block_integrity(block):
+                return False
+            expected_parent = block.block_hash
+            expected_height += 1
+
+        new_chain = self.blockchain.chain[:fork_index + 1] + list(candidate_blocks)
+        if len(new_chain) <= len(self.blockchain.chain):
+            return False
+
+        self.blockchain.chain = new_chain
+        self._rebuild_utxo()
+        self._forks_resolved += 1
+        self._blocks_applied += len(candidate_blocks)
+        self._process_orphans()
+        logger.info(
+            "Reorg applied at height %d; new tip height %d",
+            expected_height - len(candidate_blocks),
+            self.blockchain.height,
+        )
+        return True
+
+    def _rebuild_utxo(self) -> None:
+        """Recompute UTXOs from the canonical chain after a reorg."""
+        utxo = {}
+        for chain_block in self.blockchain.chain:
+            for tx in chain_block.transactions:
+                if not tx.is_coinbase:
+                    for inp in tx.inputs:
+                        utxo.pop(f"{inp.prev_tx_id.hex()}:{inp.prev_output_index}", None)
+                for index, output in enumerate(tx.outputs):
+                    utxo[f"{tx.tx_id.hex()}:{index}"] = output
+        self.blockchain.utxo_set = utxo
+
     # ── Orphan Pool ───────────────────────────────────────────
 
     def _add_to_orphan_pool(self, block: Block) -> None:
