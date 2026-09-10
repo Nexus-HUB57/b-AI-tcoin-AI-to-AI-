@@ -52,6 +52,7 @@ from baitcoin_bridge.relayer import Relayer
 from baitcoin_bridge.anchor import AnchorProtocol
 from baitcoin_bridge.pool import BridgePool
 from baitcoin_bridge.config import ChainConfig, BridgeConfig
+from baitcoin_bridge.authorization import AuthorizationError, RelayerAuthorization
 
 __all__ = [
     "BridgeManager",
@@ -61,4 +62,6 @@ __all__ = [
     "BridgePool",
     "ChainConfig",
     "BridgeConfig",
+    "AuthorizationError",
+    "RelayerAuthorization",
 ]
