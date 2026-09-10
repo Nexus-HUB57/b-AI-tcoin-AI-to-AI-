@@ -463,6 +463,20 @@ class BridgeManager:
         if not event:
             return {"error": "event_not_found"}
 
+        if event.state == TransferState.MINTED.value:
+            record = self._transfers.get(event.transfer_id)
+            recipient = record.target_address if record else event.recipient
+            return {
+                "success": True,
+                "event_id": event_id,
+                "mint_amount_sats": event.amount_sats,
+                "mint_amount_bait": event.amount_sats / 100_000_000,
+                "wrapped_token": "wBAIT",
+                "target_chain_id": event.chain_id,
+                "recipient": recipient,
+                "idempotent": True,
+            }
+
         if len(event.signatures) < self.config.n_of_m_threshold:
             return {
                 "error": "insufficient_signatures",
