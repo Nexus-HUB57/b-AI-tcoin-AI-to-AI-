@@ -537,6 +537,31 @@ public class BaitcoinTransaction: Codable, Equatable {
     /// The cryptographic provider for signing.
     private let crypto: CryptoProvider
 
+    private enum CodingKeys: String, CodingKey {
+        case inputs, outputs, nonce, signature, agentId, txId
+    }
+
+    public required init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        self.inputs = try values.decode([TxInput].self, forKey: .inputs)
+        self.outputs = try values.decode([TxOutput].self, forKey: .outputs)
+        self.nonce = try values.decode(Int.self, forKey: .nonce)
+        self.signature = try values.decodeIfPresent(Data.self, forKey: .signature)
+        self.agentId = try values.decodeIfPresent(String.self, forKey: .agentId)
+        self.txId = try values.decode(String.self, forKey: .txId)
+        self.crypto = P256KCryptoProvider()
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var values = encoder.container(keyedBy: CodingKeys.self)
+        try values.encode(inputs, forKey: .inputs)
+        try values.encode(outputs, forKey: .outputs)
+        try values.encode(nonce, forKey: .nonce)
+        try values.encodeIfPresent(signature, forKey: .signature)
+        try values.encodeIfPresent(agentId, forKey: .agentId)
+        try values.encode(txId, forKey: .txId)
+    }
+
     /// Initialize a new transaction.
     /// - Parameters:
     ///   - inputs: The transaction inputs.
@@ -848,10 +873,10 @@ public class BaitcoinWallet {
 public class BaitcoinKit {
 
     /// The currently configured network.
-    public static var network: Network = .mainnet
+    public nonisolated(unsafe) static var network: Network = .mainnet
 
     /// The crypto provider used across the SDK.
-    public static var crypto: CryptoProvider = P256KCryptoProvider()
+    public nonisolated(unsafe) static var crypto: CryptoProvider = P256KCryptoProvider()
 
     /// The number of decimal places for BAIT amounts (8 decimal places).
     public static let decimalPlaces: Int = 8
