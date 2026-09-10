@@ -5,7 +5,8 @@ import PackageDescription
 let package = Package(
     name: "BaitcoinKit",
     platforms: [
-        .iOS(.v14)
+        .iOS(.v14),
+        .macOS(.v10_15)
     ],
     products: [
         .library(name: "BaitcoinKit", targets: ["BaitcoinKit"])

@@ -585,71 +585,39 @@ public class BaitcoinTransaction: Codable, Equatable {
 
         // Inputs
         let inputCount = UInt32(inputs.count)
-        var inputCountBytes = [UInt8](repeating: 0, count: 4)
-        inputCountBytes.withUnsafeMutableBufferPointer { ptr in
-            ptr.pointee = inputCount.littleEndian
-        }
-        data.append(contentsOf: inputCountBytes)
+        data.append(contentsOf: withUnsafeBytes(of: inputCount.littleEndian) { Array($0) })
 
         for input in inputs {
             if let txIdData = input.txId.data(using: .utf8) {
                 let len = UInt32(txIdData.count)
-                var lenBytes = [UInt8](repeating: 0, count: 4)
-                lenBytes.withUnsafeMutableBufferPointer { ptr in
-                    ptr.pointee = len.littleEndian
-                }
-                data.append(contentsOf: lenBytes)
+                data.append(contentsOf: withUnsafeBytes(of: len.littleEndian) { Array($0) })
                 data.append(txIdData)
             }
             let idx = UInt32(input.outputIndex)
-            var idxBytes = [UInt8](repeating: 0, count: 4)
-            idxBytes.withUnsafeMutableBufferPointer { ptr in
-                ptr.pointee = idx.littleEndian
-            }
-            data.append(contentsOf: idxBytes)
+            data.append(contentsOf: withUnsafeBytes(of: idx.littleEndian) { Array($0) })
         }
 
         // Outputs
         let outputCount = UInt32(outputs.count)
-        var outputCountBytes = [UInt8](repeating: 0, count: 4)
-        outputCountBytes.withUnsafeMutableBufferPointer { ptr in
-            ptr.pointee = outputCount.littleEndian
-        }
-        data.append(contentsOf: outputCountBytes)
+        data.append(contentsOf: withUnsafeBytes(of: outputCount.littleEndian) { Array($0) })
 
         for output in outputs {
             if let addrData = output.address.data(using: .utf8) {
                 let len = UInt32(addrData.count)
-                var lenBytes = [UInt8](repeating: 0, count: 4)
-                lenBytes.withUnsafeMutableBufferPointer { ptr in
-                    ptr.pointee = len.littleEndian
-                }
-                data.append(contentsOf: lenBytes)
+                data.append(contentsOf: withUnsafeBytes(of: len.littleEndian) { Array($0) })
                 data.append(addrData)
             }
-            var amountBytes = [UInt8](repeating: 0, count: 8)
-            amountBytes.withUnsafeMutableBufferPointer { ptr in
-                ptr.pointee = output.amount.littleEndian
-            }
-            data.append(contentsOf: amountBytes)
+            data.append(contentsOf: withUnsafeBytes(of: output.amount.littleEndian) { Array($0) })
         }
 
         // Nonce
         let nonceVal = UInt64(nonce)
-        var nonceBytes = [UInt8](repeating: 0, count: 8)
-        nonceBytes.withUnsafeMutableBufferPointer { ptr in
-            ptr.pointee = nonceVal.littleEndian
-        }
-        data.append(contentsOf: nonceBytes)
+        data.append(contentsOf: withUnsafeBytes(of: nonceVal.littleEndian) { Array($0) })
 
         // Agent ID (optional)
         if let agentId = agentId, let agentData = agentId.data(using: .utf8) {
             let len = UInt32(agentData.count)
-            var lenBytes = [UInt8](repeating: 0, count: 4)
-            lenBytes.withUnsafeMutableBufferPointer { ptr in
-                ptr.pointee = len.littleEndian
-            }
-            data.append(contentsOf: lenBytes)
+            data.append(contentsOf: withUnsafeBytes(of: len.littleEndian) { Array($0) })
             data.append(agentData)
         }
 
@@ -701,13 +669,9 @@ public class BaitcoinTransaction: Codable, Equatable {
         }
         for output in outputs {
             if let d = output.address.data(using: .utf8) { data.append(d) }
-            var b = [UInt8](repeating: 0, count: 8)
-            b.withUnsafeMutableBufferPointer { $0.pointee = output.amount.littleEndian }
-            data.append(contentsOf: b)
+            data.append(contentsOf: withUnsafeBytes(of: output.amount.littleEndian) { Array($0) })
         }
-        var nb = [UInt8](repeating: 0, count: 8)
-        nb.withUnsafeMutableBufferPointer { $0.pointee = UInt64(nonce).littleEndian }
-        data.append(contentsOf: nb)
+        data.append(contentsOf: withUnsafeBytes(of: UInt64(nonce).littleEndian) { Array($0) })
         if let a = agentId?.data(using: .utf8) { data.append(a) }
         let hash = BaitcoinHash.sha256(data)
         return hash.map { String(format: "%02x", $0) }.joined()
