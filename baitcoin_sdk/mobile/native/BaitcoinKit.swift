@@ -813,6 +813,7 @@ public class BaitcoinWallet {
         _ = salt.withUnsafeMutableBytes { SecRandomCopyBytes(kSecRandomDefault, 16, $0.baseAddress!) }
         _ = nonceBytes.withUnsafeMutableBytes { SecRandomCopyBytes(kSecRandomDefault, 12, $0.baseAddress!) }
         var keyBytes = Data(count: 32)
+        let keyLength = keyBytes.count
         let passphraseData = Data(passphrase.utf8)
         let status = passphraseData.withUnsafeBytes { passPtr in
             salt.withUnsafeBytes { saltPtr in
@@ -821,7 +822,7 @@ public class BaitcoinWallet {
                         passPtr.bindMemory(to: Int8.self).baseAddress, passphraseData.count,
                         saltPtr.bindMemory(to: UInt8.self).baseAddress, salt.count,
                         CCPseudoRandomAlgorithm(kCCPRFHmacAlgSHA256), 210_000,
-                        keyPtr.bindMemory(to: UInt8.self).baseAddress, keyBytes.count)
+                        keyPtr.bindMemory(to: UInt8.self).baseAddress, keyLength)
                 }
             }
         }
