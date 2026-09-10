@@ -47,6 +47,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 
 from baitcoin_bridge.config import BridgeConfig, ChainConfig, ETHEREUM_MAINNET, SOLANA_MAINNET
+from baitcoin_bridge.authorization import AuthorizationError, RelayerAuthorization
 
 
 class TransferState(Enum):
@@ -166,8 +167,11 @@ class BridgeManager:
         Bridge configuration
     """
 
-    def __init__(self, config: BridgeConfig = None):
+    def __init__(self, config: BridgeConfig = None, relayer_authorization: RelayerAuthorization = None):
         self.config = config or BridgeConfig()
+        if relayer_authorization is not None and not isinstance(relayer_authorization, RelayerAuthorization):
+            raise TypeError("relayer_authorization must be a RelayerAuthorization")
+        self._relayer_authorization = relayer_authorization
         self._transfers: Dict[str, TransferRecord] = {}
         self._events: Dict[str, BridgeEvent] = {}
         self._merkle_leaves: List[str] = []
@@ -414,9 +418,30 @@ class BridgeManager:
         ):
             return {"error": "invalid_state", "state": event.state}
 
-        # Add signature if provided
+        # Verify each signature cryptographically before any event mutation.
+        if self._relayer_authorization is not None:
+            if not signer_id or not signature:
+                return {"error": "relayer_signature_required"}
+            if list(proof) != list(event.merkle_proof):
+                return {"error": "proof_mismatch"}
+            if any(item.startswith(f"{signer_id}:") for item in event.signatures):
+                return {"error": "duplicate_relayer"}
+            try:
+                self._relayer_authorization.verify_one(
+                    event_id=event.event_id,
+                    transfer_id=event.transfer_id,
+                    chain_id=event.chain_id,
+                    amount_sats=event.amount_sats,
+                    proof=proof,
+                    signer_id=signer_id,
+                    signature_b64=signature,
+                )
+            except AuthorizationError as exc:
+                return {"error": "invalid_relayer_signature", "detail": str(exc)}
+
+        # Add signature only after cryptographic validation succeeds.
         if signer_id and signature:
-            if signer_id not in event.signatures:
+            if not any(item.startswith(f"{signer_id}:") for item in event.signatures):
                 event.signatures.append(f"{signer_id}:{signature}")
 
         # Check if enough signatures collected

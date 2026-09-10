@@ -13,6 +13,7 @@ import time
 from typing import Any, Iterable, Mapping, Optional
 
 from baitcoin_bridge.manager import BridgeManager
+from baitcoin_bridge.authorization import AuthorizationError, RelayerAuthorization
 from .swap_protocol import IntentError, SwapIntent
 
 
@@ -23,8 +24,11 @@ class BridgeHandoffError(ValueError):
 class SwapBridgeHandoff:
     """Adapter between a signed SwapIntent and BridgeManager lock/mint APIs."""
 
-    def __init__(self, bridge: BridgeManager, db_path: str = ":memory:") -> None:
+    def __init__(self, bridge: BridgeManager, db_path: str = ":memory:", authorizer: RelayerAuthorization | None = None) -> None:
         self.bridge = bridge
+        if authorizer is not None and not isinstance(authorizer, RelayerAuthorization):
+            raise BridgeHandoffError("authorizer must be a RelayerAuthorization")
+        self.authorizer = authorizer
         self.db = sqlite3.connect(db_path, check_same_thread=False, timeout=30.0)
         self.db.execute("PRAGMA journal_mode=WAL")
         self.db.execute("PRAGMA synchronous=FULL")
@@ -120,6 +124,14 @@ class SwapBridgeHandoff:
                 return json.loads(row[7])
             latest = None
             proof = list(proof)
+            signatures = list(signatures)
+            if self.authorizer is not None:
+                try:
+                    self.authorizer.verify(
+                        row[1], row[0], row[2], row[4], proof, signatures
+                    )
+                except AuthorizationError as exc:
+                    raise BridgeHandoffError(f"proof authorization failed: {exc}") from exc
             for signer_id, signature in signatures:
                 submitted = self.bridge.submit_proof(row[1], proof, signer_id, signature)
                 if submitted.get("error"):
