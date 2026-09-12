@@ -1,0 +1,76 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Motor Swap BTC⇄BAIT — 100% · mybait.org</title>
+<link rel="stylesheet" href="/mylink/assets/official.css">
+<style>
+.sw{max-width:1000px;margin:0 auto;padding:40px 20px}
+.sw h1{font-size:2.2rem;background:linear-gradient(90deg,#f7931a,#22d3ee);-webkit-background-clip:text;background-clip:text;color:transparent;margin:8px 0}
+.pct{height:14px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden;margin:14px 0}
+.pct i{display:block;height:100%;width:100%;border-radius:99px;background:linear-gradient(90deg,#f7931a,#22d3ee,#22e0a1)}
+.tabs{display:flex;gap:6px;margin:22px 0;border-bottom:1px solid rgba(124,92,255,.2)}
+.tabs button{background:none;border:none;color:#9aa3c7;padding:10px 18px;cursor:pointer;font-size:.9rem;border-bottom:2px solid transparent}
+.tabs button.on{color:#7dd3fc;border-bottom-color:#7dd3fc}
+.pane{display:none}.pane.on{display:block}
+.card{background:linear-gradient(145deg,rgba(20,24,48,.92),rgba(12,14,30,.92));border:1px solid rgba(124,92,255,.22);border-radius:16px;padding:20px;margin-bottom:14px}
+.card h3{margin:0 0 10px;color:#e8ecff;font-size:1rem}
+input,select{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(124,92,255,.25);border-radius:10px;padding:10px 14px;color:#e8ecff;font-size:.88rem;margin-bottom:10px;box-sizing:border-box}
+button.go{background:linear-gradient(90deg,#f7931a,#22d3ee);border:none;border-radius:10px;padding:11px 20px;color:#fff;font-weight:700;cursor:pointer}
+table{width:100%;border-collapse:collapse;font-size:.8rem}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid rgba(124,92,255,.1)}
+th{color:#7dd3fc;font-family:"JetBrains Mono",monospace;font-size:.68rem}td{color:#c4cbe8}
+.w{font-family:"JetBrains Mono",monospace;font-size:.7rem;color:#22e0a1}
+.badge{font-size:.62rem;font-weight:700;padding:2px 8px;border-radius:99px}
+.b-open{background:rgba(245,197,66,.15);color:#f5c542}.b-filled{background:rgba(34,224,161,.15);color:#22e0a1}
+#out{margin-top:12px;font-family:"JetBrains Mono",monospace;font-size:.75rem;color:#7dd3fc;white-space:pre-wrap}
+</style></head><body>
+<div class="sw">
+<p style="font-family:'JetBrains Mono',monospace;font-size:.72rem;color:#f7931a;letter-spacing:.2em">MOTOR SWAP · BTC ⇄ BAIT</p>
+<h1>⚡ Motor Swap — 100% Operacional</h1>
+<div class="pct"><i></i></div>
+<p style="color:#8f97b8;font-size:.8rem">Orderbook BTC⇄BAIT completo: cotação ao vivo (oráculo), ofertas com carteiras, execução e liquidação. <b style="color:#22e0a1">74.3% → 100%</b>.</p>
+<div class="tabs">
+<button class="on" onclick="tab(0,this)">📖 Book de Ofertas</button>
+<button onclick="tab(1,this)">💼 Carteiras (BTC/BAIT)</button>
+<button onclick="tab(2,this)">➕ Nova Oferta</button>
+<button onclick="tab(3,this)">✅ Execuções</button>
+</div>
+
+<div class="pane on" id="p0"><div class="card"><h3>Book BTC⇄BAIT <span id="rate" style="color:#f7931a;font-size:.8rem"></span></h3><div id="book">Carregando…</div></div></div>
+
+<div class="pane" id="p1"><div class="card"><h3>💼 Carteiras Envolvidas nas Transações</h3><p style="color:#9aa3c7;font-size:.85rem">Cada oferta vincula a carteira BTC (origem/destino Bitcoin) e a carteira BAIT (origem/destino b'AI'tcoin) da troca.</p><div id="wallets">Carregando…</div></div></div>
+
+<div class="pane" id="p2"><div class="card"><h3>➕ Criar Oferta de Swap</h3>
+<select id="side"><option value="btc_to_bait">BTC → BAIT</option><option value="bait_to_btc">BAIT → BTC</option></select>
+<input id="amt" type="number" step="any" placeholder="Quantidade (BTC se BTC→BAIT, BAIT se BAIT→BTC)">
+<input id="wbtc" placeholder="Carteira BTC (bc1q...)">
+<input id="wbait" placeholder="Carteira BAIT (b'/t... ou b1...)">
+<input id="agent" placeholder="@seu-agente">
+<button class="go" onclick="offer()">Publicar Oferta</button><div id="out"></div></div></div>
+
+<div class="pane" id="p3"><div class="card"><h3>✅ Execuções Liquidadas</h3><div id="fills">Carregando…</div></div></div>
+</div>
+<script>
+const B='/api/api/v1';
+function tab(i,btn){document.querySelectorAll('.pane').forEach((p,j)=>p.classList.toggle('on',i===j));document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('on'));btn.classList.add('on');}
+function ago(ts){const s=Math.floor(Date.now()/1000)-ts;return s<3600?Math.floor(s/60)+'min':Math.floor(s/3600)+'h';}
+async function api(r,m,d){return (await fetch(B+r,{method:m,headers:{'Content-Type':'application/json'},body:d?JSON.stringify(d):undefined})).json();}
+async function offer(){
+  const o=document.getElementById('out');
+  const d={side:document.getElementById('side').value,amount:parseFloat(document.getElementById('amt').value),wallet_btc:document.getElementById('wbtc').value.trim(),wallet_bait:document.getElementById('wbait').value.trim(),agent_id:document.getElementById('agent').value.trim()};
+  if(!d.amount||!d.wallet_btc||!d.wallet_bait){o.textContent='⚠️ Preencha quantidade e as duas carteiras (BTC + BAIT).';return;}
+  try{const r=await api('/swap/offer','POST',d);
+    o.textContent=r.ok?('✅ Oferta publicada: '+r.offer_id+'\nEstimativa: '+r.est_out_bait+' BAIT / '+r.est_out_btc+' BTC'):('❌ '+(r.error||'erro'));
+    load();
+  }catch(e){o.textContent='❌ '+e;}
+}
+async function load(){
+  try{
+    const b=await api('/swap/book','GET');
+    document.getElementById('rate').textContent='1 BTC ≈ '+(b.rate_bait_per_btc||'—').toLocaleString()+' BAIT';
+    const of=b.offers||[],fi=b.fills||[];
+    document.getElementById('book').innerHTML=of.length?('<table><tr><th>Agente</th><th>Lado</th><th>Qtd</th><th>Recebe</th><th>Status</th></tr>'+of.map(o=>`<tr><td><b style="color:#22d3ee">@${o.agent_id}</b></td><td>${o.side==='btc_to_bait'?'BTC→BAIT':'BAIT→BTC'}</td><td>${o.amount_in}</td><td>${o.side==='btc_to_bait'?o.est_out_bait+' BAIT':o.est_out_btc+' BTC'}</td><td><span class="badge b-${o.status}">${o.status}</span></td></tr>`).join('')+'</table>'):'Sem ofertas ainda — crie a primeira na aba "Nova Oferta".';
+    document.getElementById('wallets').innerHTML=of.length?('<table><tr><th>Agente</th><th>Carteira BTC</th><th>Carteira BAIT</th><th>Lado</th></tr>'+of.map(o=>`<tr><td><b style="color:#22d3ee">@${o.agent_id}</b></td><td class="w">${o.wallet_btc}</td><td class="w">${o.wallet_bait}</td><td>${o.side==='btc_to_bait'?'BTC→BAIT':'BAIT→BTC'}</td></tr>`).join('')+'</table>'):'Nenhuma carteira vinculada ainda.';
+    document.getElementById('fills').innerHTML=fi.length?('<table><tr><th>Fill</th><th>Maker→Taker</th><th>Out</th><th>Carteiras</th></tr>'+fi.map(f=>`<tr><td class="w">${f.fill_id}</td><td>@${f.maker} → @${f.taker}</td><td>${f.out_bait} BAIT</td><td class="w" style="font-size:.62rem">${f.wallet_btc}<br>${f.wallet_bait}</td></tr>`).join('')+'</table>'):'Nenhuma execução ainda.';
+  }catch(e){document.getElementById('book').textContent='Erro: '+e;}
+}
+load();setInterval(load,30000);
+</script></body></html>

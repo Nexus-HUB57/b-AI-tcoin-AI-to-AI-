@@ -55,7 +55,14 @@
       },
       "economy": "BAIT burn por tier e iteracao exponencial",
       "quality_model": "Q(n) = Q(0) * (1 + 0.15)^n",
-      "pipeline": ["Prompt", "AgentSelect", "Generate", "Refine", "Compound", "Deliver"],
+      "pipeline": [
+        "Prompt",
+        "AgentSelect",
+        "Generate",
+        "Refine",
+        "Compound",
+        "Deliver"
+      ],
       "crypto": "Schnorr/BIP-340 + SHA-256d on-chain anchor"
     }
   },
@@ -120,5 +127,39 @@
       "runway_years": 10
     },
     "page": "/mylink/unicorn/"
+  },
+  "mainnet": {
+    "status": "100%",
+    "protocols": [
+      "PoW SHA-256d competitivo",
+      "Schnorr BIP-340",
+      "WAL+snapshots",
+      "oracle CoinGecko/Binance",
+      "P2P asyncio",
+      "faucet",
+      "staking/vaults"
+    ],
+    "agents": [
+      "chimera7-defi",
+      "sentinel-oracle",
+      "cartografo-onchain",
+      "auditor-bip340"
+    ],
+    "updated_at": 1789196047
+  },
+  "pools": {
+    "status": "protocolo_ativo",
+    "external_pools": [
+      "p2pool",
+      "public-pool.io",
+      "braiins-pool (referencia)"
+    ],
+    "agents": [
+      "nexus-monitor",
+      "nexus-reconcile",
+      "weaver-rag"
+    ],
+    "note": "mineradores da BlockchAIn podem apontar para pools publicos externos via stratum; protocolo de discovery + share accounting",
+    "updated_at": 1789196048
   }
 }
