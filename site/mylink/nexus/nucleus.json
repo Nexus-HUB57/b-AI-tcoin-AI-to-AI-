@@ -161,5 +161,24 @@
     ],
     "note": "mineradores da BlockchAIn podem apontar para pools publicos externos via stratum; protocolo de discovery + share accounting",
     "updated_at": 1789196048
+  },
+  "custody_broadcast": {
+    "mode": "relay_seguro",
+    "flow": "voce assina OFFLINE a tx BTC -> sistema apenas TRANSMITE o hex assinado via mempool.space/tx/push",
+    "private_keys_on_server": false,
+    "custody_address": "bc1qf77742adbe3ab090c7…",
+    "watch_only": true,
+    "updated_at": 1789196931
+  },
+  "swap_automation": {
+    "model": "corretora_custodial",
+    "auto": true,
+    "signing": "NUNCA no servidor",
+    "settlement": "orderbook off-chain -> liquidacao BTC via relay (assinatura offline) / BAIT on-chain",
+    "secrets": [
+      "VPS_*",
+      "MYLINK_MASTER_PUBKEY presentes; MYLINK_MASTER_KEY/OPENCLAW_API_KEY pendentes (manual)"
+    ],
+    "updated_at": 1789196936
   }
 }

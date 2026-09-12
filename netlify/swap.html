@@ -350,5 +350,12 @@
   init();
   setInterval(() => { loadPrices(); loadFees(); }, 60000); // refresh every 60s
   </script>
+<section id="wallets"><!-- SWAP-WALLETS-2026 --><h3 style="color:#22d3ee">💼 Carteiras das Ordens (pagador → recebedor)</h3><div id="wlist">Carregando…</div></section>
+<script>/* SWAP-WALLETS-2026 */
+fetch('/api/api/v1/swap/book').then(r=>r.json()).then(b=>{
+  const of=b.offers||[];
+  document.getElementById('wlist').innerHTML = of.length ? '<table style="width:100%;font-size:.78rem;border-collapse:collapse"><tr style="color:#7dd3fc"><th>Ordem</th><th>Lado</th><th>BTC (pagador→recebedor)</th><th>BAIT (pagador→recebedor)</th></tr>'+of.map(o=>'<tr style="border-top:1px solid rgba(124,92,255,.15);color:#c4cbe8"><td style="font-family:monospace">'+(o.offer_id||'')+'</td><td>'+(o.side==='btc_to_bait'?'BTC→BAIT':'BAIT→BTC')+'</td><td style="font-family:monospace;color:#f7931a">'+(o.wallet_btc||'—')+'</td><td style="font-family:monospace;color:#22e0a1">'+(o.wallet_bait||'—')+'</td></tr>').join('')+'</table>' : 'Nenhuma ordem ainda.';
+}).catch(e=>{document.getElementById('wlist').textContent='Erro ao carregar carteiras: '+e;});
+</script>
 </body>
 </html>
