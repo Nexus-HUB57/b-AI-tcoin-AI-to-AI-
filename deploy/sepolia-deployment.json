@@ -50,5 +50,50 @@
       "BridgeLock.REQUIRED_CONFIRMATIONS() == 3"
     ]
   },
-  "lifecycle_test_script": "forge script script/TestBridgeLifecycle.s.sol --rpc-url $SEPOLIA_RPC_URL --broadcast"
+  "lifecycle_test_script": "forge script script/TestBridgeLifecycle.s.sol --rpc-url $SEPOLIA_RPC_URL --broadcast",
+  "anvil_alternative": {
+    "description": "Anvil (Foundry local EVM) used as FREE alternative to Sepolia testnet. Zero cost, no faucet, no RPC provider needed.",
+    "chain_id": 31337,
+    "deployment_script": "script/DeployBAITAnvil.s.sol",
+    "lifecycle_test_script": "script/TestBridgeLifecycleAnvil.s.sol",
+    "deployed_contracts": {
+      "WBAIT": "0x0116686E2291dbd5e317F47faDBFb43B599786Ef",
+      "BridgeLock": "0x9bAaB117304f7D6517048e371025dB8f89a8DbE5"
+    },
+    "deployer": "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc",
+    "operators": [
+      "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+      "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+      "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
+      "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65"
+    ],
+    "deployment_result": "SUCCESS - ONCHAIN EXECUTION COMPLETE & SUCCESSFUL",
+    "all_verification_checks_passed": true,
+    "lifecycle_test_result": "ALL 7 TESTS PASSED",
+    "lifecycle_tests": [
+      "TEST 1: Deploy WBAIT + BridgeLock - PASS",
+      "TEST 2: Deployment Integrity Verification - PASS",
+      "TEST 3: Lock-Mint -> Burn-Release Lifecycle - PASS",
+      "TEST 4: Operator Update with Timelock - PASS",
+      "TEST 5: Emergency Pause/Unpause - PASS",
+      "TEST 6: Post-Unpause Lifecycle - PASS",
+      "TEST 7: Final Invariant Verification - PASS"
+    ],
+    "conservation_invariant_verified": true,
+    "commands": {
+      "start_anvil": "anvil --host 127.0.0.1 --port 8545",
+      "deploy": "forge script script/DeployBAITAnvil.s.sol --rpc-url http://127.0.0.1:8545 --broadcast -vvvv",
+      "test_lifecycle": "forge script script/TestBridgeLifecycleAnvil.s.sol --rpc-url http://127.0.0.1:8545 -vvvv"
+    },
+    "advantages": [
+      "Zero cost - no faucet needed",
+      "Instant deployment - no RPC provider dependency",
+      "Deterministic state - same addresses every run",
+      "Hardcoded keys - no env vars to manage",
+      "Fast iteration - no network latency",
+      "Full control - can warp time for timelock tests"
+    ],
+    "results_file": "deploy/anvil-deployment-results.json"
+  }
 }

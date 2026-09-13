@@ -1,0 +1,194 @@
+{
+  "description": "Free RPC endpoint configuration for BAIT (b'AI'tcoin) project - no-cost alternatives for deployment and testing",
+  "version": "1.0.0",
+  "lastUpdated": "2025-03-14",
+  "status": "CONFIGURED",
+  "note": "Free community RPC endpoints configured. For production, upgrade to Alchemy/Infura dedicated tier for guaranteed uptime and higher rate limits.",
+
+  "mainnet": {
+    "description": "Ethereum Mainnet free RPC endpoints (multiple for redundancy)",
+    "endpoints": [
+      {
+        "name": "1RPC",
+        "url": "https://1rpc.io/eth",
+        "requiresApiKey": false,
+        "rateLimit": "Free public RPC by Automata Network",
+        "reliability": "High - validated working",
+        "recommended": true,
+        "validatedWorking": true
+      },
+      {
+        "name": "dRPC",
+        "url": "https://eth.drpc.org",
+        "requiresApiKey": false,
+        "rateLimit": "Free public RPC by dRPC",
+        "reliability": "High - validated working",
+        "recommended": true,
+        "validatedWorking": true
+      },
+      {
+        "name": "LlamaRPC",
+        "url": "https://eth.llamarpc.com",
+        "requiresApiKey": false,
+        "rateLimit": "Community tier, ~100 req/s",
+        "reliability": "High - community maintained (currently behind Cloudflare challenge)",
+        "recommended": false,
+        "validatedWorking": false,
+        "statusNote": "Returns 403 with Cloudflare challenge - may require browser access"
+      },
+      {
+        "name": "Ankr",
+        "url": "https://rpc.ankr.com/eth",
+        "requiresApiKey": true,
+        "apiKeyUrl": "https://www.ankr.com/rpc/",
+        "rateLimit": "Now requires free API key",
+        "reliability": "High - professional infrastructure",
+        "recommended": true,
+        "validatedWorking": false,
+        "statusNote": "Now requires API key authentication (free signup)"
+      },
+      {
+        "name": "Cloudflare",
+        "url": "https://cloudflare-eth.com",
+        "requiresApiKey": false,
+        "rateLimit": "Cloudflare managed",
+        "reliability": "Currently returning errors",
+        "recommended": false,
+        "validatedWorking": false,
+        "statusNote": "Returns error -32046: Cannot fulfill request"
+      },
+      {
+        "name": "Ethereum Foundation (via Infura)",
+        "url": "https://mainnet.infura.io/v3/",
+        "requiresApiKey": true,
+        "apiKeyUrl": "https://infura.io/dashboard",
+        "apiKeyTier": "Free tier: 100,000 requests/day",
+        "rateLimit": "100,000 req/day on free tier",
+        "reliability": "High - professional infrastructure",
+        "recommended": true
+      },
+      {
+        "name": "Alchemy Free Tier",
+        "url": "https://eth-mainnet.g.alchemy.com/v2/",
+        "requiresApiKey": true,
+        "apiKeyUrl": "https://dashboard.alchemy.com/signup",
+        "apiKeyTier": "Free tier: 300M compute units/month",
+        "rateLimit": "300M compute units/month on free tier",
+        "reliability": "High - professional infrastructure",
+        "recommended": true
+      }
+    ],
+    "fallbackStrategy": "Try endpoints in order: 1RPC -> dRPC -> Ankr (with key) -> Infura (with key) -> Alchemy (with key)",
+    "validationCommand": "curl -s -X POST -H 'Content-Type: application/json' --data '{\"jsonrpc\":\"2.0\",\"method\":\"eth_blockNumber\",\"params\":[],\"id\":1}' <RPC_URL>"
+  },
+
+  "sepolia": {
+    "description": "Sepolia Testnet free RPC endpoints",
+    "endpoints": [
+      {
+        "name": "1RPC",
+        "url": "https://1rpc.io/sepolia",
+        "requiresApiKey": false,
+        "rateLimit": "Free public RPC by Automata Network",
+        "reliability": "High - validated working",
+        "recommended": true,
+        "validatedWorking": true
+      },
+      {
+        "name": "LlamaRPC",
+        "url": "https://sepolia.llamarpc.com",
+        "requiresApiKey": false,
+        "rateLimit": "Community tier",
+        "reliability": "Currently unreachable",
+        "recommended": false,
+        "validatedWorking": false,
+        "statusNote": "Connection failed - DNS or server issue"
+      },
+      {
+        "name": "Ankr",
+        "url": "https://rpc.ankr.com/eth_sepolia",
+        "requiresApiKey": true,
+        "apiKeyUrl": "https://www.ankr.com/rpc/",
+        "rateLimit": "Now requires free API key",
+        "reliability": "High - professional infrastructure",
+        "recommended": true,
+        "validatedWorking": false,
+        "statusNote": "Now requires API key authentication (free signup)"
+      },
+      {
+        "name": "Alchemy Free Tier",
+        "url": "https://eth-sepolia.g.alchemy.com/v2/",
+        "requiresApiKey": true,
+        "apiKeyUrl": "https://dashboard.alchemy.com/signup",
+        "apiKeyTier": "Free tier: 300M compute units/month",
+        "rateLimit": "300M compute units/month on free tier",
+        "reliability": "High - professional infrastructure",
+        "recommended": true
+      },
+      {
+        "name": "Infura Free Tier",
+        "url": "https://sepolia.infura.io/v3/",
+        "requiresApiKey": true,
+        "apiKeyUrl": "https://infura.io/dashboard",
+        "apiKeyTier": "Free tier: 100,000 requests/day",
+        "rateLimit": "100,000 req/day on free tier",
+        "reliability": "High - professional infrastructure",
+        "recommended": true
+      }
+    ],
+    "fallbackStrategy": "Try endpoints in order: 1RPC -> Ankr (with key) -> Alchemy (with key) -> Infura (with key)",
+    "validationCommand": "curl -s -X POST -H 'Content-Type: application/json' --data '{\"jsonrpc\":\"2.0\",\"method\":\"eth_blockNumber\",\"params\":[],\"id\":1}' <RPC_URL>"
+  },
+
+  "anvil": {
+    "description": "Foundry Anvil local development chain",
+    "url": "http://127.0.0.1:8545",
+    "startCommand": "anvil --host 127.0.0.1 --port 8545 --chain-id 31337",
+    "features": [
+      "Pre-funded with 10,000 ETH per default account",
+      "Instant block mining",
+      "Full EVM compatibility",
+      "Fork mainnet capability: anvil --fork-url <RPC_URL>",
+      "Mempool inspection and manipulation",
+      "Auto-mining and interval mining modes"
+    ],
+    "preFundedAccounts": 10,
+    "preFundedEthPerAccount": 10000,
+    "chainId": 31337,
+    "networkId": 31337
+  },
+
+  "hardhat": {
+    "description": "Hardhat local node (alternative to Anvil)",
+    "url": "http://127.0.0.1:8545",
+    "startCommand": "npx hardhat node",
+    "features": [
+      "Pre-funded accounts",
+      "Solidity stack traces",
+      "Mainnet forking support"
+    ]
+  },
+
+  "rpcValidationScript": {
+    "path": "deploy/validate-free-rpc.sh",
+    "description": "Bash script that tests each free RPC endpoint with eth_blockNumber, measures latency, and outputs JSON results",
+    "usage": "bash deploy/validate-free-rpc.sh",
+    "outputFile": "deploy/free-rpc-validation-results.json"
+  },
+
+  "deploymentConfig": {
+    "foundryConfig": {
+      "setRpcCommand": "export ETH_RPC_URL=<CHOSEN_RPC_URL>",
+      "anvilCommand": "anvil",
+      "deployToAnvil": "forge script script/Deploy.s.sol --rpc-url http://127.0.0.1:8545 --broadcast",
+      "deployToSepolia": "forge script script/Deploy.s.sol --rpc-url https://1rpc.io/sepolia --broadcast --verify",
+      "deployToMainnet": "forge script script/Deploy.s.sol --rpc-url https://1rpc.io/eth --broadcast --verify"
+    },
+    "recommendedWorkflow": [
+      "1. Validate RPC endpoints: bash deploy/validate-free-rpc.sh",
+      "2. Deploy to Anvil first (free, instant): forge script ... --rpc-url http://127.0.0.1:8545 --broadcast",
+      "3. Deploy to Sepolia (free testnet ETH): forge script ... --rpc-url <SEPOLIA_RPC> --broadcast --verify",
+      "4. Deploy to Mainnet (requires real ETH): forge script ... --rpc-url <MAINNET_RPC> --broadcast --verify"
+    ]
+  }
+}

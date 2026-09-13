@@ -1,0 +1,132 @@
+{
+  "version": "1.0.0",
+  "generated_at": "2026-09-14T18:43:00Z",
+  "network": "anvil-local-testnet",
+  "chain_id": 31337,
+  "description": "Anvil (Foundry local EVM) deployment as FREE alternative to Sepolia testnet. Zero cost, no faucet needed, no RPC provider required.",
+  "rpc_url": "http://127.0.0.1:8545",
+  "deployment_script": "script/DeployBAITAnvil.s.sol",
+  "lifecycle_test_script": "script/TestBridgeLifecycleAnvil.s.sol",
+  "deployed_contracts": {
+    "WBAIT": {
+      "address": "0x0116686E2291dbd5e317F47faDBFb43B599786Ef",
+      "name": "Wrapped bAIitcoin",
+      "symbol": "wBAIT",
+      "decimals": 8,
+      "max_supply": "2100000000000000",
+      "initial_supply": "0",
+      "paused": false,
+      "owner": "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc"
+    },
+    "BridgeLock": {
+      "address": "0x9bAaB117304f7D6517048e371025dB8f89a8DbE5",
+      "wbait_ref": "0x0116686E2291dbd5e317F47faDBFb43B599786Ef",
+      "required_confirmations": 3,
+      "num_operators": 5,
+      "rate_limit": "10000000000000",
+      "timelock_duration": 86400,
+      "paused": false,
+      "owner": "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc"
+    }
+  },
+  "deployer": {
+    "address": "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc",
+    "anvil_account_index": 5,
+    "note": "Account 5 used as deployer (not an operator, satisfies onlyBridge constraint)"
+  },
+  "operators": {
+    "note": "Anvil default accounts 0-4 used as operators. Hardcoded private keys - no env vars needed.",
+    "addresses": [
+      {
+        "index": 0,
+        "address": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+      },
+      {
+        "index": 1,
+        "address": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
+      },
+      {
+        "index": 2,
+        "address": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"
+      },
+      {
+        "index": 3,
+        "address": "0x90F79bf6EB2c4f870365E785982E1f101E93b906"
+      },
+      {
+        "index": 4,
+        "address": "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65"
+      }
+    ]
+  },
+  "verification_checks": {
+    "all_passed": true,
+    "checks": [
+      {"check": "Chain ID == 31337 (Anvil)", "result": "PASS"},
+      {"check": "WBAIT.name() == 'Wrapped bAIitcoin'", "result": "PASS"},
+      {"check": "WBAIT.symbol() == 'wBAIT'", "result": "PASS"},
+      {"check": "WBAIT.decimals() == 8", "result": "PASS"},
+      {"check": "WBAIT.MAX_SUPPLY() == 2100000000000000", "result": "PASS"},
+      {"check": "WBAIT.totalSupply() == 0", "result": "PASS"},
+      {"check": "WBAIT.paused() == false", "result": "PASS"},
+      {"check": "WBAIT.bridgeLock() == BridgeLock address", "result": "PASS"},
+      {"check": "BridgeLock.wbait() == WBAIT address", "result": "PASS"},
+      {"check": "BridgeLock.REQUIRED_CONFIRMATIONS() == 3", "result": "PASS"},
+      {"check": "BridgeLock.NUM_OPERATORS() == 5", "result": "PASS"},
+      {"check": "BridgeLock.RATE_LIMIT() == 10000000000000", "result": "PASS"},
+      {"check": "BridgeLock.TIMELOCK_DURATION() == 86400", "result": "PASS"},
+      {"check": "BridgeLock.paused() == false", "result": "PASS"},
+      {"check": "All 5 operators correctly registered", "result": "PASS"},
+      {"check": "Cross-reference integrity (WBAIT.bridgeLock == BridgeLock)", "result": "PASS"},
+      {"check": "Cross-reference integrity (BridgeLock.wbait == WBAIT)", "result": "PASS"},
+      {"check": "BridgeLock address matches prediction", "result": "PASS"},
+      {"check": "Conservation invariant: totalSupply == 0", "result": "PASS"},
+      {"check": "No operator is deployer", "result": "PASS"},
+      {"check": "All 5 operators unique and non-zero", "result": "PASS"}
+    ]
+  },
+  "lifecycle_test_results": {
+    "all_passed": true,
+    "mode": "simulation (forge script without --broadcast, as test intentionally triggers expected reverts)",
+    "tests": [
+      {"test": "TEST 1: Deploy WBAIT + BridgeLock", "result": "PASS"},
+      {"test": "TEST 2: Deployment Integrity Verification", "result": "PASS"},
+      {"test": "TEST 3: Lock-Mint -> Burn-Release Lifecycle", "result": "PASS"},
+      {"test": "TEST 4: Operator Update with Timelock", "result": "PASS"},
+      {"test": "TEST 5: Emergency Pause/Unpause", "result": "PASS"},
+      {"test": "TEST 6: Post-Unpause Lifecycle", "result": "PASS"},
+      {"test": "TEST 7: Final Invariant Verification", "result": "PASS"}
+    ],
+    "conservation_invariant": {
+      "initial_supply": "0",
+      "final_supply": "0",
+      "verified": true
+    },
+    "details": {
+      "lock_mint_flow": "3-of-5 operator confirmation triggered mint execution successfully",
+      "burn_release_flow": "Recipient approved + initiated burn, 3-of-5 confirmation marked executed",
+      "operator_update_timelock": "Propose -> reject before timelock -> cancel -> re-propose -> warp 24h+1s -> execute -> restore original",
+      "emergency_pause": "WBAIT pause blocks transfers and mints; BridgeLock pause blocks lock-mint requests; both unpause correctly",
+      "post_unpause_lifecycle": "Full lock-mint-burn-release cycle works after unpause"
+    }
+  },
+  "deployment_commands": {
+    "start_anvil": "anvil --host 127.0.0.1 --port 8545",
+    "deploy": "forge script script/DeployBAITAnvil.s.sol --rpc-url http://127.0.0.1:8545 --broadcast -vvvv",
+    "test_lifecycle": "forge script script/TestBridgeLifecycleAnvil.s.sol --rpc-url http://127.0.0.1:8545 -vvvv",
+    "note": "No environment variables needed - all keys are hardcoded Anvil defaults"
+  },
+  "gas_usage": {
+    "total_gas_used": 4212598,
+    "estimated_eth_required": "0.008425196004212598 ETH",
+    "note": "Zero actual cost on Anvil (free local testnet)"
+  },
+  "advantages_over_sepolia": [
+    "Zero cost - no faucet needed",
+    "Instant deployment - no RPC provider dependency",
+    "Deterministic state - same addresses every run",
+    "Hardcoded keys - no env vars to manage",
+    "Fast iteration - no network latency",
+    "Full control - can warp time for timelock tests"
+  ]
+}

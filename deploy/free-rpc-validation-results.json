@@ -1,0 +1,115 @@
+{
+  "description": "Free RPC endpoint validation results for BAIT (b'AI'tcoin) project",
+  "timestamp": "2026-03-04T00:00:00Z",
+  "method": "eth_blockNumber",
+  "rpcPayload": "{\"jsonrpc\":\"2.0\",\"method\":\"eth_blockNumber\",\"params\":[],\"id\":1}",
+  "mainnet": [
+    {
+      "name": "1RPC",
+      "url": "https://1rpc.io/eth",
+      "success": true,
+      "latencyMs": 315,
+      "blockNumber": "0x18c46ac",
+      "blockNumberDecimal": 25970348,
+      "httpCode": 200,
+      "error": null
+    },
+    {
+      "name": "dRPC",
+      "url": "https://eth.drpc.org",
+      "success": true,
+      "latencyMs": 67,
+      "blockNumber": "0x18c46ad",
+      "blockNumberDecimal": 25970349,
+      "httpCode": 200,
+      "error": null
+    },
+    {
+      "name": "LlamaRPC",
+      "url": "https://eth.llamarpc.com",
+      "success": false,
+      "latencyMs": 27,
+      "blockNumber": null,
+      "httpCode": 403,
+      "error": "Cloudflare challenge page returned (HTTP 403) - endpoint may require browser-based access or has added bot protection"
+    },
+    {
+      "name": "Ankr",
+      "url": "https://rpc.ankr.com/eth",
+      "success": false,
+      "latencyMs": 124,
+      "blockNumber": null,
+      "httpCode": 200,
+      "error": "API key now required. Response: {\"code\": -32000, \"message\": \"Unauthorized: You must authenticate your request with an API key.\"} - Free API key available at https://www.ankr.com/rpc/"
+    },
+    {
+      "name": "Cloudflare",
+      "url": "https://cloudflare-eth.com",
+      "success": false,
+      "latencyMs": 46,
+      "blockNumber": null,
+      "httpCode": 200,
+      "error": "JSON-RPC error: {\"code\": -32046, \"message\": \"Cannot fulfill request\"} - endpoint may be deprecated or rate-limited"
+    }
+  ],
+  "sepolia": [
+    {
+      "name": "1RPC",
+      "url": "https://1rpc.io/sepolia",
+      "success": true,
+      "latencyMs": 321,
+      "blockNumber": "0xb27e15",
+      "blockNumberDecimal": 11697685,
+      "httpCode": 200,
+      "error": null
+    },
+    {
+      "name": "LlamaRPC",
+      "url": "https://sepolia.llamarpc.com",
+      "success": false,
+      "latencyMs": null,
+      "blockNumber": null,
+      "httpCode": 0,
+      "error": "Connection failed - DNS resolution or server unreachable"
+    },
+    {
+      "name": "Ankr",
+      "url": "https://rpc.ankr.com/eth_sepolia",
+      "success": false,
+      "latencyMs": 125,
+      "blockNumber": null,
+      "httpCode": 200,
+      "error": "API key now required. Response: {\"code\": -32000, \"message\": \"Unauthorized: You must authenticate your request with an API key.\"} - Free API key available at https://www.ankr.com/rpc/"
+    }
+  ],
+  "anvil": {
+    "name": "Anvil Local",
+    "url": "http://127.0.0.1:8545",
+    "tested": false,
+    "note": "Anvil must be running locally to test. Start with: anvil. Not tested in this validation run as it requires local Foundry instance."
+  },
+  "summary": {
+    "totalEndpointsTested": 8,
+    "mainnetEndpointsTested": 5,
+    "sepoliaEndpointsTested": 3,
+    "mainnetWorking": 2,
+    "sepoliaWorking": 1,
+    "totalWorking": 3,
+    "workingMainnetEndpoints": ["1RPC (https://1rpc.io/eth)", "dRPC (https://eth.drpc.org)"],
+    "workingSepoliaEndpoints": ["1RPC (https://1rpc.io/sepolia)"],
+    "recommendedMainnetRpc": "https://1rpc.io/eth (1RPC) or https://eth.drpc.org (dRPC)",
+    "recommendedSepoliaRpc": "https://1rpc.io/sepolia (1RPC)",
+    "fastestMainnetRpc": "dRPC (67ms)",
+    "fastestSepoliaRpc": "1RPC (321ms - only working free endpoint)"
+  },
+  "recommendations": [
+    "For MAINNET: Use 1RPC (https://1rpc.io/eth) or dRPC (https://eth.drpc.org) - both validated working",
+    "For SEPOLIA: Use 1RPC (https://1rpc.io/sepolia) - validated working",
+    "Ankr now requires a free API key - sign up at https://www.ankr.com/rpc/ for additional redundancy",
+    "For production: Get free Alchemy (https://dashboard.alchemy.com/signup) or Infura (https://infura.io/dashboard) API keys for higher reliability",
+    "LlamaRPC is currently behind Cloudflare challenge protection - may work in browser but not via curl",
+    "Cloudflare Ethereum gateway appears deprecated or rate-limited - not recommended as primary",
+    "Always configure multiple RPC endpoints for redundancy in production deployments"
+  ],
+  "generatedBy": "deploy/validate-free-rpc.sh (manual validation)"
+}
