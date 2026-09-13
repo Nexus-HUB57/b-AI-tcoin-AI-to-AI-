@@ -109,4 +109,78 @@ contract BridgeLockTest is Test {
         vm.expectRevert("BridgeLock: not operator");
         bridgeLock.requestLockMint(requestId, keccak256("l1"), address(0x1), 1000);
     }
+
+    // ── Timelocked Operator Update Tests ──
+
+    function test_ProposeOperatorUpdate() public {
+        address newOp = address(0xD1);
+        bridgeLock.proposeOperatorUpdate(0, newOp);
+
+        (uint256 idx, address proposed, uint256 proposedAt, bool active) =
+            bridgeLock.pendingOperatorUpdate();
+        assertEq(idx, 0);
+        assertEq(proposed, newOp);
+        assertTrue(active);
+        assertGt(proposedAt, 0);
+    }
+
+    function test_ExecuteOperatorUpdateAfterTimelock() public {
+        address oldOp = bridgeLock.operators(0);
+        address newOp = address(0xD1);
+
+        bridgeLock.proposeOperatorUpdate(0, newOp);
+
+        // Advance time past timelock (24 hours)
+        vm.warp(block.timestamp + 24 hours + 1);
+
+        bridgeLock.executeOperatorUpdate();
+
+        // Verify operator was replaced
+        assertEq(bridgeLock.operators(0), newOp);
+        assertTrue(bridgeLock.isOperator(newOp));
+        assertFalse(bridgeLock.isOperator(oldOp));
+
+        // Verify pending update was cleared
+        (,,, bool active) = bridgeLock.pendingOperatorUpdate();
+        assertFalse(active);
+    }
+
+    function test_RevertExecuteBeforeTimelock() public {
+        bridgeLock.proposeOperatorUpdate(0, address(0xD1));
+
+        // Try to execute before timelock expires
+        vm.expectRevert("BridgeLock: timelock not expired");
+        bridgeLock.executeOperatorUpdate();
+    }
+
+    function test_CancelOperatorUpdate() public {
+        bridgeLock.proposeOperatorUpdate(0, address(0xD1));
+        bridgeLock.cancelOperatorUpdate();
+
+        (,,, bool active) = bridgeLock.pendingOperatorUpdate();
+        assertFalse(active);
+    }
+
+    function test_RevertProposeZeroAddress() public {
+        vm.expectRevert("BridgeLock: zero operator");
+        bridgeLock.proposeOperatorUpdate(0, address(0));
+    }
+
+    function test_RevertProposeExistingOperator() public {
+        address existingOp = bridgeLock.operators(1);
+        vm.expectRevert("BridgeLock: already operator");
+        bridgeLock.proposeOperatorUpdate(0, existingOp);
+    }
+
+    function test_RevertProposeInvalidIndex() public {
+        vm.expectRevert("BridgeLock: invalid index");
+        bridgeLock.proposeOperatorUpdate(5, address(0xD1));
+    }
+
+    // ── Timelock Constant Used ──
+
+    function test_TimelockDurationIsUsed() public view {
+        // Verify TIMELOCK_DURATION is 24 hours (86400 seconds)
+        assertEq(bridgeLock.TIMELOCK_DURATION(), 24 hours);
+    }
 }

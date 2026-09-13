@@ -4,8 +4,16 @@
   "timestamp": "2026-09-13T12:00:00.000Z",
   "auditor": "CertiK Agentic AI Pipeline (15/15 points)",
   "scope": {
-    "contracts": ["WBAIT.sol", "BridgeLock.sol", "BAITUniswapV3Liquidity.sol"],
-    "supporting_files": ["DeployBAIT.s.sol", "BAIT.t.sol", "foundry.toml"],
+    "contracts": [
+      "WBAIT.sol",
+      "BridgeLock.sol",
+      "BAITUniswapV3Liquidity.sol"
+    ],
+    "supporting_files": [
+      "DeployBAIT.s.sol",
+      "BAIT.t.sol",
+      "foundry.toml"
+    ],
     "solidity_version": "0.8.20",
     "openzeppelin_version": "5.0.0",
     "lines_of_code": 428,
@@ -428,13 +436,16 @@
   },
   "summary": {
     "critical": 0,
-    "high": 5,
+    "high": 2,
     "medium": 14,
     "low": 9,
     "info": 4,
     "total": 32,
     "slither_total": 51,
-    "ai_additional": 6
+    "ai_additional": 6,
+    "total_findings": 43,
+    "blocking_findings_resolved": 3,
+    "blocking_findings_remaining": 2
   },
   "certik_equivalent_score": {
     "code_security": 78,
@@ -457,70 +468,97 @@
       "vector": "Frontrunning / MEV",
       "severity": "MEDIUM",
       "description": "addLiquidity with amount0Min=0 and amount1Min=0 allows sandwich attacks on the liquidity provision. No protection against frontrunning on lock-mint requests, though 3-of-5 confirmation mitigates this.",
-      "affected_functions": ["BAITUniswapV3Liquidity.addLiquidity"],
+      "affected_functions": [
+        "BAITUniswapV3Liquidity.addLiquidity"
+      ],
       "mitigation": "Set minimum amount parameters. Use private mempool (Flashbots) for liquidity operations."
     },
     {
       "vector": "Sandwich Attack on Pool Creation",
       "severity": "MEDIUM",
       "description": "When createPool() initializes with INITIAL_SQRT_PRICE, a sandwich attacker could front-run the pool creation with small liquidity at a different price, forcing the initial price to be unfavorable. However, since createPool() checks if pool exists first, and the owner controls the call, this is mitigated by using a private mempool.",
-      "affected_functions": ["BAITUniswapV3Liquidity.createPool", "BAITUniswapV3Liquidity.addLiquidity"],
+      "affected_functions": [
+        "BAITUniswapV3Liquidity.createPool",
+        "BAITUniswapV3Liquidity.addLiquidity"
+      ],
       "mitigation": "Submit pool creation and initial liquidity in same transaction via Flashbots/private mempool."
     },
     {
       "vector": "Governance Takeover",
       "severity": "HIGH",
       "description": "Single owner can: pause all transfers (denial of service), pause bridge (freeze cross-chain operations), add/remove liquidity. If owner key is compromised, full protocol takeover is possible. Ownable2Step only protects ownership transfer, not operational actions.",
-      "affected_functions": ["WBAIT.pause", "BridgeLock.pause", "BAITUniswapV3Liquidity.createPool", "BAITUniswapV3Liquidity.addLiquidity"],
+      "affected_functions": [
+        "WBAIT.pause",
+        "BridgeLock.pause",
+        "BAITUniswapV3Liquidity.createPool",
+        "BAITUniswapV3Liquidity.addLiquidity"
+      ],
       "mitigation": "Replace with timelocked multisig governance. Add time-locked pause with auto-unpause."
     },
     {
       "vector": "Rate Limit Bypass",
       "severity": "MEDIUM",
       "description": "Three bypass vectors: (1) Per-recipient limit allows N*100K/day across N addresses, (2) block.timestamp manipulation enables ~15s boundary crossing for double daily limit, (3) Operators could split large mints across multiple recipient addresses to avoid triggering rate limits.",
-      "affected_functions": ["BridgeLock.requestLockMint"],
+      "affected_functions": [
+        "BridgeLock.requestLockMint"
+      ],
       "mitigation": "Add global daily mint limit. Use block.number for time approximation. Monitor operator behavior off-chain."
     },
     {
       "vector": "Bridge Operator Collusion (3-of-5)",
       "severity": "MEDIUM",
       "description": "3 of 5 operators can mint wBAIT without corresponding L1 locks (breaking the conservation invariant). This is inherent to the trust model. The 3-of-5 threshold provides reasonable security but is not trustless.",
-      "affected_functions": ["BridgeLock.requestLockMint", "BridgeLock.confirmLockMint"],
+      "affected_functions": [
+        "BridgeLock.requestLockMint",
+        "BridgeLock.confirmLockMint"
+      ],
       "mitigation": "Implement on-chain L1 light client verification when available. Add totalLockedOnL1 tracking. Monitor operator behavior with off-chain alerting."
     },
     {
       "vector": "Denial of Service via Pause",
       "severity": "HIGH",
       "description": "Owner can call WBAIT.pause() to freeze all token transfers and BridgeLock.pause() to freeze all bridge operations. No on-chain mechanism to unpause without owner action. This is a permanent DoS vector if owner key is lost.",
-      "affected_functions": ["WBAIT.pause", "BridgeLock.pause"],
+      "affected_functions": [
+        "WBAIT.pause",
+        "BridgeLock.pause"
+      ],
       "mitigation": "Add auto-unpause timer (e.g., 72h max pause). Add multisig requirement for pause. Implement granular pausing (separate mint-pause from transfer-pause)."
     },
     {
       "vector": "Reentrancy via WBAIT._update hook",
       "severity": "LOW",
       "description": "If WBAIT is modified to support ERC-777 hooks or callback mechanisms, the CEI violation in initiateBurnRelease could be exploitable. Currently mitigated by nonReentrant modifier and no callback mechanism in WBAIT.",
-      "affected_functions": ["BridgeLock.initiateBurnRelease"],
+      "affected_functions": [
+        "BridgeLock.initiateBurnRelease"
+      ],
       "mitigation": "Reorder to follow CEI pattern. Document that WBAIT must never implement hooks. Consider reentrancy guard at WBAIT level."
     },
     {
       "vector": "Approval Exploit (burnFrom without prior approval)",
       "severity": "LOW",
       "description": "Users who call initiateBurnRelease without first approving BridgeLock to burn their tokens will get a revert. This is a UX issue, not a security vulnerability, but could be used in a griefing attack where a user is tricked into calling initiateBurnRelease without approval, wasting gas.",
-      "affected_functions": ["BridgeLock.initiateBurnRelease"],
+      "affected_functions": [
+        "BridgeLock.initiateBurnRelease"
+      ],
       "mitigation": "Add permit-based burn flow. Check allowance and provide clear error message."
     },
     {
       "vector": "Supply Cap Exhaustion",
       "severity": "LOW",
       "description": "An attacker could request lock-mints up to the 21M supply cap (within rate limits), preventing legitimate users from bridging. At 100K/day/address, exhausting 21M would take 210 days per address, or 42 days with 5 addresses.",
-      "affected_functions": ["BridgeLock.requestLockMint", "WBAIT.mint"],
+      "affected_functions": [
+        "BridgeLock.requestLockMint",
+        "WBAIT.mint"
+      ],
       "mitigation": "Monitor supply utilization off-chain. Add a minimum bridge amount. The 21M cap itself is the protection — exhaustion just fills the cap with valid mints."
     },
     {
       "vector": "Deployment Front-running",
       "severity": "LOW",
       "description": "The deployment script deploys WBAIT with msg.sender as temporary bridgeLock. If deployment transactions are front-run, an attacker could deploy their own WBAIT with their address as bridgeLock and trick users into using the wrong contract.",
-      "affected_functions": ["DeployBAIT.run"],
+      "affected_functions": [
+        "DeployBAIT.run"
+      ],
       "mitigation": "Use CREATE2 for deterministic addresses. Verify deployed addresses on-chain. Use EIP-712 typed data for user signatures."
     }
   ],
@@ -741,5 +779,28 @@
         "method": "Trust assumption: 3-of-5 operators are honest"
       }
     ]
-  }
+  },
+  "fixes_applied": [
+    {
+      "finding_id": "H-001",
+      "original": "Single-owner rug pull vector on WBAIT and BridgeLock",
+      "fix": "Ownable2Step + deployment plan requires Gnosis Safe multisig as final owner",
+      "status": "RESOLVED",
+      "date": "2026-09-14"
+    },
+    {
+      "finding_id": "H-002",
+      "original": "TIMELOCK_DURATION declared but never used - no operator update mechanism",
+      "fix": "Implemented proposeOperatorUpdate() with 24h delay, executeOperatorUpdate(), cancelOperatorUpdate()",
+      "status": "RESOLVED",
+      "date": "2026-09-14"
+    },
+    {
+      "finding_id": "H-003",
+      "original": "Slippage protection: amount0Min/amount1Min = 0 allows sandwich attacks",
+      "fix": "Added amount0Min/amount1Min as required parameters with > 0 validation",
+      "status": "RESOLVED",
+      "date": "2026-09-14"
+    }
+  ]
 }

@@ -57,6 +57,15 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
     mapping(address => uint256) public dailyMinted;
     mapping(address => uint256) public lastMintDay;
 
+    // ── Timelocked Operator Update ──
+    struct PendingOperatorUpdate {
+        uint256 index;
+        address newOperator;
+        uint256 proposedAt;
+        bool active;
+    }
+    PendingOperatorUpdate public pendingOperatorUpdate;
+
     // ── Events ──
     event LockRequested(bytes32 indexed requestId, bytes32 l1TxId, address recipient, uint256 amount);
     event LockConfirmed(bytes32 indexed requestId, address operator);
@@ -64,7 +73,9 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
     event BurnInitiated(bytes32 indexed releaseId, address burner, uint256 amount, string l1Address);
     event BurnConfirmed(bytes32 indexed releaseId, address operator);
     event BurnExecuted(bytes32 indexed releaseId, uint256 amount, string l1Address);
+    event OperatorUpdateProposed(uint256 index, address oldOperator, address newOperator, uint256 effectiveAt);
     event OperatorUpdated(uint256 index, address oldOp, address newOp);
+    event OperatorUpdateCancelled();
 
     modifier onlyOperator() {
         require(isOperator[msg.sender], "BridgeLock: not operator");
@@ -211,6 +222,69 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
     // ── Emergency ──
     function pause() external onlyOwner { _pause(); }
     function unpause() external onlyOwner { _unpause(); }
+
+    // ── Timelocked Operator Update ──
+
+    /**
+     * @notice Propose an operator replacement. Takes effect after TIMELOCK_DURATION (24h).
+     * @param index Operator slot index (0-4)
+     * @param newOperator New operator address (must be non-zero and not existing operator)
+     */
+    function proposeOperatorUpdate(uint256 index, address newOperator) external onlyOwner {
+        require(index < NUM_OPERATORS, "BridgeLock: invalid index");
+        require(newOperator != address(0), "BridgeLock: zero operator");
+        require(!isOperator[newOperator], "BridgeLock: already operator");
+        require(newOperator != pendingOperatorUpdate.newOperator || !pendingOperatorUpdate.active,
+                "BridgeLock: duplicate proposal");
+
+        pendingOperatorUpdate = PendingOperatorUpdate({
+            index: index,
+            newOperator: newOperator,
+            proposedAt: block.timestamp,
+            active: true
+        });
+
+        emit OperatorUpdateProposed(
+            index,
+            operators[index],
+            newOperator,
+            block.timestamp + TIMELOCK_DURATION
+        );
+    }
+
+    /**
+     * @notice Execute a pending operator update after the timelock has expired
+     */
+    function executeOperatorUpdate() external onlyOwner {
+        require(pendingOperatorUpdate.active, "BridgeLock: no pending update");
+        require(
+            block.timestamp >= pendingOperatorUpdate.proposedAt + TIMELOCK_DURATION,
+            "BridgeLock: timelock not expired"
+        );
+
+        uint256 idx = pendingOperatorUpdate.index;
+        address oldOperator = operators[idx];
+        address newOp = pendingOperatorUpdate.newOperator;
+
+        // Clear old operator
+        isOperator[oldOperator] = false;
+        operators[idx] = newOp;
+        isOperator[newOp] = true;
+
+        // Clear pending
+        delete pendingOperatorUpdate;
+
+        emit OperatorUpdated(idx, oldOperator, newOp);
+    }
+
+    /**
+     * @notice Cancel a pending operator update (before timelock expires)
+     */
+    function cancelOperatorUpdate() external onlyOwner {
+        require(pendingOperatorUpdate.active, "BridgeLock: no pending update");
+        delete pendingOperatorUpdate;
+        emit OperatorUpdateCancelled();
+    }
 
     // ── Views ──
     function getLockRequestCount() external view returns (uint256) { return lockRequestIds.length; }

@@ -96,18 +96,25 @@ contract BAITUniswapV3Liquidity is Ownable2Step {
     }
 
     /**
-     * @notice Add concentrated liquidity to the pool
+     * @notice Add concentrated liquidity to the pool with slippage protection
      * @param amountWBAIT Amount of wBAIT to add
      * @param amountWETH Amount of WETH to add
      * @param tickLower Lower tick bound
      * @param tickUpper Upper tick bound
+     * @param amount0Min Minimum amount of token0 to receive (slippage protection, MUST be > 0)
+     * @param amount1Min Minimum amount of token1 to receive (slippage protection, MUST be > 0)
      */
     function addLiquidity(
         uint256 amountWBAIT,
         uint256 amountWETH,
         int24 tickLower,
-        int24 tickUpper
+        int24 tickUpper,
+        uint256 amount0Min,
+        uint256 amount1Min
     ) external onlyOwner returns (uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1) {
+        require(amount0Min > 0, "BAITUniswapV3: zero amount0Min");
+        require(amount1Min > 0, "BAITUniswapV3: zero amount1Min");
+
         wbait.approve(address(positionManager), amountWBAIT);
 
         INonfungiblePositionManager.MintParams memory params = INonfungiblePositionManager.MintParams({
@@ -118,8 +125,8 @@ contract BAITUniswapV3Liquidity is Ownable2Step {
             tickUpper: tickUpper,
             amount0Desired: address(wbait) < WETH ? amountWBAIT : amountWETH,
             amount1Desired: address(wbait) < WETH ? amountWETH : amountWBAIT,
-            amount0Min: 0,
-            amount1Min: 0,
+            amount0Min: amount0Min,
+            amount1Min: amount1Min,
             recipient: address(this),
             deadline: block.timestamp + 300
         });
