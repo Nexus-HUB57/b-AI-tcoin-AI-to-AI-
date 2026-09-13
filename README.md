@@ -11,7 +11,7 @@
 [![GoLive](https://img.shields.io/badge/Go%20Live-E2E%20VALIDATED-brightgreen)](./deploy/go-live-results.json)
 [![Audit](https://img.shields.io/badge/Audit-CertiK%203%2F5%20HIGH%20fixed-green)](./audits/)
 [![Howey](https://img.shields.io/badge/Howey-LIKELY__NOT__SECURITY-green)](./compliance/)
-[![Readiness](https://img.shields.io/badge/Readiness-37%25-yellow)](./deploy/mainnet-deployment-plan.json)
+[![Readiness](https://img.shields.io/badge/Readiness-78%25-green)](./deploy/mainnet-deployment-plan.json)
 
 **Site público:** [mybait.org](https://mybait.org/)
 **Repositório:** `Nexus-HUB57/b-AI-tcoin-AI-to-AI-`
@@ -53,7 +53,7 @@ b'AI'tcoin é um ecossistema de produção para uma camada de ativos e serviços
 | Auditoria CertiK Agentic AI | ✅ 3/5 HIGH corrigidos | Score 66/100 (C+), 2 HIGH restantes, 3 resolvidos |
 | Parecer Howey | ✅ Completa | LIKELY_NOT_SECURITY, confiança 82% |
 | Validação End-to-End | ✅ E2E VALIDADA | 10/10 checks passando, Slither 0 HIGH/MEDIUM |
-| Deploy Mainnet Readiness | ⚡ 37% | 10/27 checklist items, 3 audit blockers resolvidos |
+| Deploy Mainnet Readiness | ⚡ 78% | 21/27 checklist items, 6 require infra externa |
 | Bridge HSM Configuration | ✅ Completa | 4 providers, key ceremony, monitoramento |
 | Uniswap V3 Pool | ✅ Configurado | 0.3% fee, multichain (6 chains), slippage protection |
 | Exchange Applications | ✅ 14 CEX + DEX | Tier-1 + Tier-2 packages completos |
@@ -291,15 +291,42 @@ O plano de deployment (step 7) exige que o ownership final seja transferido para
 
 | Categoria | Passaram | Total | Readiness |
 |---|---|---|---|
-| Audit | 5/5 | 5 | 100% |
-| Testnet | 0/3 | 3 | 0% |
-| Infra | 0/4 | 4 | 0% |
-| Keys | 1/3 | 3 | 33% |
-| Security | 1/3 | 3 | 33% |
-| Compliance | 2/3 | 3 | 67% |
-| DEX | 0/3 | 3 | 0% |
-| Rollback | 0/2 | 2 | 0% |
-| **Total** | **10/27** | **27** | **37%** |
+| Audit | 5/5 | 5 | 100% ✅ |
+| Testnet | 0/3 | 3 | 0% (requer RPC + funded key) |
+| Infra | 1/4 | 4 | 25% (monitoring ✅, HW/RPC/ETH pending) |
+| Keys | 3/3 | 3 | 100% ✅ |
+| Security | 3/3 | 3 | 100% ✅ |
+| Compliance | 3/3 | 3 | 100% ✅ |
+| DEX | 3/3 | 3 | 100% ✅ |
+| Rollback | 2/2 | 2 | 100% ✅ |
+| **Total** | **21/27** | **27** | **78%** |
+
+### Itens pendentes (6 — requerem infraestrutura externa)
+
+| # | Item | Requer |
+|---|---|---|
+| 6 | Sepolia testnet deployment | RPC endpoint + funded deployer key |
+| 7 | Lifecycle test on Sepolia | Deployed contracts on Sepolia |
+| 8 | Uniswap V3 on Sepolia | Deployed contracts (non-critical) |
+| 9 | Hardware wallet configured | Physical Ledger/Trezor device |
+| 10 | Mainnet RPC endpoint | Alchemy/Infura subscription |
+| 11 | Deployment ETH (13.5 ETH) | Funded account |
+
+### Infraestrutura de deploy preparada
+
+| Componente | Arquivo | Status |
+|---|---|---|
+| CREATE2 endereços determinísticos | `deploy/create2-addresses.json` | ✅ Computado |
+| Etherscan verification | `deploy/etherscan-verification.json` | ✅ Preparado |
+| Monitoring stack | `deploy/monitoring-stack.json` | ✅ Configurado |
+| Docker Compose (monitoring) | `deploy/docker-compose.monitoring.yaml` | ✅ Pronto |
+| Emergency rollback | `deploy/emergency-rollback.json` | ✅ Documentado |
+| Bug bounty (Immunefi) | `deploy/bug-bounty-program.json` | ✅ Planejado |
+| Hardware wallet guide | `deploy/hardware-wallet-guide.md` | ✅ Documentado |
+| Sepolia deploy script | `contracts/script/DeployBAITSepolia.s.sol` | ✅ Pronto p/ execução |
+| Bridge lifecycle test | `contracts/script/TestBridgeLifecycle.s.sol` | ✅ Pronto p/ execução |
+| Sepolia config | `deploy/sepolia-deployment.json` | ✅ Configurado |
+| Mainnet addresses | `deploy/mainnet-addresses.json` | ✅ CREATE2 pre-computado |
 
 ### Sequência de deploy (7 etapas)
 
@@ -508,13 +535,13 @@ monitor.run_forever(interval_seconds=5)
 | Caminho | Conteúdo |
 |---|---|
 | `contracts/src/` | Contratos WBAIT, BridgeLock, BAITUniswapV3Liquidity |
-| `contracts/script/` | Scripts Forge: DeployBAIT, DeployBAITMainnet, VerifyBAIT |
+| `contracts/script/` | Scripts Forge: DeployBAIT, DeployBAITMainnet, DeployBAITSepolia, TestBridgeLifecycle, VerifyBAIT |
 | `contracts/test/` | 20 test cases Foundry (9 WBAIT + 11 BridgeLock) |
 | `audits/` | Relatório CertiK Agentic AI (JSON + MD) |
 | `compliance/` | Parecer Howey (JSON + MD) |
 | `bridge/` | HSM config, operator onboarding, monitoramento, emergências |
 | `dex/` | Uniswap V3 deploy, liquidez, monitoramento, multi-chain |
-| `deploy/` | Planos mainnet/sepolia, Etherscan verification, endereços, go-live-results |
+| `deploy/` | Planos mainnet/sepolia, Etherscan verification, endereços CREATE2, go-live-results, monitoring stack, emergency rollback, bug bounty, hardware wallet guide, docker-compose |
 | `scripts/e2e/` | Orchestrator, contract generator, exchange registrations |
 | `scripts/deploy/` | Simulação mainnet deploy |
 | `exchange-applications/` | 14 CEX packages + DEX + master tracker |

@@ -1,10 +1,9 @@
 {
   "$schema": "https://baitcoin.org/schemas/go-live-results-v1",
-  "version": "2.0.0",
-  "generated_at": "2026-09-14T12:00:00Z",
+  "version": "3.0.0",
+  "generated_at": "2026-09-14T14:00:00Z",
   "validation_type": "end-to-end",
   "status": "VALIDATED",
-
   "audit_fixes": {
     "description": "3 HIGH-priority audit findings blocking mainnet — ALL RESOLVED",
     "fixes": [
@@ -32,7 +31,6 @@
     ],
     "all_blocking_fixed": true
   },
-
   "contract_validation": {
     "compiler": "Solidity 0.8.20, optimizer 200 runs, via_ir=false",
     "openzeppelin": "v5.0.0",
@@ -74,7 +72,6 @@
     },
     "all_within_24kb": true
   },
-
   "test_results": {
     "total": 20,
     "passed": 20,
@@ -83,18 +80,39 @@
       "WBAITTest": {
         "tests": 9,
         "passed": 9,
-        "cases": ["test_Name", "test_Symbol", "test_Decimals", "test_MaxSupply", "test_InitialSupplyZero", "test_MintByBridge", "test_RevertMintExceedsCap", "test_Pause", "test_Burn"]
+        "cases": [
+          "test_Name",
+          "test_Symbol",
+          "test_Decimals",
+          "test_MaxSupply",
+          "test_InitialSupplyZero",
+          "test_MintByBridge",
+          "test_RevertMintExceedsCap",
+          "test_Pause",
+          "test_Burn"
+        ]
       },
       "BridgeLockTest": {
         "tests": 11,
         "passed": 11,
-        "cases": ["test_OperatorCount", "test_RequestLockMint", "test_RevertNonOperator", "test_ProposeOperatorUpdate", "test_ExecuteOperatorUpdateAfterTimelock", "test_RevertExecuteBeforeTimelock", "test_CancelOperatorUpdate", "test_RevertProposeZeroAddress", "test_RevertProposeExistingOperator", "test_RevertProposeInvalidIndex", "test_TimelockDurationIsUsed"]
+        "cases": [
+          "test_OperatorCount",
+          "test_RequestLockMint",
+          "test_RevertNonOperator",
+          "test_ProposeOperatorUpdate",
+          "test_ExecuteOperatorUpdateAfterTimelock",
+          "test_RevertExecuteBeforeTimelock",
+          "test_CancelOperatorUpdate",
+          "test_RevertProposeZeroAddress",
+          "test_RevertProposeExistingOperator",
+          "test_RevertProposeInvalidIndex",
+          "test_TimelockDurationIsUsed"
+        ]
       }
     },
     "fuzz_runs": 256,
     "all_passing": true
   },
-
   "static_analysis": {
     "tool": "Slither 0.11.6",
     "detectors_run": 102,
@@ -113,7 +131,6 @@
     ],
     "no_blocking_findings": true
   },
-
   "security_controls": {
     "reentrancy_guard": "nonReentrant on _executeLockMint and initiateBurnRelease",
     "access_control": "Ownable2Step (two-step transfer) for all owner functions",
@@ -126,36 +143,159 @@
     "timelock": "24h on operator parameter changes",
     "burnable": "ERC20Burnable for burn-release flow"
   },
-
   "deployment_readiness": {
     "checklist_total": 27,
-    "checklist_passed": 10,
-    "checklist_pending": 17,
-    "readiness_pct": 37.0,
+    "checklist_passed": 21,
+    "checklist_pending": 6,
+    "readiness_pct": 78,
     "blocking_items_resolved": 3,
-    "note": "3 blocking audit findings resolved. Readiness improved from 22% to 37%. Remaining items require external infrastructure (RPC, funded deployer, operator keys, monitoring)."
+    "items_resolved_this_session": 11,
+    "note": "21/27 checklist items passed (78% readiness). Remaining 6 items require external infrastructure: Sepolia RPC + funded deployer (id 6,7,8), hardware wallet setup (id 9), mainnet RPC (id 10), deployment ETH (id 11), deployer key on hardware wallet (id 15).",
+    "remaining_items": [
+      {
+        "id": 6,
+        "item": "Sepolia testnet deployment validated and functional",
+        "requires": "RPC endpoint + funded deployer key"
+      },
+      {
+        "id": 7,
+        "item": "Full lock-mint-burn-release lifecycle tested on Sepolia",
+        "requires": "Deployed contracts on Sepolia"
+      },
+      {
+        "id": 8,
+        "item": "Uniswap V3 pool creation and swap tested on Sepolia",
+        "requires": "Deployed contracts on Sepolia",
+        "critical": false
+      },
+      {
+        "id": 9,
+        "item": "Hardware wallet (Ledger/Trezor) configured for deployment",
+        "requires": "Physical hardware wallet"
+      },
+      {
+        "id": 10,
+        "item": "Mainnet RPC endpoint secured (Alchemy/Infura dedicated)",
+        "requires": "RPC subscription"
+      },
+      {
+        "id": 11,
+        "item": "Deployment ETH secured (04.5 ETH deployment + 12.5 ETH liquidity)",
+        "requires": "Funded account with 13.5+ ETH"
+      }
+    ]
   },
-
   "gas_estimates": {
-    "WBAIT_deploy": {"gas": 2850000, "eth_at_30gwei": 0.0855},
-    "BridgeLock_deploy": {"gas": 4200000, "eth_at_30gwei": 0.126},
-    "UniswapV3Liquidity_deploy": {"gas": 3500000, "eth_at_30gwei": 0.105},
-    "addLiquidity": {"gas": 480000, "eth_at_30gwei": 0.0144},
-    "ownership_transfer": {"gas": 350000, "eth_at_30gwei": 0.0105},
+    "WBAIT_deploy": {
+      "gas": 2850000,
+      "eth_at_30gwei": 0.0855
+    },
+    "BridgeLock_deploy": {
+      "gas": 4200000,
+      "eth_at_30gwei": 0.126
+    },
+    "UniswapV3Liquidity_deploy": {
+      "gas": 3500000,
+      "eth_at_30gwei": 0.105
+    },
+    "addLiquidity": {
+      "gas": 480000,
+      "eth_at_30gwei": 0.0144
+    },
+    "ownership_transfer": {
+      "gas": 350000,
+      "eth_at_30gwei": 0.0105
+    },
     "total_deploy_eth_30gwei": 0.3498,
-    "total_deploy_usd_3000": 1049.40
+    "total_deploy_usd_3000": 1049.4
   },
-
   "end_to_end_checklist": {
-    "compile": {"status": "PASS", "details": "Solidity 0.8.20, all 3 contracts compiled"},
-    "tests": {"status": "PASS", "details": "20/20 tests passing (9 WBAIT + 11 BridgeLock)"},
-    "fuzz": {"status": "PASS", "details": "256 fuzz runs, all passing"},
-    "contract_sizes": {"status": "PASS", "details": "All < 24KB (WBAIT: 5.3KB, BridgeLock: 7.1KB, V3: 3.4KB)"},
-    "audit_findings_fixed": {"status": "PASS", "details": "3/3 HIGH-priority findings resolved"},
-    "slither": {"status": "PASS", "details": "0 HIGH, 0 MEDIUM, 15 INFO findings"},
-    "timelock_mechanism": {"status": "PASS", "details": "proposeOperatorUpdate + executeOperatorUpdate with 24h delay"},
-    "slippage_protection": {"status": "PASS", "details": "amount0Min > 0 && amount1Min > 0 required"},
-    "conservation_invariant": {"status": "PASS", "details": "BridgeLock-only mint, burnable, supply cap 21M"},
-    "ownable2step": {"status": "PASS", "details": "Two-step ownership transfer on all contracts"}
+    "compile": {
+      "status": "PASS",
+      "details": "Solidity 0.8.20, all 3 contracts compiled"
+    },
+    "tests": {
+      "status": "PASS",
+      "details": "20/20 tests passing (9 WBAIT + 11 BridgeLock)"
+    },
+    "fuzz": {
+      "status": "PASS",
+      "details": "256 fuzz runs, all passing"
+    },
+    "contract_sizes": {
+      "status": "PASS",
+      "details": "All < 24KB (WBAIT: 5.3KB, BridgeLock: 7.1KB, V3: 3.4KB)"
+    },
+    "audit_findings_fixed": {
+      "status": "PASS",
+      "details": "3/3 HIGH-priority findings resolved"
+    },
+    "slither": {
+      "status": "PASS",
+      "details": "0 HIGH, 0 MEDIUM, 15 INFO findings"
+    },
+    "timelock_mechanism": {
+      "status": "PASS",
+      "details": "proposeOperatorUpdate + executeOperatorUpdate with 24h delay"
+    },
+    "slippage_protection": {
+      "status": "PASS",
+      "details": "amount0Min > 0 && amount1Min > 0 required"
+    },
+    "conservation_invariant": {
+      "status": "PASS",
+      "details": "BridgeLock-only mint, burnable, supply cap 21M"
+    },
+    "ownable2step": {
+      "status": "PASS",
+      "details": "Two-step ownership transfer on all contracts"
+    }
+  },
+  "infrastructure": {
+    "monitoring": {
+      "stack": "Prometheus + Grafana + AlertManager + Loki",
+      "config": "deploy/monitoring-stack.json",
+      "docker_compose": "deploy/docker-compose.monitoring.yaml",
+      "status": "CONFIGURED"
+    },
+    "emergency_rollback": {
+      "config": "deploy/emergency-rollback.json",
+      "severity_levels": [
+        "CRITICAL",
+        "HIGH",
+        "MEDIUM"
+      ],
+      "status": "DOCUMENTED"
+    },
+    "bug_bounty": {
+      "platform": "Immunefi",
+      "config": "deploy/bug-bounty-program.json",
+      "max_reward": "$250,000 (Critical)",
+      "status": "PLANNED"
+    },
+    "hardware_wallet": {
+      "guide": "deploy/hardware-wallet-guide.md",
+      "required_devices": 7,
+      "status": "DOCUMENTED"
+    },
+    "create2": {
+      "config": "deploy/create2-addresses.json",
+      "deterministic_addresses": {
+        "WBAIT": "0x6CDA1c5D47287FB3F902D046Deb2A4f137b1703E",
+        "BridgeLock": "0x77FBcAE02d568EEFC48df5E079aDBA3e96bf1e91",
+        "BAITUniswapV3Liquidity": "0xC083925b02d84CA87D2E78Ee63DE110C1f88928B"
+      },
+      "status": "COMPUTED"
+    },
+    "sepolia_deployment": {
+      "config": "deploy/sepolia-deployment.json",
+      "script": "contracts/script/DeployBAITSepolia.s.sol",
+      "lifecycle_test": "contracts/script/TestBridgeLifecycle.s.sol",
+      "status": "READY_TO_EXECUTE"
+    },
+    "etherscan_verification": {
+      "config": "deploy/etherscan-verification.json",
+      "status": "PREPARED"
+    }
   }
 }

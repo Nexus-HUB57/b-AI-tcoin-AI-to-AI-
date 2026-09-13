@@ -1,0 +1,54 @@
+{
+  "version": "1.0.0",
+  "generated_at": "2026-09-14T12:00:00Z",
+  "severity_levels": {
+    "CRITICAL": {
+      "description": "Unauthorized minting, bridge exploit, fund theft",
+      "response_time": "Immediate (< 5 minutes)",
+      "actions": ["pause_all_contracts", "page_security_team", "assess_impact", "notify_exchanges", "prepare_rollback"],
+      "commands": {
+        "pause_wbait": "cast send $WBAIT_ADDR 'pause()' --rpc-url $RPC_URL --private-key $OWNER_KEY",
+        "pause_bridgelock": "cast send $BRIDGE_ADDR 'pause()' --rpc-url $RPC_URL --private-key $OWNER_KEY",
+        "check_supply": "cast call $WBAIT_ADDR 'totalSupply()(uint256)' --rpc-url $RPC_URL",
+        "check_recent_mints": "cast logs $WBAIT_ADDR --topic0 $(cast sigevent 'Minted(address,uint256)') --from-block $SUSPECT_BLOCK"
+      }
+    },
+    "HIGH": {
+      "description": "Incorrect operator config, governance attack attempt",
+      "response_time": "Within 1 hour",
+      "actions": ["pause_affected_contract", "assess_impact", "plan_remediation", "execute_timelocked_fix"],
+      "commands": {
+        "operator_update": "1. proposeOperatorUpdate(index, newAddress) 2. Wait 24h 3. executeOperatorUpdate()",
+        "cancel_bad_operator": "cancelOperatorUpdate() if pending update is suspect"
+      }
+    },
+    "MEDIUM": {
+      "description": "Suboptimal gas, minor config issue, monitoring gap",
+      "response_time": "Within 24 hours",
+      "actions": ["assess", "plan_fix", "deploy_fix_via_timelock"]
+    }
+  },
+  "full_rollback": {
+    "description": "Nuclear option — only for fundamentally flawed deployment",
+    "steps": [
+      "1. Emergency pause ALL contracts (WBAIT + BridgeLock)",
+      "2. Deploy WBAITv2 with corrected BridgeLock address",
+      "3. Deploy BridgeLockv2 with correct operators",
+      "4. Deploy BAITUniswapV3Liquidityv2",
+      "5. Announce migration plan to community",
+      "6. Users burn wBAIT(v1) and re-lock on L1 to receive wBAIT(v2)",
+      "7. Verify new deployment end-to-end",
+      "8. Unpause new contracts",
+      "9. Update Etherscan verification",
+      "10. Update exchange and DEX integrations"
+    ],
+    "estimated_cost": "~1 ETH for re-deployment + gas",
+    "estimated_downtime": "24-72 hours"
+  },
+  "contacts": {
+    "security_lead": "security@mybait.org",
+    "operations_lead": "ops@mybait.org",
+    "multisig_signers": "5 HSM-derived operator addresses",
+    "bug_bounty": "Immunefi (post-mainnet)"
+  }
+}

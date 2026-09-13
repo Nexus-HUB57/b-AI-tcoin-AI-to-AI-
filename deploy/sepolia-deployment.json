@@ -1,0 +1,54 @@
+{
+  "version": "1.0.0",
+  "generated_at": "2026-09-14T12:00:00Z",
+  "network": "sepolia-testnet",
+  "chain_id": 11155111,
+  "description": "Sepolia testnet deployment configuration for full lifecycle testing before mainnet.",
+  "rpc_url_env": "SEPOLIA_RPC_URL",
+  "deployer_key_env": "DEPLOYER_PRIVATE_KEY",
+  "etherscan_api_key_env": "ETHERSCAN_API_KEY",
+  "required_eth": "0.5 ETH (testnet faucet)",
+  "faucet_urls": [
+    "https://sepoliafaucet.com",
+    "https://www.alchemy.com/faucets/ethereum-sepolia",
+    "https://infura.io/faucet/sepolia"
+  ],
+  "uniswap_v3_sepolia": {
+    "factory": "0xEbe1... (verify on deployment)",
+    "position_manager": "0x1234... (verify on deployment)",
+    "weth": "0x7b7b... (verify on deployment)",
+    "note": "Sepolia Uniswap V3 addresses differ from mainnet. Verify at https://docs.uniswap.org/contracts/deployments"
+  },
+  "testnet_operators": {
+    "note": "Testnet operators use deterministic addresses for testing. Production uses HSM-derived keys.",
+    "addresses": ["0xf39FD6E46aAd4f21Ab2D9B4D2386C90789b70653", "0x70997970C51812DcdeA1F10b5BB9bd5F3f3dEB5D", "0x3c44cDDdb6a900Fa2B385dD3C5a7C1A3c4D495F7", "0x90f79bF6f509F8B6e11C0800b9Bd1C3d1FE8c73b", "0x15d34aAf5dB67d33767E7f02D2D4C6C0C0C0c0C0"]
+  },
+  "deployment_steps": [
+    "1. fund: Get 0.5+ Sepolia ETH from faucet for deployer address",
+    "2. deploy: forge script script/DeployBAITSepolia.s.sol --rpc-url $SEPOLIA_RPC_URL --private-key $DEPLOYER_PRIVATE_KEY --broadcast --verify",
+    "3. verify: Check WBAIT and BridgeLock on Sepolia Etherscan",
+    "4. test-lifecycle: Execute full lock-mint-burn-release cycle on testnet",
+    "5. test-operators: Test operator proposal, timelock, and execution",
+    "6. test-pause: Test emergency pause and unpause",
+    "7. test-rate-limit: Verify 100K/day rate limiting works",
+    "8. observe: Run for 48h with monitoring before mainnet promotion"
+  ],
+  "post_deploy_verification": {
+    "checks": [
+      "WBAIT.name() == 'Wrapped bAIitcoin'",
+      "WBAIT.symbol() == 'wBAIT'",
+      "WBAIT.decimals() == 8",
+      "WBAIT.MAX_SUPPLY() == 2100000000000000",
+      "WBAIT.totalSupply() == 0",
+      "WBAIT.paused() == false",
+      "WBAIT.bridgeLock() == BridgeLock address",
+      "BridgeLock.wbait() == WBAIT address",
+      "BridgeLock.isOperator(op[i]) == true for all 5",
+      "BridgeLock.paused() == false",
+      "BridgeLock.TIMELOCK_DURATION() == 86400",
+      "BridgeLock.RATE_LIMIT() == 10000000000000",
+      "BridgeLock.REQUIRED_CONFIRMATIONS() == 3"
+    ]
+  },
+  "lifecycle_test_script": "forge script script/TestBridgeLifecycle.s.sol --rpc-url $SEPOLIA_RPC_URL --broadcast"
+}
