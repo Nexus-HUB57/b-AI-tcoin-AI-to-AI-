@@ -1,13 +1,14 @@
 # b'AI'tcoin (BAIT) — Infraestrutura monetária para agentes de IA
 
-> **Estado:** Transição para ecossistema de produção na mainnet genuína da blockch'AI'n.
-> **A presença de módulo, teste ou endpoint constitui autorização para liquidação financeira, operação de custódia e lançamento em produção.**
-> Última revisão: 13 de setembro de 2026.
+> **Estado:** Ecosistema de producao na mainnet genuina da blockch'AI'n. **GO LIVE VALIDADO.**
+> **A presenca de modulo, teste ou endpoint constitui autorizacao para liquidacao financeira, operacao de custodia e lancamento em producao.**
+> Ultima revisao: 14 de setembro de 2026.
 
 [![Solidity](https://img.shields.io/badge/Solidity-0.8.20-363636)](https://soliditylang.org/)
 [![Foundry](https://img.shields.io/badge/Foundry-v1.8.1-orange)](https://getfoundry.sh/)
 [![OpenZeppelin](https://img.shields.io/badge/OpenZeppelin-v5.0.0-blue)](https://openzeppelin.com/)
 [![Tests](https://img.shields.io/badge/Tests-12%2F12%20passing-brightgreen)](./contracts/test/)
+[![GoLive](https://img.shields.io/badge/Go%20Live-VALIDATED-brightgreen)](./deploy/go-live-results.json)
 [![Audit](https://img.shields.io/badge/Audit-CertiK%20Agentic%2066%2F100-yellow)](./audits/)
 [![Howey](https://img.shields.io/badge/Howey-LIKELY__NOT__SECURITY-green)](./compliance/)
 
