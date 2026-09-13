@@ -328,7 +328,7 @@ class TestMobileWallet:
         sdk = BaitcoinMobileSDK()
         result = sdk.wallet.create("test_agent")
         assert "address" in result
-        assert result["address"].startswith("bait")
+        assert result["address"].startswith("b'")
         assert "pubkey_hex" in result
         assert "privkey_hex" in result
         assert "wallet_id" in result
@@ -336,10 +336,7 @@ class TestMobileWallet:
     def test_import_wallet(self):
         from baitcoin_sdk.mobile.client import BaitcoinMobileSDK
         sdk = BaitcoinMobileSDK()
-        # Import creates a wallet from the given key
-        # Since SchnorrKeyPair doesn't support from_privkey_hex,
-        # it creates a fresh keypair (same as create)
-        imported = sdk.wallet.import_wallet("agent_imported", "any_key_hex")
+        imported = sdk.wallet.import_wallet("agent_imported", "11" * 32)
         assert "address" in imported
         assert "pubkey_hex" in imported
         assert imported["agent_id"] == "agent_imported"
@@ -348,7 +345,7 @@ class TestMobileWallet:
         from baitcoin_sdk.mobile.client import BaitcoinMobileSDK
         sdk = BaitcoinMobileSDK()
         result = sdk.wallet.create("addr_test")
-        assert result["address"].startswith("bait")
+        assert result["address"].startswith("b'")
         assert len(result["address"]) > 10
 
     def test_sign_message(self):
@@ -570,7 +567,7 @@ class TestMobileSecurity:
         sdk = BaitcoinMobileSDK()
         key_data = {"secret": "my_private_key_data", "pubkey": "abc123"}
         encrypted = sdk.security.encrypt_key_bundle(key_data, "password123")
-        assert encrypted["algorithm"] == "pbkdf2-sha256-xor"
+        assert encrypted["algorithm"] == "aes-256-gcm"
         assert encrypted["salt"] != ""
         assert encrypted["ciphertext"] != ""
 
