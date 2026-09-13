@@ -10,6 +10,8 @@ import hashlib
 import json
 import pytest
 import time
+import base64
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 
 # ============================================================
@@ -880,18 +882,26 @@ class TestRelayer:
 
     def test_relay_event(self):
         from baitcoin_bridge.manager import BridgeManager
-        from baitcoin_bridge.relayer import Relayer
+        from baitcoin_bridge.relayer import Relayer, RelayerConfig
+        from baitcoin_bridge.authorization import RelayerAuthorization
         mgr = BridgeManager()
-        relayer = Relayer(mgr)
+        key = Ed25519PrivateKey.generate()
+        relayer_id = "relayer-test"
+        auth = RelayerAuthorization({relayer_id: base64.b64encode(key.public_key().public_bytes_raw()).decode()})
+        relayer = Relayer(mgr, RelayerConfig(relayer_id=relayer_id), auth, key)
         lock = mgr.lock_bait("a1", 100 * 100_000_000, 1, "0xR")
         result = relayer.relay_event(lock["event_id"])
         assert result["success"] is True
 
     def test_relayer_stats(self):
         from baitcoin_bridge.manager import BridgeManager
-        from baitcoin_bridge.relayer import Relayer
+        from baitcoin_bridge.relayer import Relayer, RelayerConfig
+        from baitcoin_bridge.authorization import RelayerAuthorization
         mgr = BridgeManager()
-        relayer = Relayer(mgr)
+        key = Ed25519PrivateKey.generate()
+        relayer_id = "relayer-stats-test"
+        auth = RelayerAuthorization({relayer_id: base64.b64encode(key.public_key().public_bytes_raw()).decode()})
+        relayer = Relayer(mgr, RelayerConfig(relayer_id=relayer_id), auth, key)
         lock = mgr.lock_bait("a1", 100 * 100_000_000, 1, "0xR")
         relayer.relay_event(lock["event_id"])
         stats = relayer.get_stats()

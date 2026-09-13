@@ -24,10 +24,12 @@ Usage::
     print(result["status"])  # "submitted"
 """
 import time
-import hashlib
 import uuid
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+
+from baitcoin_bridge.authorization import AuthorizationError, RelayerAuthorization
 
 
 @dataclass
@@ -96,11 +98,19 @@ class Relayer:
         Relayer configuration
     """
 
-    def __init__(self, bridge_manager, config: RelayerConfig = None):
+    def __init__(
+        self,
+        bridge_manager,
+        config: RelayerConfig = None,
+        authorization: RelayerAuthorization = None,
+        signer_private_key: Ed25519PrivateKey = None,
+    ):
         self.manager = bridge_manager
         self.config = config or RelayerConfig(
             relayer_id=uuid.uuid4().hex[:8],
         )
+        self.authorization = authorization
+        self.signer_private_key = signer_private_key
         self._jobs: Dict[str, RelayJob] = {}
         self._total_relayed = 0
         self._total_failed = 0
@@ -127,6 +137,9 @@ class Relayer:
         if event.event_type != "lock":
             return {"error": "not_a_lock_event"}
 
+        if not self.authorization or not self.signer_private_key:
+            return {"error": "authorization_required"}
+
         # Check if already relayed
         for job in self._jobs.values():
             if job.event_id == event_id and job.status == "confirmed":
@@ -145,20 +158,39 @@ class Relayer:
             fee_sats=fee_sats,
         )
 
-        # Submit proof to bridge manager
+        try:
+            signature = self.authorization.sign(
+                self.signer_private_key,
+                event_id,
+                event.transfer_id,
+                event.chain_id,
+                event.amount_sats,
+                event.merkle_proof,
+            )
+            verified = self.authorization.verify_one(
+                event_id=event_id,
+                transfer_id=event.transfer_id,
+                chain_id=event.chain_id,
+                amount_sats=event.amount_sats,
+                proof=event.merkle_proof,
+                signer_id=self.config.relayer_id,
+                signature_b64=signature,
+            )
+        except AuthorizationError as exc:
+            return {"error": f"authorization_failed: {exc}"}
+
+        # Only an individually verified signature may reach BridgeManager.
         result = self.manager.submit_proof(
             event_id=event_id,
             proof=event.merkle_proof,
-            signer_id=self.config.relayer_id,
-            signature=hashlib.sha256(
-                f"{event_id}:{job_id}".encode()
-            ).hexdigest(),
+            signer_id=verified[0],
+            signature=verified[1],
         )
 
         if result.get("success"):
             job.status = "submitted"
             job.submitted_at = time.time()
-            job.signatures = [f"{self.config.relayer_id}:auto"]
+            job.signatures = [f"{verified[0]}:ed25519"]
 
             if result.get("ready_to_mint"):
                 job.status = "confirmed"
