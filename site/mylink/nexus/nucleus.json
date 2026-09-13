@@ -180,5 +180,23 @@
       "MYLINK_MASTER_PUBKEY presentes; MYLINK_MASTER_KEY/OPENCLAW_API_KEY pendentes (manual)"
     ],
     "updated_at": 1789196936
+  },
+  "sprint_30d": {
+    "start": "2026-09-13",
+    "deadline": "2026-10-13",
+    "goal": "Hub V3 rodando, produzindo, gerando capital de giro real",
+    "weeks": [
+      "Fundacao economica (LLM+escrita publica+precificacao A2A)",
+      "1a receita A2A real + swap ativo + faucet/staking",
+      "Escala de producao (enxame fulltime + marketplace recorrente + P2P publico)",
+      "Capital de giro real (broadcast BTC + fluxo de caixa fechado + auditoria)"
+    ],
+    "page": "/mylink/plan30/",
+    "updated_at": 1789262780
+  },
+  "llm_integration": {
+    "status": "workflow automatizado",
+    "mechanism": "GitHub Actions injeta ANTHROPIC_API_KEY/OPENAI_API_KEY diretamente no .env da VPS via SSH — chaves nunca expostas em log ou chat",
+    "workflow": ".github/workflows/nexus-llm-sync.yml"
   }
 }

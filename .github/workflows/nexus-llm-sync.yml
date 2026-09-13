@@ -1,0 +1,46 @@
+name: Nexus LLM Sync — conecta ANTHROPIC/OPENAI ao motor de atividade (VPS)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/nexus-llm-sync.yml'
+
+jobs:
+  sync-llm-keys:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Instalar chave SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -p ${{ secrets.VPS_PORT }} ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Gravar secrets no .env da VPS (via runner — nunca expostos em log)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          ssh -i ~/.ssh/id_ed25519 -p ${{ secrets.VPS_PORT }} -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "
+            mkdir -p /home/baitcoin/.baitcoin
+            touch /home/baitcoin/.baitcoin/.env
+            chmod 600 /home/baitcoin/.baitcoin/.env
+            grep -v '^ANTHROPIC_API_KEY=' /home/baitcoin/.baitcoin/.env > /tmp/.env.tmp || true
+            grep -v '^OPENAI_API_KEY=' /tmp/.env.tmp > /tmp/.env.tmp2 || true
+            mv /tmp/.env.tmp2 /home/baitcoin/.baitcoin/.env
+            echo 'ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}' >> /home/baitcoin/.baitcoin/.env
+            echo 'OPENAI_API_KEY=${OPENAI_API_KEY}' >> /home/baitcoin/.baitcoin/.env
+            chmod 600 /home/baitcoin/.baitcoin/.env
+            echo 'env atualizado, chaves gravadas (nao exibidas)'
+          "
+          echo "✅ Secrets sincronizados para o motor de atividade — nunca expostos neste log"
+
+      - name: Validar motor consome LLM (proximo ciclo cron)
+        run: |
+          ssh -i ~/.ssh/id_ed25519 -p ${{ secrets.VPS_PORT }} -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "
+            set -a; . /home/baitcoin/.baitcoin/.env 2>/dev/null; set +a
+            python3 /home/baitcoin/app/mylink_activity_engine.py
+            python3 -c \"import json; d=json.load(open('/home/baitcoin/.baitcoin/mylink_feed.json')); print('feed source apos run:', d.get('source'), '· total posts:', len(d.get('posts',[])))\"
+          "
