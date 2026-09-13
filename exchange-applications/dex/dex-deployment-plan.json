@@ -1,0 +1,61 @@
+{
+  "dex_targets": {
+    "uniswap_v3": {
+      "name": "Uniswap V3",
+      "chain": "Ethereum",
+      "pair": "wBAIT/WETH",
+      "fee_tier": "0.3%",
+      "tick_spacing": 60,
+      "initial_liquidity_usd": 25000,
+      "status": "READY_TO_DEPLOY",
+      "timeline": "Week 1-2"
+    },
+    "raydium": {
+      "name": "Raydium",
+      "chain": "Solana",
+      "pair": "wBAIT/SOL",
+      "fee_tier": "0.3%",
+      "initial_liquidity_usd": 10000,
+      "status": "PENDING_BRIDGE",
+      "timeline": "Week 3-4"
+    },
+    "pancakeswap": {
+      "name": "PancakeSwap V3",
+      "chain": "BSC",
+      "pair": "wBAIT/WBNB",
+      "fee_tier": "0.25%",
+      "initial_liquidity_usd": 5000,
+      "status": "PENDING_BRIDGE",
+      "timeline": "Week 3-4"
+    },
+    "camelot": {
+      "name": "Camelot",
+      "chain": "Arbitrum",
+      "pair": "wBAIT/WETH",
+      "fee_tier": "0.3%",
+      "initial_liquidity_usd": 5000,
+      "status": "PENDING_BRIDGE",
+      "timeline": "Week 3-4"
+    },
+    "aerodrome": {
+      "name": "Aerodrome",
+      "chain": "Base",
+      "pair": "wBAIT/WETH",
+      "fee_tier": "0.3%",
+      "initial_liquidity_usd": 5000,
+      "status": "PENDING_BRIDGE",
+      "timeline": "Week 3-4"
+    }
+  },
+  "total_initial_liquidity_usd": 50000,
+  "deployment_order": [
+    "1. Uniswap V3 (Ethereum) — Primary, first DEX listing",
+    "2. PancakeSwap V3 (BSC) — Largest BSC DEX, low fees",
+    "3. Raydium (Solana) — Solana ecosystem access",
+    "4. Camelot (Arbitrum) — L2 scaling, low gas",
+    "5. Aerodrome (Base) — Coinbase L2 ecosystem"
+  ],
+  "metadata": {
+    "generated_at": "2026-09-13T12:33:03.061822"
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "phase": "3_mainnet_deployment",
+  "timestamp": "2026-09-13T12:37:05.519614",
+  "network": "ethereum-mainnet",
+  "commands": [
+    {
+      "step": 1,
+      "description": "Deploy WBAIT + BridgeLock to Ethereum Mainnet",
+      "command": "forge script script/DeployBAIT.s.sol --rpc-url $MAINNET_RPC_URL --broadcast --verify --slow",
+      "gas_estimate": "~0.3375 ETH ($1,012 @ $3,000/ETH)",
+      "estimated_time": "5 min",
+      "safety": "HARDWARE WALLET REQUIRED — use Ledger/Trezor via cast"
+    },
+    {
+      "step": 2,
+      "description": "Verify all contracts on Etherscan",
+      "command": "forge verify-contract <WBAIT_ADDR> WBAIT --chain mainnet && forge verify-contract <BRIDGE_ADDR> BridgeLock --chain mainnet",
+      "estimated_time": "5 min"
+    },
+    {
+      "step": 3,
+      "description": "Create Uniswap V3 wBAIT/WETH pool",
+      "command": "cast send <LIQUIDITY_CONTRACT> 'createPool()' --rpc-url $MAINNET_RPC_URL --private-key $DEPLOYER_KEY",
+      "estimated_time": "2 min"
+    },
+    {
+      "step": 4,
+      "description": "Seed initial liquidity ($25K wBAIT + WETH)",
+      "command": "cast send <LIQUIDITY_CONTRACT> 'addLiquidity(uint256,uint256,int24,int24)' <AMT_WBAIT> <AMT_WETH> <TICK_LOWER> <TICK_UPPER> --rpc-url $MAINNET_RPC_URL --private-key $DEPLOYER_KEY",
+      "estimated_time": "2 min",
+      "liquidity_usd": 25000
+    },
+    {
+      "step": 5,
+      "description": "Update exchange applications with deployed addresses",
+      "command": "python scripts/bait-e2e-update-addresses.py --wBAIT <WBAIT_ADDR> --bridge <BRIDGE_ADDR>",
+      "estimated_time": "1 min"
+    }
+  ],
+  "pre_deployment_checklist": [
+    "✅ Sepolia testnet deployment validated",
+    "✅ All 11 Foundry tests passing",
+    "✅ Bridge lock-mint-burn-release lifecycle tested",
+    "✅ Slither audit: LOW overall risk",
+    "⬜ Professional audit commissioned (CertiK/Quantstamp)",
+    "⬜ Mainnet ETH secured (0.5 ETH + liquidity ETH)",
+    "⬜ Hardware wallet configured for deployment",
+    "⬜ Operator addresses finalized (5 unique addresses)",
+    "⬜ Emergency pause procedure documented",
+    "⬜ 24/7 monitoring infrastructure ready"
+  ],
+  "estimated_gas_cost": {
+    "deployment": "0.3375 ETH",
+    "with_buffer": "0.50625 ETH",
+    "estimated_usd": 1518.75
+  },
+  "initial_liquidity": {
+    "uniswap_v3_wbait_weth": 25000,
+    "total_usd": 25000
+  }
+}

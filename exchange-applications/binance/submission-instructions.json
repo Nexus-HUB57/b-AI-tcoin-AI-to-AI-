@@ -1,0 +1,69 @@
+{
+  "exchange": "Binance",
+  "exchange_id": "binance",
+  "submit_url": "https://www.binance.com/en/dex-listing",
+  "submit_method": "WEB_FORM + DIRECT_OUTREACH",
+  "contact_email": "listing@binance.com",
+  "fee_estimate": "Negotiable (Innovation Zone: often $0)",
+  "timeline": "3-6 months",
+  "priority": 11,
+  "special_instructions": "Innovation Zone has reduced requirements. Position as 'Bitcoin of AI'. Direct outreach to Binance Labs.",
+  "required_documents": [
+    "token_info.json",
+    "audit_summary.json",
+    "technical_summary.md",
+    "application_checklist.json",
+    "Professional audit report (CertiK/Quantstamp)",
+    "Legal opinion letter",
+    "Market maker commitment (6 months minimum)",
+    "Community metrics proof"
+  ],
+  "submission_steps": [
+    "1. Navigate to https://www.binance.com/en/dex-listing",
+    "2. Create exchange account (if not existing)",
+    "3. Fill in token details from token_info.json",
+    "4. Upload technical_summary.md and audit_summary.json",
+    "5. Provide market maker commitment (if required)",
+    "6. Submit application and note reference ID",
+    "7. Follow up via email within 3 business days",
+    "8. Contact: listing@binance.com"
+  ],
+  "package_files": {
+    "token_info.json": {
+      "status": "READY",
+      "path": "/home/z/my-project/download/exchange-applications/binance/token_info.json",
+      "size": 3382
+    },
+    "audit_summary.json": {
+      "status": "READY",
+      "path": "/home/z/my-project/download/exchange-applications/binance/audit_summary.json",
+      "size": 4519
+    },
+    "technical_summary.md": {
+      "status": "READY",
+      "path": "/home/z/my-project/download/exchange-applications/binance/technical_summary.md",
+      "size": 3605
+    },
+    "application_checklist.json": {
+      "status": "READY",
+      "path": "/home/z/my-project/download/exchange-applications/binance/application_checklist.json",
+      "size": 1783
+    },
+    "Professional audit report (CertiK/Quantstamp)": {
+      "status": "MISSING",
+      "path": "/home/z/my-project/download/exchange-applications/binance/Professional audit report (CertiK/Quantstamp)"
+    },
+    "Legal opinion letter": {
+      "status": "MISSING",
+      "path": "/home/z/my-project/download/exchange-applications/binance/Legal opinion letter"
+    },
+    "Market maker commitment (6 months minimum)": {
+      "status": "MISSING",
+      "path": "/home/z/my-project/download/exchange-applications/binance/Market maker commitment (6 months minimum)"
+    },
+    "Community metrics proof": {
+      "status": "MISSING",
+      "path": "/home/z/my-project/download/exchange-applications/binance/Community metrics proof"
+    }
+  }
+}

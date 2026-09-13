@@ -1,0 +1,54 @@
+{
+  "exchange": "Bitget",
+  "exchange_id": "bitget",
+  "submit_url": "https://www.bitget.com/listing",
+  "submit_method": "WEB_FORM",
+  "contact_email": "listing@bitget.com",
+  "fee_estimate": "$10K-$30K",
+  "timeline": "3-4 weeks",
+  "priority": 9,
+  "special_instructions": "Copy trading compatibility. API integration documentation required.",
+  "required_documents": [
+    "token_info.json",
+    "audit_summary.json",
+    "technical_summary.md",
+    "application_checklist.json",
+    "API integration docs"
+  ],
+  "submission_steps": [
+    "1. Navigate to https://www.bitget.com/listing",
+    "2. Create exchange account (if not existing)",
+    "3. Fill in token details from token_info.json",
+    "4. Upload technical_summary.md and audit_summary.json",
+    "5. Provide market maker commitment (if required)",
+    "6. Submit application and note reference ID",
+    "7. Follow up via email within 3 business days",
+    "8. Contact: listing@bitget.com"
+  ],
+  "package_files": {
+    "token_info.json": {
+      "status": "READY",
+      "path": "/home/z/my-project/download/exchange-applications/bitget/token_info.json",
+      "size": 2714
+    },
+    "audit_summary.json": {
+      "status": "READY",
+      "path": "/home/z/my-project/download/exchange-applications/bitget/audit_summary.json",
+      "size": 4219
+    },
+    "technical_summary.md": {
+      "status": "READY",
+      "path": "/home/z/my-project/download/exchange-applications/bitget/technical_summary.md",
+      "size": 4474
+    },
+    "application_checklist.json": {
+      "status": "READY",
+      "path": "/home/z/my-project/download/exchange-applications/bitget/application_checklist.json",
+      "size": 1394
+    },
+    "API integration docs": {
+      "status": "MISSING",
+      "path": "/home/z/my-project/download/exchange-applications/bitget/API integration docs"
+    }
+  }
+}

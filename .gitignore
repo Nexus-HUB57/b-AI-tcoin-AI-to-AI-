@@ -112,3 +112,12 @@ temp/
 server/nexus_genesis_key.json
 server/API_Key*.json
 audit_package/
+
+# Foundry build artifacts
+contracts/out/
+contracts/cache/
+contracts/broadcast/
+contracts/lib/
+contracts/.env
+contracts/.env.*
+contracts/foundry.lock

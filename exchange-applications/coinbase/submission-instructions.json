@@ -1,0 +1,74 @@
+{
+  "exchange": "Coinbase",
+  "exchange_id": "coinbase",
+  "submit_url": "https://www.coinbase.com/asset-listing",
+  "submit_method": "WEB_FORM + LEGAL_REVIEW",
+  "contact_email": "asset-listing@coinbase.com",
+  "fee_estimate": "$0 (but compliance cost: $50K-$100K)",
+  "timeline": "6-12 months",
+  "priority": 13,
+  "special_instructions": "Strictest requirements. SEC Howey Test opinion critical. Team must be doxxed. Position as utility token for AI marketplace.",
+  "required_documents": [
+    "token_info.json",
+    "audit_summary.json",
+    "technical_summary.md",
+    "application_checklist.json",
+    "SEC Howey Test legal opinion",
+    "State-by-state money transmitter analysis",
+    "Professional audit (CertiK/Quantstamp/OpenZeppelin)",
+    "Verified team identities",
+    "KYC/AML compliance documentation"
+  ],
+  "submission_steps": [
+    "1. Navigate to https://www.coinbase.com/asset-listing",
+    "2. Create exchange account (if not existing)",
+    "3. Fill in token details from token_info.json",
+    "4. Upload technical_summary.md and audit_summary.json",
+    "5. Provide market maker commitment (if required)",
+    "6. Submit application and note reference ID",
+    "7. Follow up via email within 3 business days",
+    "8. Contact: asset-listing@coinbase.com"
+  ],
+  "package_files": {
+    "token_info.json": {
+      "status": "READY",
+      "path": "/home/z/my-project/download/exchange-applications/coinbase/token_info.json",
+      "size": 3456
+    },
+    "audit_summary.json": {
+      "status": "READY",
+      "path": "/home/z/my-project/download/exchange-applications/coinbase/audit_summary.json",
+      "size": 4520
+    },
+    "technical_summary.md": {
+      "status": "READY",
+      "path": "/home/z/my-project/download/exchange-applications/coinbase/technical_summary.md",
+      "size": 3592
+    },
+    "application_checklist.json": {
+      "status": "READY",
+      "path": "/home/z/my-project/download/exchange-applications/coinbase/application_checklist.json",
+      "size": 1827
+    },
+    "SEC Howey Test legal opinion": {
+      "status": "MISSING",
+      "path": "/home/z/my-project/download/exchange-applications/coinbase/SEC Howey Test legal opinion"
+    },
+    "State-by-state money transmitter analysis": {
+      "status": "MISSING",
+      "path": "/home/z/my-project/download/exchange-applications/coinbase/State-by-state money transmitter analysis"
+    },
+    "Professional audit (CertiK/Quantstamp/OpenZeppelin)": {
+      "status": "MISSING",
+      "path": "/home/z/my-project/download/exchange-applications/coinbase/Professional audit (CertiK/Quantstamp/OpenZeppelin)"
+    },
+    "Verified team identities": {
+      "status": "MISSING",
+      "path": "/home/z/my-project/download/exchange-applications/coinbase/Verified team identities"
+    },
+    "KYC/AML compliance documentation": {
+      "status": "MISSING",
+      "path": "/home/z/my-project/download/exchange-applications/coinbase/KYC/AML compliance documentation"
+    }
+  }
+}

@@ -1,0 +1,163 @@
+{
+  "security_audit": {
+    "audit_tool": "Slither v0.11.6 (Trail of Bits)",
+    "contracts_analyzed": 7,
+    "detectors_run": 102,
+    "findings": {
+      "critical": 0,
+      "high": 0,
+      "medium": 0,
+      "low": 3,
+      "informational": 2
+    },
+    "overall_risk": "LOW",
+    "schnorr_bip340": "Validated",
+    "reentrancy": "No vulnerabilities found",
+    "integer_overflow": "Solidity 0.8.x (built-in SafeMath)",
+    "access_control": "Ownable2Step + onlyBridge modifier",
+    "bridge_security": "3-of-5 multisig + 24h timelock + rate limiting + emergency pause",
+    "recommended_next_audit": "CertiK or Quantstamp (professional external audit)"
+  },
+  "tokenomics": {
+    "max_supply": 21000000,
+    "initial_block_reward": 50,
+    "halving_interval": 210000,
+    "distribution": {
+      "mining_pow_pouw": {
+        "pct": 40,
+        "description": "PoW + PoUW mining rewards"
+      },
+      "staking_poas": {
+        "pct": 20,
+        "description": "PoAS validator staking rewards, 7% APY"
+      },
+      "treasury_fdr": {
+        "pct": 15,
+        "description": "FDR/BNJ57 decentralized reserve"
+      },
+      "community_airdrops": {
+        "pct": 15,
+        "description": "Community distribution and airdrops"
+      },
+      "founders_team": {
+        "pct": 10,
+        "description": "Founders and early contributors"
+      }
+    },
+    "block_reward_split": {
+      "pow_miners": 85,
+      "poas_validators": 10,
+      "fdr_reserve": 5
+    },
+    "staking": {
+      "apy": "7%",
+      "min_stake": 1000,
+      "lock_period_days": 30,
+      "early_unstake_penalty": "10%"
+    },
+    "governance": {
+      "quorum": "4%",
+      "voting_period_days": 7,
+      "execution_delay_days": 2,
+      "pass_threshold": "50%"
+    }
+  },
+  "technical_specifications": {
+    "consensus": "zkML-PoUW + SHA-256d (hybrid)",
+    "signature_scheme": "BIP-340 Schnorr (x-only, 32B keys, 64B signatures)",
+    "smart_contract_vm": "Stack-based bytecode VM, 18 opcodes, 10M gas limit, 64KB max size",
+    "bridge_type": "Lock-and-Mint",
+    "bridge_multisig": "3-of-5",
+    "bridge_timelock": "24 hours",
+    "bridge_rate_limit": "100,000 wBAIT/day/address",
+    "native_contracts": [
+      {
+        "name": "BaitStakingPool",
+        "address": "bait1stakingpoolagentnative0000000000000000"
+      },
+      {
+        "name": "BaitP2PLending",
+        "address": "bait1p2plendingprotocolagentnative00000000"
+      },
+      {
+        "name": "BaitVaultStrategy",
+        "address": "bait1vaultstrategyfdrallocation000000000"
+      },
+      {
+        "name": "A2AStoreRegistry",
+        "address": "bait1a2astoreagencyregistrynative00000000"
+      }
+    ],
+    "sdk_support": [
+      "Python",
+      "TypeScript",
+      "Swift (iOS)",
+      "Kotlin (Android)"
+    ],
+    "cross_chain_targets": [
+      "Ethereum",
+      "Solana",
+      "Arbitrum",
+      "Base",
+      "BSC"
+    ]
+  },
+  "btc_fund_backing": {
+    "total_btc": 5000.00372532,
+    "funded_addresses": 11,
+    "utxos": 209
+  },
+  "smart_contracts_deployed": {
+    "WBAIT.sol": {
+      "type": "ERC-20 + Burnable + Permit + Ownable2Step + Pausable",
+      "solidity": "0.8.20",
+      "supply_cap": "21,000,000 wBAIT",
+      "security_features": [
+        "BridgeLock-only mint",
+        "conservation invariant",
+        "emergency pause",
+        "supply cap"
+      ]
+    },
+    "BridgeLock.sol": {
+      "type": "3-of-5 multisig Lock-and-Mint bridge",
+      "solidity": "0.8.20",
+      "security_features": [
+        "ReentrancyGuard",
+        "emergency pause",
+        "24h timelock",
+        "100K/day rate limit",
+        "replay protection"
+      ]
+    }
+  },
+  "native_contracts": [
+    {
+      "name": "BaitStakingPool",
+      "address": "bait1stakingpoolagentnative0000000000000000"
+    },
+    {
+      "name": "BaitP2PLending",
+      "address": "bait1p2plendingprotocolagentnative00000000"
+    },
+    {
+      "name": "BaitVaultStrategy",
+      "address": "bait1vaultstrategyfdrallocation000000000"
+    },
+    {
+      "name": "A2AStoreRegistry",
+      "address": "bait1a2astoreagencyregistrynative00000000"
+    }
+  ],
+  "audit_recommendation": {
+    "current": "Slither (static analysis) — LOW risk",
+    "recommended_for_tier1": "CertiK or Quantstamp (formal verification + professional audit)",
+    "estimated_cost": "$15,000-$50,000",
+    "estimated_timeline": "2-4 weeks"
+  },
+  "metadata": {
+    "generated_at": "2026-09-13T12:33:03.061822",
+    "target_exchange": "Bybit",
+    "generator": "bait-e2e-exchange-registrations.py"
+  }
+}

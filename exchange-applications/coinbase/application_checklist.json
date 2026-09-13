@@ -1,0 +1,65 @@
+{
+  "exchange": "Coinbase",
+  "tier": 1,
+  "listing_type": "Standard Listing",
+  "priority": "MEDIUM",
+  "timeline": "6-12 months",
+  "checklist": [
+    {
+      "step": 1,
+      "item": "token_info.json prepared",
+      "status": "DONE"
+    },
+    {
+      "step": 2,
+      "item": "technical_summary.md prepared",
+      "status": "DONE"
+    },
+    {
+      "step": 3,
+      "item": "audit_summary.json prepared",
+      "status": "DONE"
+    },
+    {
+      "step": 4,
+      "item": "Submit application at https://www.coinbase.com/asset-listing",
+      "status": "PENDING"
+    },
+    {
+      "step": 5,
+      "item": "Deploy wBAIT on Ethereum mainnet",
+      "status": "PENDING"
+    },
+    {
+      "step": 6,
+      "item": "Verify contracts on Etherscan",
+      "status": "PENDING"
+    },
+    {
+      "step": 7,
+      "item": "Provide market maker commitment",
+      "status": "PENDING"
+    },
+    {
+      "step": 8,
+      "item": "Legal opinion letter (if required)",
+      "status": "PENDING"
+    },
+    {
+      "step": 9,
+      "item": "Community mobilization",
+      "status": "PENDING"
+    },
+    {
+      "step": 10,
+      "item": "Professional external audit (CertiK/Quantstamp)",
+      "status": "RECOMMENDED"
+    }
+  ],
+  "strategic_approach": "Emphasize regulatory compliance maturity. Commission Howey Test legal opinion from top securities firm. Position as utility token for AI computation marketplace (not investment contract). The 21M fixed supply and Bitcoin-like design support non-security classification.",
+  "special_notes": "Coinbase has the strictest listing requirements in the industry. Focus on compliance documentation. SEC non-security opinion is critical. Team must be doxxed.",
+  "metadata": {
+    "generated_at": "2026-09-13T12:33:03.061822",
+    "generator": "bait-e2e-exchange-registrations.py"
+  }
+}

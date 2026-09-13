@@ -1,0 +1,54 @@
+{
+  "exchange": "Gate.io",
+  "exchange_id": "gateio",
+  "submit_url": "https://www.gate.io/listing",
+  "submit_method": "WEB_FORM + STARTUP_VOTING",
+  "contact_email": "listing@gate.io",
+  "fee_estimate": "$10K-$30K",
+  "timeline": "2-4 weeks",
+  "priority": 6,
+  "special_instructions": "Startup listing requires community voting. Budget for voter incentives.",
+  "required_documents": [
+    "token_info.json",
+    "audit_summary.json",
+    "technical_summary.md",
+    "application_checklist.json",
+    "Community voting campaign plan"
+  ],
+  "submission_steps": [
+    "1. Navigate to https://www.gate.io/listing",
+    "2. Create exchange account (if not existing)",
+    "3. Fill in token details from token_info.json",
+    "4. Upload technical_summary.md and audit_summary.json",
+    "5. Provide market maker commitment (if required)",
+    "6. Submit application and note reference ID",
+    "7. Follow up via email within 3 business days",
+    "8. Contact: listing@gate.io"
+  ],
+  "package_files": {
+    "token_info.json": {
+      "status": "READY",
+      "path": "/home/z/my-project/download/exchange-applications/gateio/token_info.json",
+      "size": 2729
+    },
+    "audit_summary.json": {
+      "status": "READY",
+      "path": "/home/z/my-project/download/exchange-applications/gateio/audit_summary.json",
+      "size": 4220
+    },
+    "technical_summary.md": {
+      "status": "READY",
+      "path": "/home/z/my-project/download/exchange-applications/gateio/technical_summary.md",
+      "size": 4490
+    },
+    "application_checklist.json": {
+      "status": "READY",
+      "path": "/home/z/my-project/download/exchange-applications/gateio/application_checklist.json",
+      "size": 1429
+    },
+    "Community voting campaign plan": {
+      "status": "MISSING",
+      "path": "/home/z/my-project/download/exchange-applications/gateio/Community voting campaign plan"
+    }
+  }
+}

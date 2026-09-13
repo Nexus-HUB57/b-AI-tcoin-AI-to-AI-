@@ -1,0 +1,65 @@
+{
+  "exchange": "OKX",
+  "tier": 2,
+  "listing_type": "Spot Listing",
+  "priority": "HIGH",
+  "timeline": "2-4 weeks",
+  "checklist": [
+    {
+      "step": 1,
+      "item": "token_info.json prepared",
+      "status": "DONE"
+    },
+    {
+      "step": 2,
+      "item": "technical_summary.md prepared",
+      "status": "DONE"
+    },
+    {
+      "step": 3,
+      "item": "audit_summary.json prepared",
+      "status": "DONE"
+    },
+    {
+      "step": 4,
+      "item": "Submit application at https://www.okx.com/listing",
+      "status": "PENDING"
+    },
+    {
+      "step": 5,
+      "item": "Deploy wBAIT on Ethereum mainnet",
+      "status": "PENDING"
+    },
+    {
+      "step": 6,
+      "item": "Verify contracts on Etherscan",
+      "status": "PENDING"
+    },
+    {
+      "step": 7,
+      "item": "Provide market maker commitment",
+      "status": "PENDING"
+    },
+    {
+      "step": 8,
+      "item": "Legal opinion letter (if required)",
+      "status": "PENDING"
+    },
+    {
+      "step": 9,
+      "item": "Community mobilization",
+      "status": "PENDING"
+    },
+    {
+      "step": 10,
+      "item": "Professional external audit (CertiK/Quantstamp)",
+      "status": "RECOMMENDED"
+    }
+  ],
+  "strategic_approach": "Leverage OKX's native chain support. Apply for OKX Jumpstart launch program.",
+  "special_notes": "OKX supports native chain integrations via their DEX chain (OKTC). Also has Jumpstart for token launches.",
+  "metadata": {
+    "generated_at": "2026-09-13T12:33:03.061822",
+    "generator": "bait-e2e-exchange-registrations.py"
+  }
+}

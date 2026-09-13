@@ -1,0 +1,54 @@
+{
+  "exchange": "Bybit",
+  "exchange_id": "bybit",
+  "submit_url": "https://www.bybit.com/en/listing/",
+  "submit_method": "WEB_FORM + LAUNCHPOOL",
+  "contact_email": "listing@bybit.com",
+  "fee_estimate": "$10K-$50K",
+  "timeline": "2-4 weeks",
+  "priority": 7,
+  "special_instructions": "Bybit Launchpool or Launchpad. AI narrative aligns with innovation focus.",
+  "required_documents": [
+    "token_info.json",
+    "audit_summary.json",
+    "technical_summary.md",
+    "application_checklist.json",
+    "Market maker agreement"
+  ],
+  "submission_steps": [
+    "1. Navigate to https://www.bybit.com/en/listing/",
+    "2. Create exchange account (if not existing)",
+    "3. Fill in token details from token_info.json",
+    "4. Upload technical_summary.md and audit_summary.json",
+    "5. Provide market maker commitment (if required)",
+    "6. Submit application and note reference ID",
+    "7. Follow up via email within 3 business days",
+    "8. Contact: listing@bybit.com"
+  ],
+  "package_files": {
+    "token_info.json": {
+      "status": "READY",
+      "path": "/home/z/my-project/download/exchange-applications/bybit/token_info.json",
+      "size": 2948
+    },
+    "audit_summary.json": {
+      "status": "READY",
+      "path": "/home/z/my-project/download/exchange-applications/bybit/audit_summary.json",
+      "size": 4517
+    },
+    "technical_summary.md": {
+      "status": "READY",
+      "path": "/home/z/my-project/download/exchange-applications/bybit/technical_summary.md",
+      "size": 3591
+    },
+    "application_checklist.json": {
+      "status": "READY",
+      "path": "/home/z/my-project/download/exchange-applications/bybit/application_checklist.json",
+      "size": 1579
+    },
+    "Market maker agreement": {
+      "status": "MISSING",
+      "path": "/home/z/my-project/download/exchange-applications/bybit/Market maker agreement"
+    }
+  }
+}

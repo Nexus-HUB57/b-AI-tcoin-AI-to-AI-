@@ -1,0 +1,84 @@
+{
+  "token": {
+    "name": "b'AI'tcoin",
+    "symbol": "BAIT",
+    "wrapped_symbol": "wBAIT",
+    "decimals": 8,
+    "max_supply": 21000000,
+    "circulating_supply": "TBD post-mainnet",
+    "description": "b'AI'tcoin (BAIT) is a novel Layer-1 blockchain combining zero-knowledge Machine Learning Proof-of-Useful-Work (zkML-PoUW) with SHA-256d consensus. With a fixed supply of 21 million coins mirroring Bitcoin's scarcity, BAIT transforms AI computation into measurable mining value. The native bridge uses a Lock-and-Mint mechanism secured by a 3-of-5 multisig, enabling seamless ERC-20 (wBAIT) representation on Ethereum and EVM chains.",
+    "website": "https://mybait.org",
+    "whitepaper": "https://mybait.org/whitepaper.pdf",
+    "explorer": "https://explorer.mybait.org",
+    "github": "https://github.com/baitcoin"
+  },
+  "blockchain": {
+    "platform": "Native BAIT Chain + Ethereum (wBAIT)",
+    "consensus": "zkML-PoUW + SHA-256d",
+    "block_time": "30s (target) / 60s (exchange compatibility)",
+    "type": "Layer-1",
+    "genesis_date": "2025-01-01"
+  },
+  "contracts": {
+    "wBAIT_erc20": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "chain": "Ethereum",
+      "decimals": 8,
+      "verified": false
+    },
+    "bridge": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "chain": "Ethereum",
+      "type": "Lock-and-Mint (3-of-5 multisig)"
+    },
+    "multisig": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "chain": "Ethereum",
+      "threshold": "3-of-5",
+      "owners": 5
+    }
+  },
+  "deposit_information": {
+    "supported_networks": [
+      "ERC-20 (wBAIT)"
+    ],
+    "min_withdrawal": "0.01 BAIT",
+    "deposit_note": "For ERC-20 deposits, use the wBAIT contract address. For native BAIT deposits, use Bech32 addresses (bait1...)."
+  },
+  "social": {
+    "twitter": "https://twitter.com/baitcoin",
+    "discord": "https://discord.gg/baitcoin",
+    "telegram": "https://t.me/baitcoin",
+    "reddit": "https://reddit.com/r/baitcoin",
+    "github": "https://github.com/baitcoin",
+    "medium": "https://medium.com/@baitcoin",
+    "youtube": "https://youtube.com/@baitcoin"
+  },
+  "exchange_specific": {
+    "target_exchange": "Coinbase",
+    "tier": 1,
+    "listing_type": "Standard Listing",
+    "application_url": "https://www.coinbase.com/asset-listing",
+    "fees": {
+      "listing_fee": "No fee (Coinbase does not charge)",
+      "compliance_cost": "Legal opinions + compliance documentation (~$50K-$100K)"
+    },
+    "requirements": [
+      "SEC compliance documentation",
+      "Legal opinion: Howey Test analysis (non-security)",
+      "State-by-state money transmitter analysis",
+      "Professional audit (CertiK/Quantstamp/OpenZeppelin)",
+      "Fully doxxed team with verified identities",
+      "Demonstrated product usage and community",
+      "Technical documentation and integration specs",
+      "Asset review by Coinbase Legal and Compliance teams"
+    ],
+    "timeline": "6-12 months",
+    "strategic_approach": "Emphasize regulatory compliance maturity. Commission Howey Test legal opinion from top securities firm. Position as utility token for AI computation marketplace (not investment contract). The 21M fixed supply and Bitcoin-like design support non-security classification."
+  },
+  "metadata": {
+    "generated_at": "2026-09-13T12:33:03.061822",
+    "generator": "bait-e2e-exchange-registrations.py",
+    "version": "2.0.0"
+  }
+}

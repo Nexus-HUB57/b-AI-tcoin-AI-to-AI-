@@ -1,0 +1,151 @@
+{
+  "timestamp": "2026-09-13T12:33:03.061822",
+  "version": "2.0.0",
+  "title": "BAIT Token — Exchange Registration Master Tracker",
+  "token": {
+    "name": "b'AI'tcoin",
+    "symbol": "BAIT",
+    "decimals": 8,
+    "max_supply": 21000000
+  },
+  "exchanges": {
+    "tier_1": {
+      "binance": {
+        "name": "Binance",
+        "status": "APPLICATION_READY",
+        "priority": "HIGH",
+        "timeline": "3-6 months"
+      },
+      "coinbase": {
+        "name": "Coinbase",
+        "status": "APPLICATION_READY",
+        "priority": "MEDIUM",
+        "timeline": "6-12 months"
+      },
+      "kraken": {
+        "name": "Kraken",
+        "status": "APPLICATION_READY",
+        "priority": "MEDIUM",
+        "timeline": "3-6 months"
+      }
+    },
+    "tier_2": {
+      "bybit": {
+        "name": "Bybit",
+        "status": "APPLICATION_READY",
+        "priority": "HIGH",
+        "timeline": "2-4 weeks"
+      },
+      "okx": {
+        "name": "OKX",
+        "status": "APPLICATION_READY",
+        "priority": "HIGH",
+        "timeline": "2-4 weeks"
+      },
+      "htx": {
+        "name": "HTX (Huobi)",
+        "status": "APPLICATION_READY",
+        "priority": "MEDIUM",
+        "timeline": "2-3 weeks"
+      },
+      "bitmart": {
+        "name": "BitMart",
+        "status": "APPLICATION_READY",
+        "priority": "MEDIUM",
+        "timeline": "1-2 weeks"
+      },
+      "lbank": {
+        "name": "LBank",
+        "status": "APPLICATION_READY",
+        "priority": "LOW",
+        "timeline": "1-2 weeks"
+      },
+      "bingx": {
+        "name": "BingX",
+        "status": "APPLICATION_READY",
+        "priority": "LOW",
+        "timeline": "1-2 weeks"
+      }
+    }
+  },
+  "dex": {
+    "uniswap_v3": {
+      "name": "Uniswap V3",
+      "chain": "Ethereum",
+      "status": "READY_TO_DEPLOY",
+      "timeline": "Week 1-2"
+    },
+    "raydium": {
+      "name": "Raydium",
+      "chain": "Solana",
+      "status": "PENDING_BRIDGE",
+      "timeline": "Week 3-4"
+    },
+    "pancakeswap": {
+      "name": "PancakeSwap V3",
+      "chain": "BSC",
+      "status": "PENDING_BRIDGE",
+      "timeline": "Week 3-4"
+    },
+    "camelot": {
+      "name": "Camelot",
+      "chain": "Arbitrum",
+      "status": "PENDING_BRIDGE",
+      "timeline": "Week 3-4"
+    },
+    "aerodrome": {
+      "name": "Aerodrome",
+      "chain": "Base",
+      "status": "PENDING_BRIDGE",
+      "timeline": "Week 3-4"
+    }
+  },
+  "aggregators": {
+    "coingecko": {
+      "status": "SUBMISSION_READY",
+      "file": "coingecko-listing-request.json"
+    },
+    "coinmarketcap": {
+      "status": "SUBMISSION_READY",
+      "file": "coinmarketcap-listing-request.json"
+    }
+  },
+  "blockers": [
+    {
+      "id": "CONTRACT_DEPLOYMENT",
+      "description": "wBAIT + BridgeLock not deployed to Ethereum mainnet",
+      "impact": "All CEX applications require deployed + verified contract",
+      "resolution": "Deploy via Foundry to Sepolia → verify → deploy mainnet",
+      "priority": "CRITICAL"
+    },
+    {
+      "id": "EXTERNAL_AUDIT",
+      "description": "Only Slither static analysis completed",
+      "impact": "Tier-1 exchanges require professional audit (CertiK/Quantstamp)",
+      "resolution": "Commission CertiK audit ($15K-$50K, 2-4 weeks)",
+      "priority": "HIGH"
+    },
+    {
+      "id": "BTC_KEY_RECOVERY",
+      "description": "Private key mismatch — 2,146 keys tested, 0 matches to funded addresses",
+      "impact": "Cannot activate BTC↔BAIT swap mechanism",
+      "resolution": "Recover Electrum wallet file or correct seed phrase",
+      "priority": "HIGH"
+    }
+  ],
+  "recommended_execution_order": [
+    "1. Deploy wBAIT + BridgeLock to Sepolia testnet",
+    "2. Test full lock-mint-burn-release lifecycle",
+    "3. Commission CertiK professional audit",
+    "4. Deploy wBAIT + BridgeLock to Ethereum mainnet",
+    "5. Verify contracts on Etherscan",
+    "6. Create Uniswap V3 pool + seed $25K liquidity",
+    "7. Submit CoinGecko + CoinMarketCap listings",
+    "8. Submit BitMart + LBank + BingX (fastest CEX)",
+    "9. Submit Bybit + OKX + HTX (Tier-2)",
+    "10. Submit Gate.io + MEXC + KuCoin + Bitget (Tier-2 established)",
+    "11. Submit Binance Innovation Zone",
+    "12. Submit Kraken (native chain integration)",
+    "13. Submit Coinbase (strictest requirements, longest timeline)"
+  ]
+}

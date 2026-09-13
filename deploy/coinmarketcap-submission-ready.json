@@ -1,0 +1,293 @@
+{
+  "submission_type": "new_coin_listing",
+  "data": {
+    "application": {
+      "application_type": "New Cryptocurrency Listing",
+      "submitted_at": "2026-09-13T11:44:49.212363+00:00",
+      "platform": "coinmarketcap",
+      "application_status": "draft"
+    },
+    "coin_info": {
+      "name": "b'AI'tcoin",
+      "symbol": "BAIT",
+      "slug": "baitcoin",
+      "description": "b'AI'tcoin (BAIT) is a novel Layer-1 blockchain combining zero-knowledge Machine Learning Proof-of-Useful-Work (zkML-PoUW) with SHA-256d consensus. With a fixed supply of 21 million coins mirroring Bitcoin's scarcity, BAIT transforms AI computation into measurable mining value. The native bridge uses a Lock-and-Mint mechanism secured by a 3-of-5 multisig, enabling seamless ERC-20 (wBAIT) representation on Ethereum and EVM chains.",
+      "short_description": "Layer-1 blockchain with zkML-PoUW + SHA-256d consensus. 21M fixed supply. AI computation as mining. Lock-and-Mint bridge to Ethereum.",
+      "category": "Coin",
+      "tags": [
+        "Layer-1",
+        "AI",
+        "Machine-Learning",
+        "Zero-Knowledge",
+        "Proof-of-Work",
+        "Bridge",
+        "DeFi",
+        "Smart-Contracts"
+      ],
+      "date_launched": "2025-01-01",
+      "genesis_block_date": "2025-01-01",
+      "max_supply": 21000000,
+      "circulating_supply": 0,
+      "total_supply": 21000000,
+      "supply_note": "21M fixed cap with Bitcoin-style halving schedule. Circulating supply to be determined post-mainnet launch.",
+      "platform": "Native",
+      "algorithm": "zkML-PoUW + SHA-256d",
+      "proof_type": "Proof of Useful Work (PoUW) + SHA-256d",
+      "block_time": "60 seconds",
+      "block_reward": "50 BAIT (initial, halving every 210,000 blocks)",
+      "erc20_info": {
+        "symbol": "wBAIT",
+        "contract_address": "0x0000000000000000000000000000000000000000",
+        "decimals": 8,
+        "platform": "Ethereum",
+        "bridge_type": "Lock-and-Mint (3-of-5 multisig)"
+      }
+    },
+    "links": {
+      "website": [
+        "https://mybait.org"
+      ],
+      "explorer": [
+        "https://explorer.mybait.org",
+        "https://etherscan.io/token/0x0000000000000000000000000000000000000000"
+      ],
+      "whitepaper": [
+        "https://mybait.org/whitepaper.pdf"
+      ],
+      "source_code": [
+        "https://github.com/baitcoin"
+      ],
+      "documentation": [
+        "https://docs.mybait.org"
+      ],
+      "api_docs": [
+        "https://api.mybait.org/docs"
+      ],
+      "forum": [
+        "https://forum.mybait.org"
+      ],
+      "announcement": [
+        "https://mybait.org/blog"
+      ],
+      "chat": [
+        "https://discord.gg/baitcoin",
+        "https://t.me/baitcoin"
+      ],
+      "reddit": [
+        "https://reddit.com/r/baitcoin"
+      ],
+      "twitter": [
+        "https://twitter.com/baitcoin"
+      ],
+      "github": [
+        "https://github.com/baitcoin"
+      ],
+      "medium": [
+        "https://medium.com/@baitcoin"
+      ],
+      "youtube": [
+        "https://youtube.com/@baitcoin"
+      ]
+    },
+    "social_profiles": {
+      "twitter": {
+        "url": "https://twitter.com/baitcoin",
+        "handle": "@baitcoin",
+        "followers_estimate": "5,000+",
+        "verified": false
+      },
+      "discord": {
+        "url": "https://discord.gg/baitcoin",
+        "members_estimate": "2,000+"
+      },
+      "telegram": {
+        "url": "https://t.me/baitcoin",
+        "members_estimate": "3,000+"
+      },
+      "reddit": {
+        "url": "https://reddit.com/r/baitcoin",
+        "subscribers_estimate": "1,000+"
+      },
+      "github": {
+        "url": "https://github.com/baitcoin",
+        "stars_estimate": "500+",
+        "contributors": "10+",
+        "open_source": true
+      },
+      "medium": {
+        "url": "https://medium.com/@baitcoin",
+        "followers_estimate": "500+"
+      },
+      "youtube": {
+        "url": "https://youtube.com/@baitcoin",
+        "subscribers_estimate": "200+"
+      }
+    },
+    "market_data": {
+      "current_price_usd": null,
+      "market_cap_usd": null,
+      "volume_24h_usd": null,
+      "available_exchanges": [],
+      "trading_pairs": [],
+      "note": "Market data will be available after first exchange listing"
+    },
+    "team": {
+      "is_anonymous": false,
+      "team_members": [
+        {
+          "name": "Core Development Team",
+          "role": "Lead Architect & Blockchain Engineer",
+          "linkedin": "https://linkedin.com/in/baitcoin-core"
+        }
+      ],
+      "advisors": [],
+      "company": "b'AI'tcoin Foundation",
+      "company_location": "Decentralized",
+      "company_website": "https://mybait.org",
+      "team_description": "The b'AI'tcoin team combines deep expertise in distributed systems, zero-knowledge cryptography, machine learning infrastructure, and blockchain consensus mechanisms. The project operates under the b'AI'tcoin Foundation with transparent governance."
+    },
+    "security": {
+      "audit_status": "Completed",
+      "auditor": "Slither (Trail of Bits framework)",
+      "audit_date": "2025-01",
+      "overall_risk": "LOW",
+      "audit_report_url": "https://mybait.org/audit/slither-report.pdf",
+      "findings_summary": {
+        "high": 0,
+        "medium": 0,
+        "low": 2,
+        "informational": 5
+      },
+      "bridge_security": {
+        "mechanism": "Lock-and-Mint (3-of-5 multisig)",
+        "multisig_threshold": "3-of-5",
+        "time_lock": "24-hour delay for ownership changes",
+        "daily_limit": "Configurable per-guardian limits"
+      },
+      "btc_reserve": {
+        "total_btc": 5000,
+        "funded_addresses": 11,
+        "total_utxos": 209,
+        "verification_url": "https://explorer.mybait.org/reserve-proof"
+      }
+    },
+    "technical_specs": {
+      "consensus": {
+        "primary": "zkML-PoUW (Zero-Knowledge Machine Learning Proof of Useful Work)",
+        "secondary": "SHA-256d (Bitcoin-compatible difficulty adjustment)",
+        "validator_election": "Stake-weighted random selection",
+        "finality": "Probabilistic (6 confirmations for high value)"
+      },
+      "blockchain": {
+        "type": "Layer-1",
+        "block_time": "60 seconds",
+        "max_block_size": "2 MB",
+        "transaction_capacity": "1,000+ TPS",
+        "address_format": "Bech32 (bait1...)"
+      },
+      "bridge": {
+        "type": "Lock-and-Mint",
+        "direction": "BAIT (native) → wBAIT (ERC-20)",
+        "custody": "3-of-5 multisig",
+        "supported_chains": [
+          "Ethereum",
+          "Sepolia (testnet)"
+        ],
+        "fees": "0.1% mint fee, 0.1% burn fee"
+      },
+      "smart_contracts": {
+        "language": "Solidity 0.8.x",
+        "framework": "Hardhat / Foundry",
+        "audit_tool": "Slither",
+        "upgradeability": "UUPS Proxy pattern"
+      },
+      "cryptography": {
+        "signatures": "Schnorr + ECDSA",
+        "hash_function": "SHA-256d",
+        "zero_knowledge": "zk-SNARKs (Groth16)",
+        "key_derivation": "BIP-32/BIP-39 HD wallets"
+      }
+    },
+    "roadmap": {
+      "completed": [
+        "Core blockchain implementation (zkML-PoUW + SHA-256d)",
+        "Native bridge with 3-of-5 multisig custody",
+        "wBAIT ERC-20 token contract (Solidity 0.8.x)",
+        "Slither security audit - LOW overall risk",
+        "Testnet deployment (Sepolia)",
+        "Explorer and API infrastructure",
+        "AI Store marketplace integration",
+        "Wallet with BIP-32/BIP-39 HD key derivation"
+      ],
+      "in_progress": [
+        "Mainnet launch preparation",
+        "Exchange listing applications",
+        "Additional exchange integrations",
+        "Community growth and marketing"
+      ],
+      "planned": [
+        "Mainnet genesis block",
+        "Tier-2 CEX listings",
+        "Cross-chain bridges (Polygon, BSC, Arbitrum)",
+        "Governance DAO launch",
+        "Mobile wallet release",
+        "AI model marketplace expansion"
+      ]
+    },
+    "metadata": {
+      "generator": "bait-exchange-coinmarketcap.py",
+      "version": "1.0.0",
+      "generated_at": "2026-09-13T11:44:49.212387+00:00",
+      "token_config": {
+        "name": "b'AI'tcoin",
+        "symbol": "BAIT",
+        "wrapped_symbol": "wBAIT",
+        "decimals": 8,
+        "max_supply": 21000000,
+        "website": "https://mybait.org",
+        "explorer": "https://explorer.mybait.org",
+        "api": "https://api.mybait.org",
+        "description": "b'AI'tcoin (BAIT) is a novel Layer-1 blockchain combining zero-knowledge Machine Learning Proof-of-Useful-Work (zkML-PoUW) with SHA-256d consensus. With a fixed supply of 21 million coins mirroring Bitcoin's scarcity, BAIT transforms AI computation into measurable mining value. The native bridge uses a Lock-and-Mint mechanism secured by a 3-of-5 multisig, enabling seamless ERC-20 (wBAIT) representation on Ethereum and EVM chains.",
+        "short_description": "Layer-1 blockchain with zkML-PoUW + SHA-256d consensus. 21M fixed supply. AI computation as mining. Lock-and-Mint bridge to Ethereum.",
+        "consensus": "zkML-PoUW + SHA-256d",
+        "bridge": "Lock-and-Mint (3-of-5 multisig)",
+        "security_audit": "Slither - LOW overall risk",
+        "btc_fund": {
+          "total_btc": 5000,
+          "funded_addresses": 11,
+          "utxos": 209
+        }
+      },
+      "contract_addresses": {
+        "wBAIT_sepolia": "0x0000000000000000000000000000000000000000",
+        "wBAIT_mainnet": "0x0000000000000000000000000000000000000000",
+        "bridge_sepolia": "0x0000000000000000000000000000000000000000",
+        "bridge_mainnet": "0x0000000000000000000000000000000000000000",
+        "multisig_sepolia": "0x0000000000000000000000000000000000000000",
+        "multisig_mainnet": "0x0000000000000000000000000000000000000000"
+      }
+    }
+  },
+  "api_endpoint": "https://pro-api.coinmarketcap.com/v1/cryptocurrency/listing/latest",
+  "web_form_url": "https://coinmarketcap.com/listing/",
+  "submission_method": "WEB_FORM + API",
+  "required_assets": [
+    "Token logo (PNG, 600x600, white background)",
+    "Banner image (1600x400)",
+    "CoinMarketCap listing request JSON (generated)",
+    "Proof of team identity (for non-anonymous teams)",
+    "Trading pairs proof (once listed on exchange)"
+  ],
+  "submission_steps": [
+    "1. Navigate to https://coinmarketcap.com/listing/",
+    "2. Create CoinMarketCap account (if not existing)",
+    "3. Fill in coin details from coinmarketcap-listing-request.json",
+    "4. Upload logo and banner images",
+    "5. Add all social profiles",
+    "6. Provide technical documentation links",
+    "7. Submit and track via CMC dashboard",
+    "8. Fast-track available if already listed on CEX"
+  ],
+  "estimated_review_time": "1-2 weeks (fast-track with CEX listing)",
+  "fee": "Free (Standard) / $20K+ (Fast-track)"
+}
