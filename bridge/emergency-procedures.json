@@ -1,0 +1,592 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BAIT BridgeLock Emergency Procedures",
+  "description": "Emergency response procedures for the 3-of-5 multisig bridge",
+  "version": "2.0.0",
+  "contract": "BridgeLock.sol",
+  "lastUpdated": "2026-03-05",
+  "reviewCycle": "Quarterly",
+
+  "quickReference": {
+    "pauseCommand": "cast send $BRIDGELOCK_ADDRESS 'pause()' --rpc-url $RPC_URL --private-key $OWNER_KEY",
+    "unpauseCommand": "cast send $BRIDGELOCK_ADDRESS 'unpause()' --rpc-url $RPC_URL --private-key $OWNER_KEY",
+    "pauseWbaitCommand": "cast send $WBAIT_ADDRESS 'pause()' --rpc-url $RPC_URL --private-key $OWNER_KEY",
+    "unpauseWbaitCommand": "cast send $WBAIT_ADDRESS 'unpause()' --rpc-url $RPC_URL --private-key $OWNER_KEY",
+    "verifyPausedCommand": "cast call $BRIDGELOCK_ADDRESS 'paused()(bool)' --rpc-url $RPC_URL",
+    "checkOperatorCommand": "cast call $BRIDGELOCK_ADDRESS 'isOperator(address)(bool)' $ADDRESS --rpc-url $RPC_URL",
+    "checkLockCountCommand": "cast call $BRIDGELOCK_ADDRESS 'getLockRequestCount()(uint256)' --rpc-url $RPC_URL",
+    "checkBurnCountCommand": "cast call $BRIDGELOCK_ADDRESS 'getBurnReleaseCount()(uint256)' --rpc-url $RPC_URL",
+    "emergencySignalGroup": "Configure in operator-onboarding.md §6.6",
+    "bridgeMonitorHealthCheck": "python3 bridge-monitoring.py --health-only"
+  },
+
+  "pauseUnpause": {
+    "description": "Pause/unpause the BridgeLock contract to halt or resume all bridge operations",
+    "pause": {
+      "who": "Contract owner only (Ownable2Step — 2-step ownership transfer)",
+      "trigger": "Any confirmed security incident, suspicious activity, or operational emergency",
+      "effect": "All requestLockMint, confirmLockMint, initiateBurnRelease, confirmBurnRelease calls revert with 'Pausable: paused'",
+      "doesNotAffect": [
+        "View functions (operators, isOperator, paused, getLockRequestCount, getBurnReleaseCount, dailyMinted)",
+        "Existing confirmed requests that have already been executed",
+        "WBAIT transfers (unless WBAIT is also paused separately)",
+        "L1 BAIT operations (completely independent)"
+      ],
+      "procedure": [
+        "1. Owner calls pause() on BridgeLock contract",
+        "2. Optionally: Owner calls pause() on WBAIT contract (stops all wBAIT transfers)",
+        "3. Verify paused() returns true on BridgeLock",
+        "4. If WBAIT paused: Verify WBAIT.paused() returns true",
+        "5. Notify all 5 operators via emergency Signal group",
+        "6. Post incident to monitoring dashboard (#bridge-status channel)",
+        "7. Bridge monitor will auto-detect paused state and alert",
+        "8. Begin incident investigation (see incidentEscalationMatrix)"
+      ],
+      "castCommand": "cast send $BRIDGELOCK_ADDRESS 'pause()' --rpc-url $RPC_URL --private-key $OWNER_KEY",
+      "verificationCommand": "cast call $BRIDGELOCK_ADDRESS 'paused()(bool)' --rpc-url $RPC_URL",
+      "timeObjective": "Within 5 minutes of incident detection",
+      "safetyNote": "Pausing is SAFE — no funds are at risk. Existing lock/burn state is preserved. Only new operations are blocked."
+    },
+    "unpause": {
+      "who": "Contract owner only (same as pause)",
+      "prerequisites": [
+        "Root cause analysis complete and documented",
+        "Vulnerability patched (if applicable) and verified on testnet",
+        "External audit sign-off obtained (for P0/P1 security incidents)",
+        "All 5 operators notified and 3-of-5 explicitly agree to resume",
+        "Bridge monitor healthy and running for all operators",
+        "Post-incident checklist completed (see postIncidentChecklist)"
+      ],
+      "procedure": [
+        "1. Confirm ALL prerequisites are met — do not skip any",
+        "2. Owner calls unpause() on BridgeLock contract",
+        "3. If WBAIT was paused: Owner calls unpause() on WBAIT contract",
+        "4. Verify paused() returns false on BridgeLock",
+        "5. Monitor first 10 transactions closely for anomalies",
+        "6. Verify confirmLockMint and confirmBurnRelease work (test with small amount)",
+        "7. Resume normal monitoring intervals",
+        "8. Log unpause event with timestamp and authorization record"
+      ],
+      "castCommand": "cast send $BRIDGELOCK_ADDRESS 'unpause()' --rpc-url $RPC_URL --private-key $OWNER_KEY",
+      "caution": "Unpausing before root cause is resolved may re-expose the vulnerability. Always err on the side of caution."
+    }
+  },
+
+  "operatorReplacement": {
+    "description": "Replace a compromised, lost, or unavailable operator key",
+    "version": "2.0",
+    "trigger": "Key compromise, HSM failure, operator departure, or extended unavailability (>72 hours)",
+    "timelock": "24 hours (TIMELOCK_DURATION in contract — cannot be bypassed)",
+    "whoCanPropose": "Any existing operator or contract owner",
+    "whoCanConfirm": "3-of-5 existing operators (excluding the operator being replaced)",
+    "procedure": [
+      "1. Identify the operator index (0-4) to replace — use bridge monitor or cast call operators(i)",
+      "2. Generate new key in replacement operator's HSM (per key ceremony procedure in operator-onboarding.md §2)",
+      "3. Extract public key and Ethereum address from new HSM key",
+      "4. Verify new address is not zero, not duplicate, and valid checksum",
+      "5. Propose operator update on BridgeLock contract — this triggers the 24h timelock",
+      "6. Wait 24 hours for timelock to expire — this CANNOT be bypassed",
+      "7. During timelock: Other operators review replacement (verify new key, check ceremony compliance)",
+      "8. After timelock expires: Execute operator update with 3-of-5 confirmations from OTHER operators",
+      "9. The operator being replaced CANNOT confirm their own replacement",
+      "10. Verify on-chain: isOperator(newAddress) == true",
+      "11. Verify on-chain: isOperator(oldAddress) == false",
+      "12. Test new operator can call confirmLockMint or confirmBurnRelease",
+      "13. Decommission old HSM key: disable (CKA_ENABLED=false), do NOT delete — retain for audit trail",
+      "14. Update ceremony transcript with rotation record (old key, new key, timestamp, confirming operators)",
+      "15. Restart bridge monitoring with updated operator list",
+      "16. Notify all operators of completed replacement via encrypted channel"
+    ],
+    "timelockPeriodBehavior": {
+      "description": "What happens during the 24-hour timelock period",
+      "bridgeOperations": "Continue normally — existing operators can still confirm requests",
+      "newOperator": "Cannot participate until timelock expires and update is executed",
+      "oldOperator": "Can still confirm requests during timelock (key is still active)",
+      "cancellation": "If replacement is deemed incorrect, proposal can be cancelled before timelock expires"
+    },
+    "emergencyAccelerated": {
+      "description": "When bridge is paused, operator replacement still requires 24h timelock",
+      "caveat": "The timelock is a CONTRACT ENFORCED delay — it cannot be bypassed even by the owner",
+      "alternativeIfUrgent": "If timelock must be bypassed: Deploy entirely new BridgeLock contract with new operator set and migrate state",
+      "migrationCost": "New contract deployment + state migration + Etherscan verification + 48h monitoring",
+      "recommendation": "Accept 24h downtime during emergency rotation; it's safer than emergency migration"
+    },
+    "quorumSafetyCheck": {
+      "description": "Ensure 3-of-5 threshold remains achievable during and after replacement",
+      "duringReplacement": "At least 3 of the remaining 4 operators must be available to confirm the replacement transaction",
+      "afterReplacement": "New operator must have functional HSM and be able to sign confirmations",
+      "edgeCase_twoSimultaneous": "If 2 operators are being replaced simultaneously, bridge operations halt until at least one replacement completes (only 3 operators remain, all must be available)",
+      "edgeCase_threeUnavailable": "If 3 operators are unavailable: Bridge cannot reach threshold — PAUSE and initiate emergency recovery (see disasterRecovery in hsm-configuration.json)"
+    },
+    "castCommands": {
+      "readOperator": "cast call $BRIDGELOCK_ADDRESS 'operators(uint256)(address)' <INDEX> --rpc-url $RPC_URL",
+      "checkIsOperator": "cast call $BRIDGELOCK_ADDRESS 'isOperator(address)(bool)' <ADDRESS> --rpc-url $RPC_URL",
+      "proposeUpdate": "cast send $BRIDGELOCK_ADDRESS 'proposeOperatorUpdate(uint256,address)' <INDEX> <NEW_ADDRESS> --rpc-url $RPC_URL --private-key $PROPOSER_KEY",
+      "executeUpdate": "cast send $BRIDGELOCK_ADDRESS 'executeOperatorUpdate(uint256)' <INDEX> --rpc-url $RPC_URL --private-key $CONFIRMER_KEY"
+    }
+  },
+
+  "fundRecovery": {
+    "description": "Procedures for recovering or protecting bridge funds during emergencies",
+    "conservationInvariant": "totalSupply(wBAIT) == totalLockedOnL1(BAIT) — this must be maintained at all times",
+    "scenarios": [
+      {
+        "scenario": "Stuck Lock-Mint (3 confirmations never reached)",
+        "cause": "Operators unavailable, request invalid, or operators disagree on validity",
+        "severity": "LOW — no funds at risk on either chain",
+        "impactOnL1": "BAIT tokens remain locked on L1 — safe",
+        "impactOnEthereum": "No wBAIT minted until 3 confirmations — safe by design",
+        "recoveryOptions": [
+          "Option A (Preferred): Contact missing operators via Signal/phone to confirm — usually resolves within hours",
+          "Option B: Replace unavailable operator (24h timelock) and have new operator confirm",
+          "Option C: If request is INVALID (wrong L1 tx, suspicious recipient): Leave unconfirmed — no wBAIT minted, L1 funds remain locked. Coordinate L1-side recovery if needed.",
+          "Option D: If ALL 5 operators agree request is invalid: No action needed — unconfirmed requests are harmless"
+        ],
+        "safetyProperty": "wBAIT is ONLY minted AFTER 3 confirmations. Unconfirmed requests create no on-chain state change on Ethereum. L1 funds are locked but recoverable via L1 governance.",
+        "timeToRecovery": "Hours (if operators available) to 48h (if operator replacement needed)"
+      },
+      {
+        "scenario": "Stuck Burn-Release (3 confirmations never reached)",
+        "cause": "Operators unavailable after user already burned wBAIT",
+        "severity": "HIGH — user's wBAIT is already burned; they need L1 release",
+        "impactOnL1": "BAIT tokens remain locked on L1 — awaiting operator confirmation to release",
+        "impactOnEthereum": "wBAIT already burned (irreversible on Ethereum)",
+        "userImpact": "User has lost wBAIT on Ethereum and has not received BAIT on L1 — FUNDS IN LIMBO",
+        "recoveryOptions": [
+          "Option A (URGENT): Contact missing operators to confirm L1 release — this is HIGH PRIORITY",
+          "Option B: Replace unavailable operator and have new operator confirm burn-release",
+          "Option C: Manual L1 release by remaining operators (off-chain coordination + on-chain confirmation)",
+          "Option D: If only 1-2 operators missing: 3 remaining operators can still confirm and execute"
+        ],
+        "safetyProperty": "L1 tokens are still locked and safe — they can ONLY be released after 3 operator confirmations. The user WILL receive their BAIT once confirmations are obtained.",
+        "timeToRecovery": "Hours (if operators available) to 48h (if operator replacement needed)",
+        "priority": "HIGHEST — user funds are in limbo; treat as P1 incident"
+      },
+      {
+        "scenario": "Incorrect Mint (wrong amount or recipient)",
+        "cause": "Bug in operator verification, malicious operator, or frontend error",
+        "severity": "CRITICAL — conservation invariant violated",
+        "impact": "wBAIT minted without corresponding L1 lock, or wrong amount minted",
+        "recoveryOptions": [
+          "1. PAUSE bridge immediately (both BridgeLock AND WBAIT)",
+          "2. Assess total incorrect mints — query all LockExecuted events and cross-reference with L1 locks",
+          "3. If small amount: Consider absorbing loss from treasury (if governance approves)",
+          "4. If large amount: Deploy corrected WBAIT with supply adjustment",
+          "5. Worst case: Full bridge migration — deploy new contracts, migrate valid state, blacklist invalid mints",
+          "6. External audit of how incorrect mint occurred",
+          "7. Update operator verification procedures to prevent recurrence"
+        ],
+        "prevention": [
+          "Each operator verifies independently on air-gapped workstation before signing",
+          "3-of-5 threshold means at least 3 operators must independently verify",
+          "Rate limit (100K wBAIT/day) caps maximum damage from any single exploit",
+          "Conservation invariant check in monitoring: totalSupply(wBAIT) should match total L1 locks"
+        ],
+        "timeToRecovery": "24-72 hours (depends on severity and migration complexity)"
+      },
+      {
+        "scenario": "Rate Limit Exploitation",
+        "cause": "Sybil attacker creates many addresses, each hitting the 100K wBAIT/day limit",
+        "severity": "MEDIUM-HIGH — can mint large amounts across many addresses",
+        "impact": "Conservation invariant still holds per-address, but total bridge throughput exploited",
+        "recoveryOptions": [
+          "1. PAUSE bridge to stop further exploitation",
+          "2. Assess total minted across all Sybil addresses",
+          "3. Identify Sybil patterns (common funding source, similar timestamps, etc.)",
+          "4. If mints were valid (real L1 locks): No recovery needed — rate limit working as designed",
+          "5. If mints were invalid (no real L1 locks): Follow incorrect mint recovery procedure",
+          "6. Preventive: Consider per-operator rate limits, KYC whitelist, or delayed mint in next contract version"
+        ],
+        "prevention": [
+          "Monitor rate limit usage per recipient (bridge-monitoring.py does this automatically)",
+          "Alert when multiple addresses approach cap simultaneously (Sybil detection)",
+          "Track funding sources of new addresses (anomaly detection)",
+          "Rate limit of 100K wBAIT/day/address limits maximum per-address damage"
+        ],
+        "timeToRecovery": "Hours (investigation) to days (if contract upgrade needed)"
+      },
+      {
+        "scenario": "WBAIT Max Supply Approaching (21M cap)",
+        "cause": "Legitimate bridge usage approaching maximum wBAIT supply",
+        "severity": "MEDIUM — bridge becomes unusable when cap is reached",
+        "impact": "New lock-mint requests will fail with 'WBAIT: exceeds max supply cap'",
+        "recoveryOptions": [
+          "1. Monitor SupplyCapApproaching events (emitted at 90% of cap = 18.9M wBAIT)",
+          "2. If legitimate usage: Consider governance proposal to increase cap (requires new WBAIT deployment)",
+          "3. Encourage burn-releases to reduce circulating supply",
+          "4. If approaching cap due to exploit: Pause and investigate"
+        ],
+        "prevention": "Monitor totalSupply via bridge monitor; alert at 80% and 90% of cap"
+      }
+    ]
+  },
+
+  "incidentEscalationMatrix": {
+    "description": "Escalation levels and response procedures for bridge incidents",
+    "version": "2.0",
+    "levels": [
+      {
+        "level": "P0 — CRITICAL",
+        "definition": "Active exploit, funds at risk, or bridge security breach confirmed",
+        "examples": [
+          "Unauthorized wBAIT mint detected (conservation invariant violated)",
+          "2+ operator keys compromised simultaneously",
+          "Smart contract vulnerability being actively exploited on mainnet",
+          "L1 bridge fund theft in progress",
+          "wBAIT minted without corresponding L1 lock",
+          "Bridge executing requests without proper 3-of-5 confirmation"
+        ],
+        "automatedDetection": [
+          "bridge-monitoring.py: Unexpected LockExecuted without 3 LockConfirmed events",
+          "bridge-monitoring.py: totalSupply(wBAIT) != expected total L1 locks",
+          "bridge-monitoring.py: OperatorUpdated event from unknown proposer",
+          "Prometheus alert: bait_bridge_lock_executed_total increases without corresponding confirmations"
+        ],
+        "response": {
+          "timeToRespond": "< 5 minutes",
+          "firstResponder": "Any operator or automated monitoring system",
+          "actions": [
+            "1. PAUSE BridgeLock contract immediately (owner action)",
+            "2. PAUSE WBAIT contract immediately (owner action — stops all transfers)",
+            "3. Page all 5 operators + owner via PagerDuty/Signal emergency group",
+            "4. Assess scope of exploit: Check recent LockExecuted/BurnExecuted events for anomalies",
+            "5. Identify exploited addresses and amounts",
+            "6. If funds actively draining: Attempt emergency L1 lock (if applicable)",
+            "7. Engage external security auditor (CertiK/Halborn/Trail of Bits — have retainer)",
+            "8. Document timeline with precise timestamps (UTC)",
+            "9. Post incident to security channel with full details",
+            "10. Do NOT unpause until external audit confirms fix"
+          ],
+          "communication": {
+            "immediate": "Signal emergency group (all operators + owner)",
+            "within1hour": "External auditor + legal counsel (if funds lost > $10K)",
+            "within24hours": "Community disclosure (if user funds affected)",
+            "ongoing": "Status page updates every 4 hours"
+          }
+        }
+      },
+      {
+        "level": "P1 — HIGH",
+        "definition": "Suspected compromise or operational emergency that could escalate to P0",
+        "examples": [
+          "Single operator key compromise suspected (but not confirmed)",
+          "HSM cluster failure (operator cannot sign — but 3-of-5 still achievable)",
+          "Bridge monitor detects anomalous confirmation pattern (wrong operators confirming)",
+          "Rate limit being systematically approached by many addresses (Sybil pattern)",
+          "Unexpected operator replacement proposal submitted",
+          "Contract owner transfer initiated without authorization"
+        ],
+        "automatedDetection": [
+          "bridge-monitoring.py: Confirmation from operator not in operator list",
+          "bridge-monitoring.py: Multiple addresses hitting >80% rate limit simultaneously",
+          "bridge-monitoring.py: OperatorUpdated event without prior operator coordination",
+          "HSM audit: Failed authentication attempts on operator key",
+          "Prometheus alert: bait_bridge_rate_limit_usage_percent > 80 for 5+ recipients"
+        ],
+        "response": {
+          "timeToRespond": "< 15 minutes",
+          "firstResponder": "Operator detecting the issue",
+          "actions": [
+            "1. Notify all other operators via Signal emergency group",
+            "2. Assess whether to pause bridge (if risk of escalation to P0)",
+            "3. If key compromise: Disable HSM key immediately (CKA_ENABLED=false)",
+            "4. Begin operator key rotation procedure (see operatorReplacement)",
+            "5. If HSM failure: Initiate HSM failover/recovery (provider-specific)",
+            "6. Document incident with timestamps and evidence",
+            "7. If rate limit Sybil: Monitor closely; pause if threshold breached",
+            "8. Set monitoring to enhanced mode (15-second poll, all alerts to Signal)"
+          ],
+          "communication": {
+            "immediate": "Signal group (all operators + owner)",
+            "within4hours": "Incident report to coordinator",
+            "ongoing": "Updates every 2 hours until resolved"
+          }
+        }
+      },
+      {
+        "level": "P2 — MEDIUM",
+        "definition": "Operational issue affecting bridge throughput but not security",
+        "examples": [
+          "1-2 operators unavailable (3-of-5 still achievable)",
+          "RPC endpoint degradation (slow event processing, missed blocks)",
+          "Bridge monitoring system gap (monitor down, false positive)",
+          "Single request stalled > 30 minutes without enough confirmations",
+          "HSM performance degradation (slow signing, >5s per operation)",
+          "Daily rate limit hit for a single address (legitimate usage)"
+        ],
+        "automatedDetection": [
+          "bridge-monitoring.py: Stalled request alert (>STALL_THRESHOLD_MIN minutes)",
+          "bridge-monitoring.py: RPC connection error or block lag > 60s",
+          "Prometheus: bait_bridge_confirmation_stall_seconds > 1800",
+          "Prometheus: bait_bridge_rpc_errors_total increasing",
+          "Systemd: bait-bridge-monitor service restart"
+        ],
+        "response": {
+          "timeToRespond": "< 1 hour",
+          "firstResponder": "On-call operator",
+          "actions": [
+            "1. Investigate root cause",
+            "2. Contact unavailable operators via phone/Signal",
+            "3. If RPC issues: Switch to backup RPC endpoint (update RPC_URL in .env, restart monitor)",
+            "4. If operator unavailable >4h: Document and track; escalate to P1 if unavailable >24h",
+            "5. If monitoring gap: Restart bridge monitor; check state file for resume point",
+            "6. Resume normal operations once resolved"
+          ],
+          "communication": {
+            "immediate": "Telegram group (all operators)",
+            "within24hours": "Incident summary to coordinator"
+          }
+        }
+      },
+      {
+        "level": "P3 — LOW",
+        "definition": "Minor issue or informational alert requiring eventual action",
+        "examples": [
+          "Approaching rate limit for single address (near 80% daily cap)",
+          "Monitoring alert that resolves itself (transient RPC error)",
+          "Scheduled operator key rotation due in next 7 days",
+          "Minor monitoring dashboard display issue",
+          "HSM firmware update available (non-critical)",
+          "Bridge monitor log rotation needed"
+        ],
+        "automatedDetection": [
+          "bridge-monitoring.py: Rate limit approaching alert (>RATE_LIMIT_PCT%)",
+          "Prometheus: bait_bridge_rate_limit_usage_percent > 80 for any recipient",
+          "Cron: Key rotation due in 7 days (check hsm-configuration.json schedule)"
+        ],
+        "response": {
+          "timeToRespond": "< 4 hours (or next business day)",
+          "firstResponder": "Any operator during shift",
+          "actions": [
+            "1. Acknowledge alert in monitoring system (don't let it nag)",
+            "2. Investigate if pattern persists (check last 7 days of alerts)",
+            "3. Schedule corrective action if needed (add to next sprint)",
+            "4. Update runbook if new scenario discovered",
+            "5. If rate limit alert: Verify recipient is legitimate; consider whitelist if recurring"
+          ],
+          "communication": "Log in incident tracker; notify coordinator if recurring pattern"
+        }
+      }
+    ],
+    "escalationRules": [
+      "P3 → P2: If issue persists > 24 hours OR affects multiple operators OR occurs >3 times in 7 days",
+      "P2 → P1: If security implications suspected OR operator unavailable > 24h OR bridge throughput degraded >50%",
+      "P1 → P0: If exploit confirmed OR funds at risk OR >= 2 operator keys compromised simultaneously",
+      "Any level → P0: If >= 2 operator keys compromised simultaneously (cannot guarantee 3-of-5 integrity)",
+      "P2 → P1: If single stalled burn-release > 4 hours (user funds in limbo)",
+      "Auto-escalate: Bridge monitor auto-escalates stalled requests from P2→P1 after 2×STALL_THRESHOLD_MIN"
+    ],
+    "deEscalationRules": [
+      "P0 → P1: After bridge is paused and funds secured; no active exploit",
+      "P1 → P2: After compromised key disabled and rotation initiated; no evidence of exploit",
+      "P2 → P3: After root cause identified and fix implemented; normal operations resumed",
+      "P1 → P0 is NOT allowed without new evidence (never de-escalate from confirmed exploit)"
+    ]
+  },
+
+  "communicationPlan": {
+    "channels": {
+      "emergency": {
+        "tool": "Signal group",
+        "participants": "All 5 operators + contract owner",
+        "useFor": "P0 and P1 incidents — immediate response required",
+        "setup": "Create Signal group 'BAIT Bridge Emergency' — verify all members with safety numbers",
+        "backupChannel": "Phone call tree if Signal unavailable"
+      },
+      "operational": {
+        "tool": "Telegram group",
+        "participants": "All 5 operators + coordinator",
+        "useFor": "P2 and P3 incidents — operational coordination",
+        "setup": "Create Telegram group 'BAIT Bridge Ops' — enable slow mode (30s) to prevent noise"
+      },
+      "public": {
+        "tool": "Discord #bridge-status channel",
+        "participants": "Public — all BAIT users",
+        "useFor": "User-facing status updates during incidents",
+        "setup": "Configure Discord webhook in bridge-monitoring.py ALERT_WEBHOOK",
+        "template": "Bridge Status: [OPERATIONAL|DEGRADED|PAUSED] — {description} — Updated: {timestamp}"
+      },
+      "audit": {
+        "tool": "Email (PGP-encrypted)",
+        "participants": "External auditor + legal counsel",
+        "useFor": "Post-incident review, audit reports, compliance documentation",
+        "setup": "Exchange PGP keys during onboarding; verify fingerprints via Signal"
+      },
+      "monitoring": {
+        "tool": "Slack/Discord webhook",
+        "participants": "Automated — bridge-monitoring.py",
+        "useFor": "Automated alerts from bridge monitor (stalled requests, rate limits, contract events)",
+        "setup": "Set ALERT_WEBHOOK in bridge-monitoring.py .env file"
+      }
+    },
+    "phoneTree": {
+      "description": "Backup communication if Signal/Telegram unavailable",
+      "flow": [
+        "Operator detecting incident calls Owner",
+        "Owner calls Operator-1 and Operator-2",
+        "Operator-1 calls Operator-3 and Operator-4",
+        "Operator-2 calls Operator-5",
+        "Each person confirms receipt and understanding of incident"
+      ],
+      "testFrequency": "Monthly (during DR drill)"
+    },
+    "templates": {
+      "incidentStart": "🚨 [P{level}] BridgeLock Incident | Time: {timestamp} UTC | Description: {desc} | Action: {action} | Bridge Status: {status}",
+      "incidentUpdate": "📋 [P{level}] Update | Time: {timestamp} UTC | Status: {status} | Next: {next_action} | ETA: {eta}",
+      "incidentResolve": "✅ [P{level}] Resolved | Time: {timestamp} UTC | Root cause: {cause} | Prevention: {prevention} | Duration: {duration}",
+      "bridgeStatusOperational": "🟢 Bridge Status: OPERATIONAL — All systems normal — Updated: {timestamp}",
+      "bridgeStatusDegraded": "🟡 Bridge Status: DEGRADED — {issue} — Monitoring enhanced — Updated: {timestamp}",
+      "bridgeStatusPaused": "🔴 Bridge Status: PAUSED — {reason} — Funds safe — Investigating — Updated: {timestamp}"
+    }
+  },
+
+  "automatedDetectionTriggers": {
+    "description": "Conditions that automatically trigger incident response",
+    "triggers": [
+      {
+        "trigger": "Bridge monitor detects LockExecuted without 3 preceding LockConfirmed events",
+        "severity": "P0",
+        "action": "Auto-alert to Signal group + pause request to owner",
+        "implementation": "bridge-monitoring.py event processing logic"
+      },
+      {
+        "trigger": "Bridge monitor detects contract paused state change",
+        "severity": "P1 if paused by owner; P0 if paused by unknown",
+        "action": "Auto-alert to Signal group with current state",
+        "implementation": "bridge-monitoring.py check_contract_status()"
+      },
+      {
+        "trigger": "Bridge monitor detects OperatorUpdated event",
+        "severity": "P1 (unexpected) / P3 (scheduled rotation)",
+        "action": "Auto-alert to Signal group + reload operators",
+        "implementation": "bridge-monitoring.py _process_operator_updated()"
+      },
+      {
+        "trigger": "Request stalled > STALL_THRESHOLD_MIN minutes without reaching 3 confirmations",
+        "severity": "P2",
+        "action": "Alert to webhook + Signal (if >2× threshold, escalate to P1)",
+        "implementation": "bridge-monitoring.py check_stalled_requests()"
+      },
+      {
+        "trigger": "Rate limit usage > RATE_LIMIT_PCT% for any recipient",
+        "severity": "P3 (single) / P2 (multiple recipients)",
+        "action": "Alert to webhook; monitor for Sybil patterns",
+        "implementation": "bridge-monitoring.py check_rate_limits()"
+      },
+      {
+        "trigger": "HSM signing operation fails or times out",
+        "severity": "P2 (single) / P1 (persistent)",
+        "action": "Alert operator; check HSM health; failover if possible",
+        "implementation": "HSM client SDK error handling"
+      },
+      {
+        "trigger": "Bridge monitor RPC connection lost for > 5 minutes",
+        "severity": "P2",
+        "action": "Exponential backoff + fallback RPC; alert if all RPCs fail",
+        "implementation": "bridge-monitoring.py _connect_with_fallback() + backoff logic"
+      },
+      {
+        "trigger": "wBAIT totalSupply > 90% of MAX_SUPPLY (18.9M wBAIT)",
+        "severity": "P2",
+        "action": "Alert all operators; prepare governance proposal for cap adjustment",
+        "implementation": "WBAIT SupplyCapApproaching event monitoring"
+      }
+    ]
+  },
+
+  "recoveryVerification": {
+    "description": "Steps to verify bridge is healthy after recovery from an incident",
+    "postRecoveryChecklist": [
+      "1. Verify BridgeLock.paused() == false (bridge is active)",
+      "2. Verify WBAIT.paused() == false (if WBAIT was also paused)",
+      "3. Verify all 5 operators are registered: isOperator(addr) == true for each",
+      "4. Verify operator count: No unexpected operators added or removed",
+      "5. Verify bridge monitor is running and healthy for all operators",
+      "6. Check recent events: No anomalous LockExecuted or BurnExecuted since unpause",
+      "7. Verify rate limits are functioning correctly",
+      "8. Test with a small lock-mint request (test amount) and confirm through 3-of-5",
+      "9. Verify wBAIT conservation invariant: totalSupply == expected total L1 locks",
+      "10. Check HSM audit logs for any unauthorized access during incident window",
+      "11. Verify bridge monitor Prometheus metrics are updating (bait_bridge_last_processed_block increasing)",
+      "12. Run bridge monitor in enhanced logging mode for 24 hours post-recovery"
+    ],
+    "conservationInvariantCheck": {
+      "description": "Verify that totalSupply(wBAIT) matches total L1 locked amount",
+      "procedure": [
+        "1. Query WBAIT.totalSupply() on Ethereum",
+        "2. Query all LockExecuted events to sum total minted wBAIT",
+        "3. Query all BurnInitiated events to sum total burned wBAIT",
+        "4. Verify: totalSupply == totalMinted - totalBurned",
+        "5. If mismatch: This is a P0 incident — conservation invariant violated",
+        "6. Cross-reference with L1: Total L1 locked should match totalSupply(wBAIT)"
+      ],
+      "automatedCheck": "Run daily via bridge-monitoring.py daily summary",
+      "castCommands": {
+        "totalSupply": "cast call $WBAIT_ADDRESS 'totalSupply()(uint256)' --rpc-url $RPC_URL",
+        "maxSupply": "cast call $WBAIT_ADDRESS 'MAX_SUPPLY()(uint256)' --rpc-url $RPC_URL"
+      }
+    }
+  },
+
+  "postIncidentChecklist": [
+    "1. Verify bridge contract state is consistent (no corrupted state)",
+    "2. Run conservation invariant check: totalSupply(wBAIT) == total L1 locks",
+    "3. Check all recent lock requests: no unexpected mints since incident",
+    "4. Check all recent burn releases: no unexpected L1 releases since incident",
+    "5. Verify operator set is correct and all 5 are operational (can sign)",
+    "6. Review HSM audit logs for any unauthorized access attempts during incident",
+    "7. Run bridge monitor in enhanced logging mode for 24 hours post-incident",
+    "8. Write incident report (timeline, root cause, remediation, prevention measures)",
+    "9. Share incident report with all operators (PGP-encrypted email)",
+    "10. Share incident report with external auditor (PGP-encrypted email)",
+    "11. Update emergency procedures based on lessons learned (update this file)",
+    "12. Update operator onboarding guide if procedural changes needed",
+    "13. Schedule follow-up security review within 7 days (for P0) or 30 days (for P1)",
+    "14. Update monitoring thresholds or alerts if new scenario discovered",
+    "15. If incident was P0: Schedule external re-audit of bridge contracts",
+    "16. Archive all incident artifacts (logs, screenshots, transcripts) for 7 years",
+    "17. Verify all automated detection triggers are still functional after changes",
+    "18. Run DR test on staging to validate any procedural changes"
+  ],
+
+  "preApprovedEmergencyActions": {
+    "description": "Actions that operators are pre-authorized to take without additional approval during emergencies",
+    "anyOperator": [
+      "Request bridge pause (must contact owner who executes)",
+      "Disable their own HSM key (if they suspect their own key is compromised)",
+      "Alert all other operators via Signal emergency group",
+      "Initiate enhanced monitoring (15-second poll, all alerts to Signal)",
+      "Document incident timeline with timestamps"
+    ],
+    "ownerOnly": [
+      "Execute pause() on BridgeLock contract",
+      "Execute pause() on WBAIT contract",
+      "Execute unpause() on BridgeLock (only after incident resolution)",
+      "Execute unpause() on WBAIT (only after incident resolution)"
+    ],
+    "requires3of5Approval": [
+      "Execute operator replacement after timelock",
+      "Resume bridge operations after incident",
+      "Any parameter change on BridgeLock contract"
+    ],
+    "neverPreApproved": [
+      "Unpause bridge without incident resolution",
+      "Delete HSM keys (disable only, never delete)",
+      "Modify bridge monitor configuration to suppress alerts",
+      "Deploy new contracts without external audit"
+    ]
+  },
+
+  "contactRotationSchedule": {
+    "description": "On-call operator rotation for 24/7 bridge coverage",
+    "model": "Follow-the-sun with 3 geographic zones ensuring >=3 operators always available",
+    "zones": [
+      {"name": "Americas", "operators": ["operator-1 (US-East)", "operator-4 (US-West)"], "hours": "00:00-12:00 UTC"},
+      {"name": "EMEA", "operators": ["operator-2 (EU-West)", "operator-5 (EU-North)"], "hours": "06:00-18:00 UTC"},
+      {"name": "APAC", "operators": ["operator-3 (AP-Southeast)"], "hours": "12:00-00:00 UTC"}
+    ],
+    "minimumAvailable": "3 operators at all times (to maintain 3-of-5 threshold)",
+    "escalationIfBelow3": "P0 — bridge cannot confirm requests; all operators paged",
+    "handoverProtocol": "Outgoing operator briefs incoming on any pending requests, active incidents, and anomalies"
+  }
+}

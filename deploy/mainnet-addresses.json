@@ -1,0 +1,94 @@
+{
+  "$schema": "https://baitcoin.org/schemas/mainnet-addresses-v1",
+  "version": "1.0.0",
+  "description": "Template for deployed contract addresses on Ethereum Mainnet. All values are 0x0 placeholders until actual deployment. UPDATE THIS FILE IMMEDIATELY after deployment.",
+  "network": "ethereum-mainnet",
+  "chain_id": 1,
+  "deployed_at": null,
+  "deploy_tx_hash": null,
+  "deployer": null,
+
+  "contracts": {
+    "WBAIT": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "deployment_tx": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "block_number": null,
+      "creation_code_hash": null,
+      "runtime_code_hash": null,
+      "verified_on_etherscan": false,
+      "notes": "ERC-20 wrapped BAIT. 21M max supply, 8 decimals, BridgeLock-only mint, Pausable."
+    },
+    "BridgeLock": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "deployment_tx": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "block_number": null,
+      "creation_code_hash": null,
+      "runtime_code_hash": null,
+      "verified_on_etherscan": false,
+      "notes": "3-of-5 multisig bridge. 24h timelock, 100K/day rate limit."
+    },
+    "BAITUniswapV3Liquidity": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "deployment_tx": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "block_number": null,
+      "creation_code_hash": null,
+      "runtime_code_hash": null,
+      "verified_on_etherscan": false,
+      "notes": "Uniswap V3 pool bootstrapper for wBAIT/WETH."
+    }
+  },
+
+  "uniswap_v3": {
+    "factory": {
+      "address": "0x1F98431f2aD3a5a3B9D4D9D5E7F8C2A1B3D4E5F6",
+      "chain_specific": "Actual mainnet: 0x1F98431f2aD3a5a3B9D4D9D5E7F8C2A1B3D4E5F6 — verify before deployment"
+    },
+    "nonfungible_position_manager": {
+      "address": "0xC36442b4A452C0e0e1D7b4D9D5E7F8C2A1B3D4E5F6",
+      "chain_specific": "Actual mainnet: 0xC36442b4A452C0e0e1D7b4D9D5E7F8C2A1B3D4E5F6 — verify before deployment"
+    },
+    "weth": {
+      "address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+      "chain_specific": "Canonical WETH on mainnet"
+    },
+    "pool_wbait_weth": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "fee_tier": 3000,
+      "tick_spacing": 60,
+      "notes": "Created by BAITUniswapV3Liquidity.createPool()"
+    }
+  },
+
+  "access_control": {
+    "initial_owner": "0x0000000000000000000000000000000000000000",
+    "final_owner_multisig": "0x0000000000000000000000000000000000000000",
+    "ownership_transferred": false,
+    "operators": {
+      "op_1": "0x0000000000000000000000000000000000000000",
+      "op_2": "0x0000000000000000000000000000000000000000",
+      "op_3": "0x0000000000000000000000000000000000000000",
+      "op_4": "0x0000000000000000000000000000000000000000",
+      "op_5": "0x0000000000000000000000000000000000000000",
+      "threshold": 3,
+      "total": 5
+    }
+  },
+
+  "create2_deterministic_addresses": {
+    "deployer_salt": "0x000000000000000000000000000000000000000000000000000000000000bait",
+    "WBAIT_computed": "0x0000000000000000000000000000000000000000",
+    "BridgeLock_computed": "0x0000000000000000000000000000000000000000",
+    "BAITUniswapV3Liquidity_computed": "0x0000000000000000000000000000000000000000",
+    "notes": "Pre-computed CREATE2 addresses. Must match actual deployment."
+  },
+
+  "deployment_metadata": {
+    "solidity_version": "0.8.20",
+    "optimizer_enabled": true,
+    "optimizer_runs": 200,
+    "via_ir": false,
+    "fuzz_runs": 256,
+    "foundry_version": null,
+    "compiler_commit_hash": null
+  }
+}

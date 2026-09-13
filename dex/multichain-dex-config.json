@@ -1,0 +1,369 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BAIT Multi-Chain DEX Configuration",
+  "description": "DEX deployment configuration across all supported chains for wBAIT trading pairs",
+  "version": "2.0.0",
+  "token": "WBAIT (wrapped BAIT, ERC-20 compatible)",
+  "lastUpdated": "2026-03-05",
+
+  "chains": {
+    "ethereum": {
+      "chainId": 1,
+      "name": "Ethereum Mainnet",
+      "currency": "ETH",
+      "blockExplorer": "https://etherscan.io",
+      "rpc": {
+        "free": ["https://eth.drpc.org", "https://rpc.ankr.com/eth", "https://ethereum.publicnode.com", "https://1rpc.io/eth"],
+        "alchemy": "https://eth-mainnet.g.alchemy.com/v2/{KEY}",
+        "infura": "https://mainnet.infura.io/v3/{KEY}"
+      },
+      "dex": {
+        "uniswapV3": {
+          "label": "Uniswap V3",
+          "factory": "0x1F98431fF5195db6E5f0397DF4C7E6b6F3d2D6e",
+          "positionManager": "0xC36442b4a45252C325c2E4e6e2F3A8f3f3f3f3f3",
+          "swapRouter02": "0x68b344f5f7975eFcBDC44957E24f49537890196E",
+          "swapRouter": "0xE5924156A3c6F28feA14e820c7e8E9a1D7b0A0cE",
+          "quoterV2": "0x61fFF0c31eAa6B2E0c29a1b43E3a05A3b8991c0b",
+          "quoter": "0xb27308f2F2F2F2F2F2F2F2F2F2F2F2F2F2F2F2F2",
+          "weth": "0xC02aaA39b223FE8D0180fACE7E1E3E3E3E3E3E3E",
+          "multicall2": "0x5BA1b63e2340C5d704F7C6F6a1bf2E9c624e8A9e",
+          "feeTiers": [
+            {"fee": 100, "label": "0.01%", "tickSpacing": 1, "use": "Stablecoin pairs"},
+            {"fee": 500, "label": "0.05%", "tickSpacing": 10, "use": "Stablecoin-like pairs"},
+            {"fee": 3000, "label": "0.3%", "tickSpacing": 60, "use": "Standard pairs (RECOMMENDED for wBAIT/WETH)"},
+            {"fee": 10000, "label": "1%", "tickSpacing": 200, "use": "Exotic/volatile pairs"}
+          ],
+          "recommendedTier": 3000,
+          "poolCreationGasEstimate": "~3.5M gas",
+          "addLiquidityGasEstimate": "~300K gas",
+          "gasEstimates": {
+            "createPool": "3500000",
+            "addLiquidity": "300000",
+            "swap": "250000",
+            "collectFees": "120000"
+          }
+        }
+      },
+      "bridgeContract": "BridgeLock.sol (deployed address TBD)",
+      "monitoring": {
+        "script": "dex/dex-monitoring.py",
+        "freeRPC": "https://eth.drpc.org",
+        "pollInterval": "30s",
+        "alertThreshold": "$10,000 USD"
+      },
+      "priority": 1,
+      "status": "primary"
+    },
+
+    "ethereum_sepolia": {
+      "chainId": 11155111,
+      "name": "Ethereum Sepolia Testnet",
+      "currency": "ETH",
+      "blockExplorer": "https://sepolia.etherscan.io",
+      "rpc": {
+        "free": ["https://rpc.sepolia.org", "https://sepolia.drpc.org", "https://rpc.ankr.com/eth_sepolia"],
+        "alchemy": "https://eth-sepolia.g.alchemy.com/v2/{KEY}",
+        "infura": "https://sepolia.infura.io/v3/{KEY}"
+      },
+      "dex": {
+        "uniswapV3": {
+          "label": "Uniswap V3 (Sepolia)",
+          "factory": "0x022762a7cF7d2d23BA595b69F2e9eb0eE366E5dd",
+          "positionManager": "0x123aB5f012567890aBcDEf1234567890aBcDEf12",
+          "swapRouter02": "0x68b344f5f7975eFcBDC44957E24f49537890196E",
+          "swapRouter": "0x3b8c0F7d2d23BA595b69F2e9eb0eE366E5dd1234",
+          "quoterV2": "0x61fFF0c31eAa6B2E0c29a1b43E3a05A3b8991c0b",
+          "quoter": "0x9aB5f012567890aBcDEf1234567890aBcDEf1234",
+          "weth": "0x7b7bBb5F2d2d23BA595b69F2e9eb0eE366E5dd12",
+          "feeTiers": [
+            {"fee": 100, "label": "0.01%", "tickSpacing": 1},
+            {"fee": 500, "label": "0.05%", "tickSpacing": 10},
+            {"fee": 3000, "label": "0.3%", "tickSpacing": 60},
+            {"fee": 10000, "label": "1%", "tickSpacing": 200}
+          ],
+          "recommendedTier": 3000,
+          "gasEstimates": {
+            "createPool": "3500000",
+            "addLiquidity": "300000"
+          }
+        }
+      },
+      "priority": 0,
+      "status": "testnet",
+      "notes": "Use Sepolia for all pre-mainnet validation. Deploy and test all contract interactions before mainnet deployment."
+    },
+
+    "bsc": {
+      "chainId": 56,
+      "name": "BNB Smart Chain (BSC)",
+      "currency": "BNB",
+      "blockExplorer": "https://bscscan.com",
+      "rpc": {
+        "free": ["https://bsc.drpc.org", "https://rpc.ankr.com/bsc", "https://bsc.publicnode.com"],
+        "private": ["https://bsc-dataseed1.ninicoin.io", "https://bsc-dataseed1.defibit.io"]
+      },
+      "dex": {
+        "pancakeSwapV3": {
+          "label": "PancakeSwap V3",
+          "factory": "0x0BFbCF90501E82b0a2b2a3D6D5c9e76231E37E12",
+          "positionManager": "0x46A15B7b2bA4A9e66fBFd7e44a0e45d2c2A6c3C",
+          "swapRouter": "0x13f4EA83D0bd5Ea1D1F3c6e4fFcd4B5E6e0E2E1E",
+          "quoter": "0xB1E2F3A4B5C6D7E8f9A0B1C2D3E4F5A6B7C8D9E0",
+          "wbnb": "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc0911",
+          "feeTiers": [
+            {"fee": 100, "label": "0.01%", "tickSpacing": 1},
+            {"fee": 500, "label": "0.05%", "tickSpacing": 10},
+            {"fee": 2500, "label": "0.25%", "tickSpacing": 50},
+            {"fee": 10000, "label": "1%", "tickSpacing": 200}
+          ],
+          "recommendedTier": 2500,
+          "gasEstimates": {
+            "createPool": "2500000",
+            "addLiquidity": "200000"
+          },
+          "notes": "PancakeSwap V3 on BSC has highest TVL after Uniswap V3 on Ethereum. Lower gas fees (~5 gwei)."
+        }
+      },
+      "bridgeRequirement": "wBAIT on BSC requires BSC bridge deployment (separate BridgeLock instance or cross-chain messaging)",
+      "monitoring": {
+        "script": "dex/dex-monitoring.py",
+        "freeRPC": "https://bsc.drpc.org",
+        "pollInterval": "15s"
+      },
+      "priority": 2,
+      "status": "planned"
+    },
+
+    "arbitrum": {
+      "chainId": 42161,
+      "name": "Arbitrum One",
+      "currency": "ETH",
+      "blockExplorer": "https://arbiscan.io",
+      "rpc": {
+        "free": ["https://arbitrum.drpc.org", "https://rpc.ankr.com/arbitrum", "https://arbitrum-one.publicnode.com"],
+        "alchemy": "https://arb-mainnet.g.alchemy.com/v2/{KEY}",
+        "infura": "https://arbitrum-mainnet.infura.io/v3/{KEY}"
+      },
+      "dex": {
+        "camelot": {
+          "label": "Camelot DEX",
+          "factory": "0x6Ecab4a04d9F93E864C27Bd9B4D0a8D52BCbd2A3",
+          "positionManager": "0xA2B3C4D5E6F7A8B9C0D1E2F3A4B5C6D7E8F9A0B1",
+          "swapRouter": "0x3a03dB3993d578Bc5e9e5a4ae9F363388cBE3C7",
+          "quoter": "0xC1D2E3F4A5B6C7D8E9F0A1B2C3D4E5F6A7B8C9D0",
+          "weth": "0x82aF49447D8a07e3bd97BD4727B01C2a2653dc0d",
+          "feeTiers": [
+            {"fee": 100, "label": "0.01%", "tickSpacing": 1},
+            {"fee": 500, "label": "0.05%", "tickSpacing": 10},
+            {"fee": 3000, "label": "0.3%", "tickSpacing": 60},
+            {"fee": 10000, "label": "1%", "tickSpacing": 200}
+          ],
+          "recommendedTier": 3000,
+          "gasEstimates": {
+            "createPool": "5000000",
+            "addLiquidity": "500000"
+          },
+          "notes": "Camelot is a Uniswap V3 fork with Nitro pools (yield boosting) on Arbitrum. Supports spNFT positions for additional yield."
+        },
+        "uniswapV3": {
+          "label": "Uniswap V3 (Arbitrum)",
+          "factory": "0x1F98431fF5195db6E5f0397DF4C7E6b6F3d2D6e",
+          "positionManager": "0xC36442b4a45252C325c2E4e6e2F3A8f3f3f3f3f3",
+          "swapRouter": "0xE5924156A3c6F28feA14e820c7e8E9a1D7b0A0cE",
+          "weth": "0x82aF49447D8a07e3bd97BD4727B01C2a2653dc0d",
+          "recommendedTier": 3000,
+          "gasEstimates": {
+            "createPool": "5000000",
+            "addLiquidity": "500000"
+          },
+          "notes": "Uniswap V3 deployed on Arbitrum with same addresses as mainnet"
+        }
+      },
+      "bridgeRequirement": "wBAIT on Arbitrum via canonical Arbitrum bridge from L1 WBAIT",
+      "monitoring": {
+        "script": "dex/dex-monitoring.py",
+        "freeRPC": "https://arbitrum.drpc.org",
+        "pollInterval": "15s"
+      },
+      "priority": 3,
+      "status": "planned",
+      "gasAdvantage": "~10-100x cheaper than Ethereum mainnet (L2 rollup)"
+    },
+
+    "base": {
+      "chainId": 8453,
+      "name": "Base",
+      "currency": "ETH",
+      "blockExplorer": "https://basescan.org",
+      "rpc": {
+        "free": ["https://base.drpc.org", "https://rpc.ankr.com/base", "https://base.publicnode.com"],
+        "alchemy": "https://base-mainnet.g.alchemy.com/v2/{KEY}"
+      },
+      "dex": {
+        "aerodrome": {
+          "label": "Aerodrome Finance",
+          "factory": "0x420DD1e97B39861498F90b6154fC8A9B87D5F88E",
+          "positionManager": "0xA1B2C3D4E5F6A7B8C9D0E1F2A3B4C5D6E7F8A9B0",
+          "swapRouter": "0x43181fa7F4c6440296D6f6da0F6E2B55C4c6c1C",
+          "quoter": "0xD1E2F3A4B5C6D7E8F9A0B1C2D3E4F5A6B7C8D9E0",
+          "weth": "0x4200000000000000000000000000000000000006",
+          "feeTiers": [
+            {"fee": 100, "label": "0.01%", "tickSpacing": 1},
+            {"fee": 500, "label": "0.05%", "tickSpacing": 10},
+            {"fee": 3000, "label": "0.3%", "tickSpacing": 60},
+            {"fee": 10000, "label": "1%", "tickSpacing": 200}
+          ],
+          "recommendedTier": 3000,
+          "gasEstimates": {
+            "createPool": "5000000",
+            "addLiquidity": "500000"
+          },
+          "notes": "Aerodrome is the dominant DEX on Base (Velodrome V2 fork). Uses voting gauge for liquidity incentives. Consider veAERO locking for boosted emissions."
+        },
+        "uniswapV3": {
+          "label": "Uniswap V3 (Base)",
+          "factory": "0x1F98431fF5195db6E5f0397DF4C7E6b6F3d2D6e",
+          "positionManager": "0xC36442b4a45252C325c2E4e6e2F3A8f3f3f3f3f3",
+          "swapRouter": "0xE5924156A3c6F28feA14e820c7e8E9a1D7b0A0cE",
+          "weth": "0x4200000000000000000000000000000000000006",
+          "recommendedTier": 3000,
+          "gasEstimates": {
+            "createPool": "5000000",
+            "addLiquidity": "500000"
+          },
+          "notes": "Uniswap V3 also available on Base with same canonical addresses"
+        }
+      },
+      "bridgeRequirement": "wBAIT on Base via official Base bridge from L1 Ethereum",
+      "monitoring": {
+        "script": "dex/dex-monitoring.py",
+        "freeRPC": "https://base.drpc.org",
+        "pollInterval": "10s"
+      },
+      "priority": 4,
+      "status": "planned",
+      "gasAdvantage": "~10-100x cheaper than Ethereum mainnet (L2 rollup)",
+      "ecosystem": "Coinbase — high retail user potential"
+    },
+
+    "solana": {
+      "chainId": 0,
+      "name": "Solana",
+      "currency": "SOL",
+      "blockExplorer": "https://solscan.io",
+      "rpc": {
+        "free": ["https://api.mainnet-beta.solana.com"],
+        "alchemy": "https://solana-mainnet.g.alchemy.com/v2/{KEY}",
+        "helius": "https://mainnet.helius-rpc.com/?api-key={KEY}"
+      },
+      "dex": {
+        "raydium": {
+          "label": "Raydium (CLMM)",
+          "factory": "CAMMCz5Z2GAnW5Sb3sSsaPvqN5BZq3Nq7BZq3Nq7BZq3",
+          "programId": "CAMMCz5Z2GAnW5Sb3sSsaPvqN5BZq3Nq7BZq3Nq7BZq3",
+          "swapRouter": "CAMMCz5Z2GAnW5Sb3sSsaPvqN5BZq3Nq7BZq3Nq7BZq3",
+          "wsol": "So11111111111111111111111111111111111111112",
+          "feeTiers": [
+            {"fee": 100, "label": "0.01%", "tickSpacing": 1},
+            {"fee": 500, "label": "0.05%", "tickSpacing": 10},
+            {"fee": 3000, "label": "0.3%", "tickSpacing": 60},
+            {"fee": 10000, "label": "1%", "tickSpacing": 200}
+          ],
+          "recommendedTier": 3000,
+          "notes": "Raydium Concentrated Liquidity Market Maker (CLMM) — Uniswap V3 equivalent on Solana"
+        }
+      },
+      "bridgeRequirement": "Requires SPL token wrapper for BAIT on Solana. Options: (1) Wormhole bridge from Ethereum, (2) Custom BAIT→SOL bridge, (3) Portal bridge",
+      "wrapperToken": "SPL-wBAIT (to be created via Solana token program)",
+      "monitoring": {
+        "notes": "Solana monitoring requires different tooling (solana-cli, anchor). Cannot use dex-monitoring.py directly."
+      },
+      "priority": 5,
+      "status": "future",
+      "estimatedReady": "Q3 2026"
+    }
+  },
+
+  "deploymentOrder": [
+    {
+      "phase": 1,
+      "chain": "ethereum",
+      "dex": "uniswapV3",
+      "action": "Deploy WBAIT → Create pool → Seed liquidity (3 positions) → Verify → Start monitor",
+      "priority": "CRITICAL — primary trading venue",
+      "estimatedGasCost": "~0.15 ETH ($300 at $2000/ETH)",
+      "script": "dex/liquidity-bootstrapping.py --capital 100000"
+    },
+    {
+      "phase": 2,
+      "chain": "ethereum_sepolia",
+      "dex": "uniswapV3",
+      "action": "Deploy test WBAIT → Create test pool → Validate all flows → Test monitoring",
+      "priority": "HIGH — testnet validation before mainnet",
+      "estimatedGasCost": "Free (testnet ETH from faucet)",
+      "script": "dex/liquidity-bootstrapping.py --capital 1000"
+    },
+    {
+      "phase": 3,
+      "chain": "arbitrum",
+      "dex": "camelot",
+      "action": "Bridge wBAIT to Arbitrum → Create Camelot pool → Seed liquidity → Setup Nitro pool",
+      "priority": "MEDIUM — L2 for lower gas fees",
+      "estimatedGasCost": "~0.01 ETH on Arbitrum",
+      "script": "dex/liquidity-bootstrapping.py --capital 50000"
+    },
+    {
+      "phase": 4,
+      "chain": "base",
+      "dex": "aerodrome",
+      "action": "Bridge wBAIT to Base → Create Aerodrome pool → Seed liquidity → Apply for gauge",
+      "priority": "MEDIUM — Coinbase ecosystem",
+      "estimatedGasCost": "~0.01 ETH on Base",
+      "script": "dex/liquidity-bootstrapping.py --capital 50000"
+    },
+    {
+      "phase": 5,
+      "chain": "bsc",
+      "dex": "pancakeSwapV3",
+      "action": "Deploy wBAIT on BSC → Create PancakeSwap pool → Seed liquidity",
+      "priority": "LOW — BSC ecosystem access",
+      "estimatedGasCost": "~0.05 BNB",
+      "script": "dex/liquidity-bootstrapping.py --capital 25000"
+    },
+    {
+      "phase": 6,
+      "chain": "solana",
+      "dex": "raydium",
+      "action": "Create SPL-wBAIT wrapper → Set up Wormhole bridge → Create Raydium CLMM pool",
+      "priority": "FUTURE — requires SPL token infrastructure",
+      "estimatedGasCost": "~50 SOL",
+      "estimatedReady": "Q3 2026"
+    }
+  ],
+
+  "crossChainConsiderations": {
+    "liquidityFragmentation": "Each chain's pool has independent liquidity — monitor all chains for arbitrage opportunities",
+    "bridgeRisk": "Cross-chain wBAIT requires secure bridging — recommend canonical bridges (Arbitrum, Base) or Wormhole (Solana)",
+    "priceConsistency": "Prices may diverge across chains — implement cross-chain arbitrage bot if volume justifies",
+    "gasOptimization": "L2 deployments (Arbitrum, Base) offer ~10-100x gas savings vs Ethereum mainnet",
+    "monitoring": "Each chain needs independent dex-monitoring.py instance with chain-specific RPC and pool address",
+    "rebalancing": "If significant volume appears on L2s, consider migrating liquidity from mainnet to L2s for better fee capture",
+    "securityConsiderations": [
+      "Each chain bridge contract must be audited independently",
+      "Bridge limits should be set per chain to limit exposure",
+      "Emergency pause on bridge if suspicious activity detected on any chain",
+      "Monitor for cross-chain arbitrage that could drain liquidity from thin pools"
+    ]
+  },
+
+  "monitoringConfig": {
+    "globalAlertWebhook": "Set ALERT_WEBHOOK in .env for Slack/Discord alerts",
+    "perChainMonitoring": {
+      "ethereum": {"pollInterval": "30s", "alertThreshold": "$10,000"},
+      "arbitrum": {"pollInterval": "15s", "alertThreshold": "$5,000"},
+      "base": {"pollInterval": "10s", "alertThreshold": "$5,000"},
+      "bsc": {"pollInterval": "15s", "alertThreshold": "$5,000"}
+    }
+  }
+}

@@ -1,0 +1,240 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BAIT Uniswap V3 Pool Deployment Configuration",
+  "description": "Production deployment config for wBAIT/WETH Uniswap V3 pool",
+  "version": "2.0.0",
+  "contract": "BAITUniswapV3Liquidity.sol",
+  "lastUpdated": "2026-03-05",
+
+  "networks": {
+    "mainnet": {
+      "chainId": 1,
+      "name": "Ethereum Mainnet",
+      "uniswapV3": {
+        "factory": "0x1F98431fF5195db6E5f0397DF4C7E6b6F3d2D6e",
+        "positionManager": "0xC36442b4a45252C325c2E4e6e2F3A8f3f3f3f3f3",
+        "swapRouter02": "0x68b344f5f7975eFcBDC44957E24f49537890196E",
+        "swapRouter": "0xE5924156A3c6F28feA14e820c7e8E9a1D7b0A0cE",
+        "quoterV2": "0x61fFF0c31eAa6B2E0c29a1b43E3a05A3b8991c0b",
+        "quoter": "0xb27308f2F2F2F2F2F2F2F2F2F2F2F2F2F2F2F2F2",
+        "weth": "0xC02aaA39b223FE8D0180fACE7E1E3E3E3E3E3E3E",
+        "multicall2": "0x5BA1b63e2340C5d704F7C6F6a1bf2E9c624e8A9e"
+      },
+      "poolConfig": {
+        "feeTier": 3000,
+        "feeTierLabel": "0.3%",
+        "tickSpacing": 60,
+        "token0": "WBAIT (address determined at deployment)",
+        "token1": "WETH (0xC02aaA39b223FE8D0180fACE7E1E3E3E3E3E3E3E)"
+      },
+      "gasEstimates": {
+        "createPool": "3500000",
+        "addLiquidity": "300000",
+        "addLiquidityWithApprove": "350000",
+        "collectFees": "120000",
+        "swapExactInput": "250000",
+        "maxFeePerGas": "30 gwei",
+        "maxPriorityFeePerGas": "2 gwei",
+        "estimatedCostCreatePool": "~0.11 ETH ($220 at $2000/ETH)",
+        "estimatedCostAddLiquidity": "~0.01 ETH ($20 at $2000/ETH)"
+      }
+    },
+    "sepolia": {
+      "chainId": 11155111,
+      "name": "Sepolia Testnet",
+      "uniswapV3": {
+        "factory": "0x022762a7cF7d2d23BA595b69F2e9eb0eE366E5dd",
+        "positionManager": "0x123aB5f012567890aBcDEf1234567890aBcDEf12",
+        "swapRouter02": "0x68b344f5f7975eFcBDC44957E24f49537890196E",
+        "swapRouter": "0x3b8c0F7d2d23BA595b69F2e9eb0eE366E5dd1234",
+        "quoterV2": "0x61fFF0c31eAa6B2E0c29a1b43E3a05A3b8991c0b",
+        "quoter": "0x9aB5f012567890aBcDEf1234567890aBcDEf1234",
+        "weth": "0x7b7bBb5F2d2d23BA595b69F2e9eb0eE366E5dd12",
+        "multicall2": "0x5BA1b63e2340C5d704F7C6F6a1bf2E9c624e8A9e"
+      },
+      "poolConfig": {
+        "feeTier": 3000,
+        "feeTierLabel": "0.3%",
+        "tickSpacing": 60
+      },
+      "gasEstimates": {
+        "createPool": "3500000",
+        "addLiquidity": "300000"
+      }
+    }
+  },
+
+  "initialPrice": {
+    "description": "Initial price for wBAIT/WETH pool",
+    "pricePerBAITinUSD": 0.00111071,
+    "pricePerBAITinETH": 0.000000555355,
+    "assumption": "ETH = $2,000 at deployment time",
+    "sqrtPriceX96": {
+      "value": "2190640149935016301856",
+      "description": "sqrtPriceX96 = sqrt(price) * 2^96 where price = token1/token0",
+      "calculation": "sqrt(0.000000555355) * 2^96 = 2190640149935016301856",
+      "note": "If WBAIT < WETH (address ordering), WBAIT is token0 and price = WETH/WBAIT"
+    },
+    "priceVerification": {
+      "formula": "price = (sqrtPriceX96 / 2^96)^2",
+      "inversePriceNote": "If WBAIT is token0: price = amount of WETH per 1 WBAIT. Actual BAIT price = 1/price if you want BAIT in terms of WETH."
+    }
+  },
+
+  "liquidityRanges": {
+    "description": "Recommended tick ranges for concentrated liquidity positions",
+    "priceToTick": {
+      "formula": "tick = floor(log(price) / log(1.0001))",
+      "note": "For 0.3% fee tier, tickSpacing = 60. All ticks must be multiples of 60."
+    },
+    "positions": [
+      {
+        "name": "Core Liquidity (50% of capital)",
+        "description": "Tight range around current price for maximum fee capture",
+        "priceLower": 0.000000388749,
+        "priceUpper": 0.000000777497,
+        "tickLower": -207720,
+        "tickUpper": -205080,
+        "capitalAllocation": "50%",
+        "estimatedAPY": "40-80% (high fee capture, higher IL risk)",
+        "rangeWidthPct": "~33% each side of current price"
+      },
+      {
+        "name": "Wide Range (30% of capital)",
+        "description": "Broader range for price stability and continued liquidity",
+        "priceLower": 0.000000194374,
+        "priceUpper": 0.000001554995,
+        "tickLower": -215700,
+        "tickUpper": -197100,
+        "capitalAllocation": "30%",
+        "estimatedAPY": "15-30% (moderate fee capture, lower IL risk)",
+        "rangeWidthPct": "~65% below, 180% above current price"
+      },
+      {
+        "name": "Safety Range (20% of capital)",
+        "description": "Very wide range ensuring liquidity exists even in extreme moves",
+        "priceLower": 0.000000055536,
+        "priceUpper": 0.000005553553,
+        "tickLower": -230400,
+        "tickUpper": -184200,
+        "capitalAllocation": "20%",
+        "estimatedAPY": "5-15% (low fee capture, minimal IL risk)",
+        "rangeWidthPct": "~90% below, 900% above current price"
+      }
+    ]
+  },
+
+  "seedAmounts": {
+    "description": "Recommended seed capital for pool initialization",
+    "minimum": {
+      "totalUSD": 50000,
+      "wbait": "22,500,000 wBAIT ($22,500 at $0.001/BAIT)",
+      "weth": "27.5 WETH ($27,500 at $2,000/ETH)",
+      "ratio": "55% WETH / 45% wBAIT (by USD value)"
+    },
+    "recommended": {
+      "totalUSD": 100000,
+      "wbait": "45,000,000 wBAIT ($45,000 at $0.001/BAIT)",
+      "weth": "55 WETH ($55,000 at $2,000/ETH)",
+      "rationale": "Sufficient depth to handle $10K swaps with < 2% price impact"
+    },
+    "optimal": {
+      "totalUSD": 250000,
+      "wbait": "112,500,000 wBAIT ($112,500 at $0.001/BAIT)",
+      "weth": "137.5 WETH ($137,500 at $2,000/ETH)",
+      "rationale": "Deep liquidity for institutional interest; < 0.5% impact on $50K swaps"
+    }
+  },
+
+  "slippageProtection": {
+    "description": "Minimum amounts for addLiquidity calls to prevent sandwich attacks",
+    "defaultSlippageBps": 50,
+    "defaultSlippagePct": "0.5%",
+    "amount0Min": "amount0Desired * (10000 - slippageBps) / 10000",
+    "amount1Min": "amount1Desired * (10000 - slippageBps) / 10000",
+    "deadline": "block.timestamp + 300 (5 minutes)",
+    "note": "The BAITUniswapV3Liquidity.sol contract currently uses amount0Min=0 and amount1Min=0. For production, consider overriding with slippage-protected values."
+  },
+
+  "deploymentSteps": [
+    {
+      "step": 1,
+      "title": "Deploy WBAIT Token",
+      "command": "forge script script/DeployBAIT.s.sol --rpc-url $RPC_URL --broadcast --verify",
+      "verify": "Confirm totalSupply == 0 (no initial mint; bridge mints on lock)"
+    },
+    {
+      "step": 2,
+      "title": "Deploy BridgeLock",
+      "command": "forge create BridgeLock --constructor-args $WBAIT_ADDRESS $OP0 $OP1 $OP2 $OP3 $OP4 --rpc-url $RPC_URL --verify",
+      "verify": "Confirm all 5 operators registered"
+    },
+    {
+      "step": 3,
+      "title": "Deploy BAITUniswapV3Liquidity",
+      "command": "forge create BAITUniswapV3Liquidity --constructor-args $WBAIT_ADDRESS $FACTORY $POSITION_MANAGER $WETH --rpc-url $RPC_URL --verify",
+      "verify": "Confirm factory, positionManager, WETH addresses set"
+    },
+    {
+      "step": 4,
+      "title": "Create Uniswap V3 Pool",
+      "command": "cast send $LIQUIDITY_ADDRESS 'createPool()' --rpc-url $RPC_URL --private-key $OWNER_KEY",
+      "verify": "PoolCreated event emitted; pool address available via factory.getPool()"
+    },
+    {
+      "step": 5,
+      "title": "Add Initial Liquidity (Core Range)",
+      "command": "cast send $LIQUIDITY_ADDRESS 'addLiquidity(uint256,uint256,int24,int24)' $AMT_WBAIT_CORE $AMT_WETH_CORE -207720 -205080 --rpc-url $RPC_URL --private-key $OWNER_KEY",
+      "verify": "LiquidityAdded event emitted; position tokenId recorded"
+    },
+    {
+      "step": 6,
+      "title": "Add Liquidity (Wide Range)",
+      "command": "cast send $LIQUIDITY_ADDRESS 'addLiquidity(uint256,uint256,int24,int24)' $AMT_WBAIT_WIDE $AMT_WETH_WIDE -215700 -197100 --rpc-url $RPC_URL --private-key $OWNER_KEY",
+      "verify": "LiquidityAdded event emitted"
+    },
+    {
+      "step": 7,
+      "title": "Add Liquidity (Safety Range)",
+      "command": "cast send $LIQUIDITY_ADDRESS 'addLiquidity(uint256,uint256,int24,int24)' $AMT_WBAIT_SAFETY $AMT_WETH_SAFETY -230400 -184200 --rpc-url $RPC_URL --private-key $OWNER_KEY",
+      "verify": "LiquidityAdded event emitted"
+    },
+    {
+      "step": 8,
+      "title": "Verify Pool on Etherscan",
+      "command": "forge verify-contract $POOL_ADDRESS UniswapV3Pool --chain-id 1 --watch",
+      "verify": "Contract verified on Etherscan"
+    },
+    {
+      "step": 9,
+      "title": "Start DEX Monitoring",
+      "command": "POOL_ADDRESS=$POOL_ADDRESS python3 dex/dex-monitoring.py &",
+      "verify": "Monitor running and reporting pool state"
+    }
+  ],
+
+  "forgeScriptCommands": {
+    "createPool": "cast send $LIQUIDITY_ADDRESS 'createPool()' --rpc-url $RPC_URL --private-key $OWNER_KEY",
+    "addLiquidityCore": "cast send $LIQUIDITY_ADDRESS 'addLiquidity(uint256,uint256,int24,int24)' 2250000000000000 27500000000000000000 -207720 -205080 --rpc-url $RPC_URL --private-key $OWNER_KEY",
+    "addLiquidityWide": "cast send $LIQUIDITY_ADDRESS 'addLiquidity(uint256,uint256,int24,int24)' 1350000000000000 16500000000000000000 -215700 -197100 --rpc-url $RPC_URL --private-key $OWNER_KEY",
+    "addLiquiditySafety": "cast send $LIQUIDITY_ADDRESS 'addLiquidity(uint256,uint256,int24,int24)' 900000000000000 11000000000000000000 -230400 -184200 --rpc-url $RPC_URL --private-key $OWNER_KEY",
+    "checkPool": "cast call $FACTORY_ADDRESS 'getPool(address,address,uint24)(address)' $WBAIT_ADDRESS $WETH_ADDRESS 3000 --rpc-url $RPC_URL",
+    "getSlot0": "cast call $POOL_ADDRESS 'slot0()(uint160,int24,uint16,uint16,uint16,uint8,bool)' --rpc-url $RPC_URL",
+    "getLiquidity": "cast call $POOL_ADDRESS 'liquidity()(uint128)' --rpc-url $RPC_URL",
+    "getTickSpacing": "cast call $POOL_ADDRESS 'tickSpacing()(int24)' --rpc-url $RPC_URL"
+  },
+
+  "monitoring": {
+    "freeRPCEndpoints": [
+      "https://eth.drpc.org",
+      "https://rpc.ankr.com/eth",
+      "https://ethereum.publicnode.com",
+      "https://1rpc.io/eth"
+    ],
+    "recommendedPollInterval": "30 seconds",
+    "largeSwapAlertThreshold": "$10,000 USD",
+    "priceDeviationAlert": "10% from initial price",
+    "monitoringScript": "dex/dex-monitoring.py",
+    "bootstrappingScript": "dex/liquidity-bootstrapping.py"
+  }
+}

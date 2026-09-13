@@ -1,0 +1,109 @@
+{
+  "$schema": "https://baitcoin.org/schemas/etherscan-verification-v1",
+  "version": "1.0.0",
+  "description": "Etherscan verification configuration for BAIT smart contracts. Used by forge verify-contract and manual Etherscan verification.",
+  "network": "ethereum-mainnet",
+  "chain_id": 1,
+  "etherscan_url": "https://etherscan.io",
+  "etherscan_api_url": "https://api.etherscan.io/api",
+
+  "compiler_settings": {
+    "solidity_version": "0.8.20",
+    "solc_version_full": "v0.8.20+commit.a1b79de6",
+    "optimizer_enabled": true,
+    "optimizer_runs": 200,
+    "via_ir": false,
+    "evm_version": "paris",
+    "libraries": {},
+    "remappings": [
+      "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
+      "@uniswap/v3-core/=lib/v3-core/",
+      "@uniswap/v3-periphery/=lib/v3-periphery/",
+      "forge-std/=lib/forge-std/src/"
+    ]
+  },
+
+  "contracts": {
+    "WBAIT": {
+      "contract_path": "src/WBAIT.sol:WBAIT",
+      "fully_qualified_name": "src/WBAIT.sol:WBAIT",
+      "constructor_args_encoding": "constructor(address _bridgeLock)",
+      "constructor_args_example": "0x0000000000000000000000000000000000000000",
+      "constructor_args_abi_encoded": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "verification_command_template": "forge verify-contract <WBAIT_ADDRESS> src/WBAIT.sol:WBAIT --chain mainnet --constructor-args $(cast abi-encode 'constructor(address)' <BRIDGELOCK_ADDRESS>)",
+      "verification_command_sepolia": "forge verify-contract <WBAIT_ADDRESS> src/WBAIT.sol:WBAIT --chain sepolia --constructor-args $(cast abi-encode 'constructor(address)' <BRIDGELOCK_ADDRESS>)",
+      "etherscan_manual_url_template": "https://etherscan.io/verifyContract?a=<WBAIT_ADDRESS>&c=v0.8.20&l=solidity&optimization=1&runs=200",
+      "expected_bytecode_hash": null,
+      "verified": false
+    },
+    "BridgeLock": {
+      "contract_path": "src/BridgeLock.sol:BridgeLock",
+      "fully_qualified_name": "src/BridgeLock.sol:BridgeLock",
+      "constructor_args_encoding": "constructor(address _wbait, address[5] memory _operators)",
+      "constructor_args_example": "[WBAIT_ADDRESS, OP1, OP2, OP3, OP4, OP5]",
+      "constructor_args_abi_encoded": "depends on actual addresses",
+      "verification_command_template": "forge verify-contract <BRIDGELOCK_ADDRESS> src/BridgeLock.sol:BridgeLock --chain mainnet --constructor-args $(cast abi-encode 'constructor(address,address[5])' <WBAIT_ADDRESS> <OP1> <OP2> <OP3> <OP4> <OP5>)",
+      "verification_command_sepolia": "forge verify-contract <BRIDGELOCK_ADDRESS> src/BridgeLock.sol:BridgeLock --chain sepolia --constructor-args $(cast abi-encode 'constructor(address,address[5])' <WBAIT_ADDRESS> <OP1> <OP2> <OP3> <OP4> <OP5>)",
+      "etherscan_manual_url_template": "https://etherscan.io/verifyContract?a=<BRIDGELOCK_ADDRESS>&c=v0.8.20&l=solidity&optimization=1&runs=200",
+      "expected_bytecode_hash": null,
+      "verified": false,
+      "note": "Constructor takes address[5] which must be ABI-encoded correctly. Use cast abi-encode for accuracy."
+    },
+    "BAITUniswapV3Liquidity": {
+      "contract_path": "src/BAITUniswapV3Liquidity.sol:BAITUniswapV3Liquidity",
+      "fully_qualified_name": "src/BAITUniswapV3Liquidity.sol:BAITUniswapV3Liquidity",
+      "constructor_args_encoding": "constructor(address _wbait, address _factory, address _positionManager, address _weth)",
+      "constructor_args_example": "[WBAIT_ADDRESS, UNISWAP_FACTORY, POSITION_MANAGER, WETH]",
+      "constructor_args_abi_encoded": "depends on actual addresses",
+      "verification_command_template": "forge verify-contract <LIQUIDITY_ADDRESS> src/BAITUniswapV3Liquidity.sol:BAITUniswapV3Liquidity --chain mainnet --constructor-args $(cast abi-encode 'constructor(address,address,address,address)' <WBAIT_ADDRESS> <FACTORY> <POSITION_MGR> <WETH>)",
+      "verification_command_sepolia": "forge verify-contract <LIQUIDITY_ADDRESS> src/BAITUniswapV3Liquidity.sol:BAITUniswapV3Liquidity --chain sepolia --constructor-args $(cast abi-encode 'constructor(address,address,address,address)' <WBAIT_ADDRESS> <FACTORY> <POSITION_MGR> <WETH>)",
+      "etherscan_manual_url_template": "https://etherscan.io/verifyContract?a=<LIQUIDITY_ADDRESS>&c=v0.8.20&l=solidity&optimization=1&runs=200",
+      "expected_bytecode_hash": null,
+      "verified": false,
+      "mainnet_addresses": {
+        "uniswap_v3_factory": "0x1F98431f2aD3a5a3B9D4D9D5E7F8C2A1B3D4E5F6",
+        "nonfungible_position_manager": "0xC36442b4A452C0e0e1D7b4D9D5E7F8C2A1B3D4E5F6",
+        "weth": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+      }
+    }
+  },
+
+  "verification_procedure": {
+    "description": "Step-by-step Etherscan verification procedure",
+    "automated": {
+      "step_1": "Ensure contracts are compiled: forge build",
+      "step_2": "Verify WBAIT: forge verify-contract <WBAIT_ADDRESS> src/WBAIT.sol:WBAIT --chain mainnet --constructor-args <ENCODED_ARGS>",
+      "step_3": "Verify BridgeLock: forge verify-contract <BRIDGE_ADDRESS> src/BridgeLock.sol:BridgeLock --chain mainnet --constructor-args <ENCODED_ARGS>",
+      "step_4": "Verify BAITUniswapV3Liquidity: forge verify-contract <LIQ_ADDRESS> src/BAITUniswapV3Liquidity.sol:BAITUniswapV3Liquidity --chain mainnet --constructor-args <ENCODED_ARGS>",
+      "step_5": "Check verification status on Etherscan for each contract"
+    },
+    "manual_fallback": {
+      "description": "If forge verify-contract fails, verify manually on Etherscan",
+      "steps": [
+        "1. Go to https://etherscan.io/verifyContract?a=<ADDRESS>",
+        "2. Select Compiler Type: Single Part",
+        "3. Select Compiler Version: v0.8.20+commit.a1b79de6",
+        "4. Select Optimization: Yes, 200 runs",
+        "5. Enter the contract source code (flattened if needed)",
+        "6. Enter constructor arguments (ABI-encoded hex)",
+        "7. Submit and wait for verification"
+      ]
+    },
+    "flattening_command": "forge flatten src/WBAIT.sol > WBAIT_flattened.sol"
+  },
+
+  "sepolia_verification": {
+    "description": "Verify contracts on Sepolia testnet first as a dry-run for mainnet verification",
+    "etherscan_url": "https://sepolia.etherscan.io",
+    "chain_id": 11155111,
+    "chain_name": "sepolia"
+  },
+
+  "common_issues": {
+    "constructor_args_mismatch": "Most common verification failure. Ensure constructor arguments are ABI-encoded correctly using cast abi-encode.",
+    "optimizer_mismatch": "Ensure optimizer settings match: enabled=true, runs=200, viaIR=false.",
+    "solidity_version_mismatch": "Ensure exact compiler version: v0.8.20+commit.a1b79de6.",
+    "remappings_missing": "OpenZeppelin imports must be resolved. Use forge flatten or ensure remappings match.",
+    "bytecode_mismatch": "If bytecode doesn't match, the constructor args are likely wrong. Re-encode them."
+  }
+}
