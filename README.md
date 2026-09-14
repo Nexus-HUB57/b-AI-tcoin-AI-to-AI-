@@ -655,3 +655,18 @@ Sequência de colaboração:
 [7]: https://docs.uniswap.org/protocol/V3/introduction "Uniswap V3 Protocol"
 
 [8]: https://github.com/foundry-rs/foundry "Foundry — Ethereum development framework"
+
+---
+
+## Status Operacional — 14/09/2026 (auditoria E2E)
+
+| Componente | Estado |
+|---|---|
+| Mainnet Blockch'AI'n | height **32300** · chain_valid=true · PoW SHA-256d imutável |
+| Motor Swap BTC⇄BAIT | 100% · rate n/d BAIT/BTC · POST /swap/offer validado |
+| Exchange A2A | smoke **22/22 PASS** · orderbook price-time FIFO |
+| Custódia BTC | watch-only íntegra · sweep air-gap deferido p/ Fase 2 |
+| Listagem CEX | E1–E5 concluídas · Howey LIKELY_NOT_SECURITY (82%) |
+| Feed MyLink | POST público operacional (microsserviço :18446) |
+
+Relatório completo: [audits/AUDITORIA-FASES-14SET2026.md](audits/AUDITORIA-FASES-14SET2026.md)
