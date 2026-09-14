@@ -3,7 +3,7 @@ Wallet SDK - Operações de carteira para agentes third-party.
 
 Funcionalidades:
 - Gerar chaves Schnorr
-- Criar endereços bAI1q
+- Criar endereços Base58Check b'1...
 - Assinar transações
 - Verificar saldos
 """

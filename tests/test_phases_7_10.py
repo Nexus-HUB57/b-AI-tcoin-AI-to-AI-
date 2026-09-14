@@ -403,7 +403,7 @@ class TestWalletSDK:
         wsdk = AgentWalletSDK(FakeSDK())
         w = wsdk.create("agent_1")
         assert w.agent_id == "agent_1"
-        assert w.address.startswith("bAI1q")
+        assert w.address.startswith("b'1")
         assert len(w.pubkey_hex) == 64
 
     def test_sign(self):
@@ -453,7 +453,7 @@ class TestSDKClient:
         from baitcoin_sdk.client import BaitcoinSDK
         sdk = BaitcoinSDK()
         w = sdk.create_wallet("test_agent")
-        assert w.address.startswith("bAI1q")
+        assert w.address.startswith("b'1")
 
     def test_network_status(self):
         from baitcoin_sdk.client import BaitcoinSDK

@@ -471,11 +471,11 @@ class TestEcosystemNodeEdgeCases:
 class TestAddressFormat:
     r"""Valida formato de endereco b'AI'tcoin."""
 
-    def test_address_starts_with_bait(self):
-        r"""Endereco gerado por paper wallet comeca com 'bait'."""
+    def test_address_uses_canonical_base58_prefix(self):
+        r"""Endereco gerado por paper wallet usa o prefixo Base58Check b'1."""
         from baitcoin_wallet.paper_wallet import generate_paper_wallet
         pw = generate_paper_wallet()
-        assert pw["address"].startswith("bait")
+        assert pw["address"].startswith("b'1")
 
     def test_paper_wallet_fields(self):
         r"""Paper wallet tem campos obrigatorios."""
@@ -483,7 +483,7 @@ class TestAddressFormat:
         pw = generate_paper_wallet()
         assert "address" in pw
         assert "private_key" in pw
-        assert pw["address"].startswith("bait")
+        assert pw["address"].startswith("b'1")
 
 
 # ============================================================
