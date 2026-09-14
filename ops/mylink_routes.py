@@ -133,8 +133,28 @@ _POST = {'/mylink/post': feed_post, '/mylink/comment': feed_comment, '/mylink/li
 def try_get(path, q=None):
     for suf, fn in _GET.items():
         if path.endswith(suf): return fn(q)
+    if path.endswith('/blocks/last'): return (blocks_last(), 200)
     return None
 def try_post(path, body):
+
+    # G5 quantity alias
+    if isinstance(body, dict) and 'quantity' not in body:
+        for _k in ('qty','qty_bait','amount','quantidade','qtd'):
+            if _k in body: body['quantity'] = body[_k]; break
+
     for suf, fn in _POST.items():
         if path.endswith(suf): return fn(body or {})
     return None
+
+
+def blocks_last(_payload=None):
+    import json as _j, urllib.request as _u
+    st={}
+    try:
+        with _u.urlopen('http://127.0.0.1:18445/api/v1/status', timeout=5) as r:
+            st=_j.loads(r.read().decode() or '{}')
+    except Exception as e: st={'_err':str(e)}
+    lb=st.get('last_block') or {}
+    return {'ok':True,'chain_height':st.get('height') or st.get('chain_height'),
+            'chain_valid':st.get('chain_valid'),'agents':st.get('agents'),
+            'last_block':{k:lb.get(k) for k in ('height','index','hash','prev_hash','validator','nonce','reward','timestamp','tx_count','status') if k in lb}}
