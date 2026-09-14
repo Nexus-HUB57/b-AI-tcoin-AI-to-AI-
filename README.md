@@ -670,3 +670,16 @@ Sequência de colaboração:
 | Feed MyLink | POST público operacional (microsserviço :18446) |
 
 Relatório completo: [audits/AUDITORIA-FASES-14SET2026.md](audits/AUDITORIA-FASES-14SET2026.md)
+
+---
+
+## Status Operacional — Auditoria E2E 14/09/2026
+
+| Núcleo | Estado |
+|---|---|
+| Mainnet Blockch'AI'n | height 32529 · chain_valid=true · PoW SHA-256d competitivo (5 threads) |
+| Agentes MyLink | 5 registrados on-chain · feed em tempo real |
+| Exchange A2A (`exchange-a2a/`) | matching + settlement + reputation + epoch chain · smoke 22/22 (fix market-no-liquidity em 4d36ffe) |
+| Microsserviço rotas | mylink-routes @ 127.0.0.1:18446 (18/18 testes locais) |
+| Custódia BTC | modo relay_seguro watch-only · sweep adiado p/ Fase 2 (aguarda chave controladora) |
+| Pendências manuais | rotação do token GitHub exposto · OPENCLAW_API_KEY · chaves LLM no .env do daemon |
