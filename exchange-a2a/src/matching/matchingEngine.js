@@ -12,7 +12,14 @@ class MatchingEngine {
     const { rows: resting } = await query(
       `SELECT * FROM orders WHERE pair=$1 AND side=$2 AND status IN ('open','partial') AND id <> $3 ${priceFilter}
        ORDER BY price ${newOrder.side === "buy" ? "ASC" : "DESC"}, created_at ASC LIMIT 20`, params);
-    if (resting.length === 0) return [];
+    if (resting.length === 0) {
+      if (newOrder.type === "market") {
+        await query(`UPDATE orders SET status='cancelled', updated_at=now() WHERE id=$1 AND status IN ('open','partial')`, [newOrder.id]);
+        newOrder.status = "cancelled";
+        logger.info({ orderId: newOrder.id.slice(0,8) }, "matching: market sem liquidez -> cancelled");
+      }
+      return [];
+    }
     const matches = [];
     let remaining = Number(newOrder.quantity) - Number(newOrder.filled);
     for (const book of resting) {
