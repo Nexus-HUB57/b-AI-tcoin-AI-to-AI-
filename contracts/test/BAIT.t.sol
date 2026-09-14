@@ -183,4 +183,34 @@ contract BridgeLockTest is Test {
         // Verify TIMELOCK_DURATION is 24 hours (86400 seconds)
         assertEq(bridgeLock.TIMELOCK_DURATION(), 24 hours);
     }
+
+    function test_RevertBurnReleaseWithEmptyL1Address() public {
+        address holder = address(0xB1);
+        wbait.mint(holder, 100 * 10**8);
+
+        vm.prank(holder);
+        vm.expectRevert("BridgeLock: empty L1 address");
+        bridgeLock.initiateBurnRelease("");
+    }
+
+    function test_BurnReleasePersistsBeforeConfirmation() public {
+        address holder = address(0xB1);
+        uint256 amount = 100 * 10**8;
+        wbait.mint(holder, amount);
+
+        vm.prank(holder);
+        wbait.approve(address(bridgeLock), amount);
+
+        vm.prank(holder);
+        bridgeLock.initiateBurnRelease("bait1releaseaddress");
+
+        bytes32 releaseId = bridgeLock.burnReleaseIds(0);
+        (address burner, uint256 recordedAmount, string memory l1Address,, bool executed) =
+            bridgeLock.burnReleases(releaseId);
+        assertEq(burner, holder);
+        assertEq(recordedAmount, amount);
+        assertEq(l1Address, "bait1releaseaddress");
+        assertFalse(executed);
+        assertEq(wbait.balanceOf(holder), 0);
+    }
 }

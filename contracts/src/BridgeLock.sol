@@ -182,12 +182,11 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
     function initiateBurnRelease(string calldata l1ReleaseAddress) external whenNotPaused nonReentrant {
         uint256 amount = wbait.balanceOf(msg.sender);
         require(amount > 0, "BridgeLock: no wBAIT to burn");
+        require(bytes(l1ReleaseAddress).length > 0, "BridgeLock: empty L1 address");
 
         bytes32 releaseId = keccak256(abi.encodePacked(
             msg.sender, amount, block.number, burnReleaseIds.length
         ));
-
-        wbait.burnFrom(msg.sender, amount);
 
         BurnRelease storage rel = burnReleases[releaseId];
         rel.burner = msg.sender;
@@ -195,6 +194,10 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
         rel.l1ReleaseAddress = l1ReleaseAddress;
         rel.executed = false;
         burnReleaseIds.push(releaseId);
+
+        // Checks-effects-interactions: persist the release before calling the token.
+        // A reverted burn rolls the whole transaction back.
+        wbait.burnFrom(msg.sender, amount);
 
         emit BurnInitiated(releaseId, msg.sender, amount, l1ReleaseAddress);
     }

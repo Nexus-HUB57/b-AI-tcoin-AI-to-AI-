@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/Ownable2Step.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./WBAIT.sol";
 
 /**
@@ -55,6 +56,8 @@ interface INonfungiblePositionManager {
  *         Initial price: ~$0.00111071/BAIT
  */
 contract BAITUniswapV3Liquidity is Ownable2Step {
+    using SafeERC20 for WBAIT;
+
     WBAIT public immutable wbait;
     IUniswapV3Factory public immutable factory;
     INonfungiblePositionManager public immutable positionManager;
@@ -77,6 +80,10 @@ contract BAITUniswapV3Liquidity is Ownable2Step {
         address _positionManager,
         address _weth
     ) Ownable(msg.sender) {
+        require(_wbait != address(0), "BAITUniswapV3: zero wbait address");
+        require(_factory != address(0), "BAITUniswapV3: zero factory address");
+        require(_positionManager != address(0), "BAITUniswapV3: zero position manager");
+        require(_weth != address(0), "BAITUniswapV3: zero WETH address");
         wbait = WBAIT(_wbait);
         factory = IUniswapV3Factory(_factory);
         positionManager = INonfungiblePositionManager(_positionManager);
@@ -112,10 +119,15 @@ contract BAITUniswapV3Liquidity is Ownable2Step {
         uint256 amount0Min,
         uint256 amount1Min
     ) external onlyOwner returns (uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1) {
+        require(amountWBAIT > 0, "BAITUniswapV3: zero wBAIT amount");
+        require(amountWETH > 0, "BAITUniswapV3: zero WETH amount");
         require(amount0Min > 0, "BAITUniswapV3: zero amount0Min");
         require(amount1Min > 0, "BAITUniswapV3: zero amount1Min");
+        require(tickLower < tickUpper, "BAITUniswapV3: invalid tick range");
+        require(tickLower % TICK_SPACING == 0 && tickUpper % TICK_SPACING == 0,
+            "BAITUniswapV3: ticks not spaced");
 
-        wbait.approve(address(positionManager), amountWBAIT);
+        wbait.safeIncreaseAllowance(address(positionManager), amountWBAIT);
 
         INonfungiblePositionManager.MintParams memory params = INonfungiblePositionManager.MintParams({
             token0: address(wbait) < WETH ? address(wbait) : WETH,
