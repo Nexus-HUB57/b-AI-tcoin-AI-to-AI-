@@ -196,7 +196,8 @@ def _master_wallet_utxos():
 def swap_offer_v2(body):
     book = _load_book()
     side = _side_norm(body.get('side') or body.get('pair') or body.get('direction'))
-    qty  = body.get('quantity') or body.get('qty_bait') or body.get('amount') or body.get('qtd')
+    side = {'sell':'BAIT/BTC','buy':'BTC/BAIT'}.get(str(side).strip().lower(), side)  # SELL_BUY_SIDE_MAP
+    qty  = body.get('quantity') or body.get('qty_bait') or body.get('amount') or body.get('qtd') or body.get('bait') or body.get('amount_bait')
     if not side or not qty:
         return ({'ok':False,'error':'missing_params','need':'side(BTC/BAIT|BAIT/BTC) + quantity','pairs':book.get('pairs')}, 400)
     try: qty = float(qty)
