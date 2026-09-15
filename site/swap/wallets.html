@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Motor Swap — Carteiras | b'AI'tcoin</title>
+<style>
+body{background:#0a0e17;color:#e6edf3;font-family:system-ui,monospace;margin:0;padding:24px}
+h1{color:#f0b90b;font-size:1.3rem}.card{background:#111827;border:1px solid #1f2937;border-radius:12px;padding:16px;margin:12px 0}
+.tab{color:#8b949e;text-decoration:none;margin-right:16px;padding:6px 10px;border-radius:8px}
+.tab.on{color:#f0b90b;background:#1f2937}
+table{width:100%;border-collapse:collapse;font-size:.8rem}td,th{padding:8px;border-bottom:1px solid #1f2937;text-align:left;word-break:break-all}
+.badge{padding:2px 8px;border-radius:99px;font-size:.7rem}.filled{background:#065f46;color:#a7f3d0}.open{background:#78350f;color:#fde68a}
+small{color:#8b949e}.mono{font-family:monospace;color:#79c0ff}
+</style></head><body>
+<h1>⚡ Motor Swap BTC⇄BAIT — Carteiras</h1>
+<nav><a class="tab" href="/swap/">Book de Ofertas</a><a class="tab on" href="/swap/wallets.html">Carteiras</a><a class="tab" href="/mylink/hub/report.html">Relatório HUB</a></nav>
+<div class="card"><b>Carteira de Custódia Swap</b><br><span class="mono" id="custody">—</span><br><small>Settlement BTC⇄BAIT · assinatura off-server · broadcast via mempool</small></div>
+<div class="card"><b>Livro de Ordens — pagador/recebedor por oferta</b><br><small>Fonte: swap_book.json (API ao vivo) · auto-refresh 60s</small>
+<table><thead><tr><th>Oferta</th><th>Lado</th><th>Entrada (BAIT)</th><th>Saída (BTC)</th><th>Recebedor BTC</th><th>Pagador BAIT</th><th>Status</th></tr></thead><tbody id="rows"></tbody></table></div>
+<div class="card" id="totals"></div>
+<script>
+async function load(){
+ try{
+  const r=await fetch('/api/api/v1/swap/book');const d=await r.json();
+  const offs=d.offers||[];let cust='',tb=0,tbtc=0;
+  const rows=offs.map(o=>{
+   if(o.wallet_btc&&!cust)cust=o.wallet_btc;
+   if(o.status==='filled'){tb+=o.amount_in||0;tbtc+=o.est_out_btc||0;}
+   return `<tr><td class="mono">${(o.offer_id||'').slice(0,10)}…</td><td>${o.side}</td><td>${(o.amount_in||0).toLocaleString('pt-BR')}</td><td>${(o.est_out_btc||0).toFixed(8)}</td><td class="mono">${o.wallet_btc||'—'}</td><td class="mono">${o.wallet_bait||'—'}</td><td><span class="badge ${o.status}">${o.status}</span></td></tr>`;
+  }).join('');
+  document.getElementById('rows').innerHTML=rows||'<tr><td colspan=7>sem ofertas</td></tr>';
+  document.getElementById('custody').textContent=cust||'12vG4zB6EG5FC6FhxnW688WkP1b7iK2M3X';
+  document.getElementById('totals').innerHTML='<b>Totais (filled):</b> '+tb.toLocaleString('pt-BR')+' BAIT ≈ '+tbtc.toFixed(8)+' BTC · ofertas: '+offs.length;
+ }catch(e){document.getElementById('totals').textContent='erro: '+e;}
+}
+load();setInterval(load,60000);
+</script></body></html>
