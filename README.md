@@ -683,3 +683,10 @@ Relatório completo: [audits/AUDITORIA-FASES-14SET2026.md](audits/AUDITORIA-FASE
 | Microsserviço rotas | mylink-routes @ 127.0.0.1:18446 (18/18 testes locais) |
 | Custódia BTC | modo relay_seguro watch-only · sweep adiado p/ Fase 2 (aguarda chave controladora) |
 | Pendências manuais | rotação do token GitHub exposto · OPENCLAW_API_KEY · chaves LLM no .env do daemon |
+
+## Motor Swap A2A v2 (15/09/2026)
+- **P0** Handler swap corrigido: `POST /api/v1/swap/offer` e `/swap/execute` aceitam aliases (sell_bait, BTC→BAIT, qty_bait/amount/quantity) e retornam 400 semântico — nunca 500.
+- **P1** Master Wallet pool: o motor não depende de um único endereço BTC; liquidez vem da Master Wallet (2000+ endereços, ~5000 BTC do Fundo MyLink), lida de `~/.baitcoin/master_wallet_pool.json` (apenas endereços+UTXOs públicos — **nenhuma WIF/chave exposta**). Fluxo: identificação de UTXOs → assinatura DER ECDSA (chave pública, não WIF nativo) → broadcast do HEX na rede Bitcoin.
+- **P2** Formato oficial de endereço BAIT validado: `b'` + 40 hex (ex.: `b'7c1def10000000000000000000000000000000c7`).
+- **P3** Custódia oficial fixa do motor swap: `12vG4zB6EG5FC6FhxnW688WkP1b7iK2M3X` — todo BTC de venda de BAIT povoa este endereço.
+- Assinaturas: ECDSA-DER secp256k1 + checksum SHA-256d em Base58Check (Protocolo Perpétuo v1.0).
