@@ -1,0 +1,13 @@
+{
+  "network": "pulsechain-testnet",
+  "transaction": {
+    "chain_id": 369,
+    "nonce": 42,
+    "to": "0x2b591e99afE9f32eAA6214f7B7629768c40Eeb39",
+    "value_wei": 0,
+    "data": "0xa0712d680000000000000000000000000000000000000000000000000000000000000001",
+    "gas_limit": 200000,
+    "max_fee_per_gas_wei": 30000000000,
+    "max_priority_fee_per_gas_wei": 2000000000
+  }
+}
