@@ -195,7 +195,9 @@ def _master_wallet_utxos():
 
 def swap_offer_v2(body):
     book = _load_book()
-    side = _side_norm(body.get('side') or body.get('pair') or body.get('direction'))
+    _raw_side = body.get('side') or body.get('pair') or body.get('direction')
+    _raw_side = {'sell':'BAIT/BTC','buy':'BTC/BAIT','venda':'BAIT/BTC','compra':'BTC/BAIT'}.get(str(_raw_side).strip().lower(), _raw_side)  # RAW_SIDE_MAP
+    side = _side_norm(_raw_side)
     side = {'sell':'BAIT/BTC','buy':'BTC/BAIT'}.get(str(side).strip().lower(), side)  # SELL_BUY_SIDE_MAP
     qty  = body.get('quantity') or body.get('qty_bait') or body.get('amount') or body.get('qtd') or body.get('bait') or body.get('amount_bait')
     if not side or not qty:
