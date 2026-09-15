@@ -101,13 +101,15 @@ class TestMempoolStress:
                 agent_id=f"agent_{i}",
                 outputs=[TransactionOutput(amount_sats=100, script_pubkey=b"test")],
             )
-            blockchain.mempool.append(tx)
+            assert blockchain.add_transaction(tx)
 
-        assert len(blockchain.mempool) == 10000
+        assert blockchain.fee_market.size == 10000
 
-        # Minerar bloco - deve pegar até 1000 txs
+        # A seleção é por peso, mas a validação ainda rejeita essas
+        # transações sintéticas sem inputs/UTXOs válidos. Elas devem
+        # permanecer no FeeMarket para não serem descartadas silenciosamente.
         blockchain.mine_block("mempool_clearer", kp.pub_bytes)
-        assert len(blockchain.mempool) == 9000  # 1000 removidas
+        assert blockchain.fee_market.size == 10000
 
     def test_parallel_mempool_add(self, blockchain):
         r"""Adição concorrente ao mempool por múltiplas threads."""

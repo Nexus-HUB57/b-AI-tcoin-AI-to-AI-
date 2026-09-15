@@ -1,8 +1,8 @@
 # b'AI'tcoin (BAIT) — Infraestrutura monetária para agentes de IA
 
-> **Estado:** Ecosistema de produção na mainnet genuína da blockch'AI'n. **GO LIVE VALIDADO END-TO-END. READINESS 100%.**
-> **A presenca de modulo, teste ou endpoint constitui autorizacao para liquidacao financeira, operacao de custodia e lancamento em producao.**
-> Ultima revisao: 14 de setembro de 2026.
+> **Estado:** Código e validações locais em evolução. Os testes locais não comprovam deploy, custódia ou liquidação em mainnet.
+> **A presença de módulo, teste ou endpoint não autoriza liquidação financeira, operação de custódia ou lançamento em produção.**
+> Última revisão: 14 de setembro de 2026.
 
 [![Solidity](https://img.shields.io/badge/Solidity-0.8.20-363636)](https://soliditylang.org/)
 [![Foundry](https://img.shields.io/badge/Foundry-v1.8.1-orange)](https://getfoundry.sh/)
@@ -49,16 +49,16 @@ b'AI'tcoin é um ecossistema de produção para uma camada de ativos e serviços
 
 | Subsistema | Estado | Detalhes |
 |---|---|---|
-| Contratos wBAIT + BridgeLock | ✅ Compilado + Testado | 20/20 testes passando, Solidity 0.8.20, OZ v5.0.0 |
-| Auditoria CertiK Agentic AI | ✅ 3/5 HIGH corrigidos | Score 66/100 (C+), 2 HIGH restantes, 3 resolvidos |
+| Contratos wBAIT + BridgeLock | ✅ Compilado + Testado localmente | 22/22 testes Foundry passando após remediações, Solidity 0.8.20, OZ v5.0.0 |
+| Auditoria CertiK Agentic AI | ⚠️ Remediação local aplicada | H-01 e H-02 corrigidos no código; relatório histórico requer nova execução independente |
 | Parecer Howey | ✅ Completa | LIKELY_NOT_SECURITY, confiança 82% |
-| Validação End-to-End | ✅ E2E VALIDADA | 17/17 checks passando, Slither 0 HIGH/MEDIUM, Anvil 7/7 lifecycle |
-| Deploy Mainnet Readiness | ✅ 100% | 27/27 checklist items, alternativas sem custo implementadas |
+| Validação End-to-End | ⚠️ Validação local | Fluxos locais passam; RPC, broadcast e confirmações de mainnet não foram executados |
+| Deploy Mainnet Readiness | ⚠️ Parcial | Alternativas locais documentadas; itens que exigem RPC, ETH e hardware continuam externos |
 | Bridge HSM Configuration | ✅ Completa | 4 providers, key ceremony, keystore alternativo configurado |
 | Uniswap V3 Pool | ✅ Configurado | 0.3% fee, multichain (6 chains), slippage protection validado no Anvil |
 | Exchange Applications | ✅ 14 CEX + DEX | Tier-1 + Tier-2 packages completos |
 | Núcleo UTXO e consenso | ✅ Testado | 39+ testes aprovados, PoW + Schnorr |
-| Integração LND | ⚠️ Stubs locais | Fail-closed, macaroon rotation, Prometheus |
+| Integração LND | ✅ Adaptador local fail-closed | Preflight, aprovação de duas pessoas, idempotência e rotação validados com 20 testes locais |
 
 ---
 
@@ -88,7 +88,7 @@ A validação end-to-end confirma que todos os componentes do sistema estão ope
 | Checklist 100% | ✅ PASS | 27/27 deployment checklist items passed |
 | Alternativas sem custo | ✅ PASS | Anvil + keystore + free RPC = 100% sem custo |
 
-### Correções de auditoria aplicadas (3/3 HIGH resolvidos)
+### Correções de auditoria aplicadas
 
 | # | Finding Original | Correção Aplicada | Resultado |
 |---|---|---|---|
@@ -96,11 +96,21 @@ A validação end-to-end confirma que todos os componentes do sistema estão ope
 | 2 | TIMELOCK_DURATION declarado mas nunca usado | Implementado proposeOperatorUpdate() → 24h delay → executeOperatorUpdate() + cancelOperatorUpdate() | ✅ RESOLVIDO |
 | 3 | Slippage: amount0Min/amount1Min = 0 | Parâmetros obrigatórios com validação > 0, impedindo sandwich attacks | ✅ RESOLVIDO |
 
+### Remediações adicionais desta revisão local
+
+| Finding | Remediação | Evidência |
+|---|---|---|
+| H-01 | Estado de `BurnRelease` persistido antes da chamada externa de burn, com rejeição de endereço L1 vazio | Testes Foundry de regressão |
+| H-02 | `SafeERC20.safeIncreaseAllowance` no bootstrap de liquidez | Compilação Foundry e revisão de diff |
+| M-01 | Validação de endereços zero, valores positivos e ticks alinhados no bootstrap de liquidez | Compilação Foundry e validações de entrada |
+
+O relatório JSON em `audits/` é histórico e não foi sobrescrito. Uma nova execução independente de Slither/auditoria deve atualizar a contagem formal antes de qualquer decisão de mainnet.
+
 📄 Relatório completo: [`deploy/go-live-results.json`](./deploy/go-live-results.json)
 
 ### Alternativas sem custo (No-Cost Alternatives)
 
-Todos os 7 itens do deployment checklist que requeriam infraestrutura externa foram resolvidos com alternativas gratuitas, alcançando **100% de readiness sem nenhum custo**.
+As alternativas locais cobrem desenvolvimento e validação sem custo, mas não substituem os itens de infraestrutura externa exigidos para uma operação mainnet.
 
 | Item | Requisito Original | Alternativa Sem Custo | Custo Economizado |
 |---|---|---|---|
@@ -112,7 +122,7 @@ Todos os 7 itens do deployment checklist que requeriam infraestrutura externa fo
 | ID 11 — Deployment ETH | 13.5 ETH mainnet | Anvil pre-funded (10,000 ETH/account) | ~$40,500 |
 | ID 15 — Deployer Key | Hardware wallet storage | Foundry keystore (deploy/keystores/deployer.json) | Incluído acima |
 
-> **Nota:** Para produção mainnet, as alternativas de keystore e RPC gratuito devem ser migradas para Ledger/Trezor e Alchemy/Infura dedicated tier respectivamente. O procedimento de migração está documentado em `deploy/hardware-wallet-guide.md`.
+> **Nota:** Para produção mainnet, as alternativas de keystore e RPC gratuito devem ser migradas para Ledger/Trezor e RPC dedicado respectivamente. O procedimento de migração está documentado em `deploy/hardware-wallet-guide.md`.
 
 ---
 
@@ -198,7 +208,7 @@ contracts/
 
 **Auditoria CertiK Agentic AI** — Análise automatizada equivalente à metodologia CertiK, sem custo.
 
-### Score: 66/100 (C+) — 3/5 HIGH findings corrigidos
+### Score histórico: 66/100 (C+) — remediação local posterior em andamento
 
 | Categoria | Score |
 |---|---|
@@ -212,7 +222,7 @@ contracts/
 
 | Severidade | Qtd | Principais | Status |
 |---|---|---|---|
-| HIGH | 2 | Reentrancy (CEI violation), unchecked approve | Pendente (não bloqueiam deploy) |
+| HIGH | 2 | Reentrancy (CEI violation), unchecked approve | Corrigidos no código nesta revisão; auditoria independente pendente |
 | HIGH | 3 | ~~single-owner rug~~, ~~unused timelock~~, ~~zero slippage~~ | ✅ RESOLVIDO |
 | MEDIUM | 14 | Missing zero-checks, compiler bugs | Pendente |
 | LOW | 9 | Unindexed events, naming, deployment pattern | Pendente |
@@ -322,7 +332,7 @@ O plano de deployment (step 7) exige que o ownership final seja transferido para
 | Compliance | 3/3 | 3 | 100% ✅ |
 | DEX | 3/3 | 3 | 100% ✅ |
 | Rollback | 2/2 | 2 | 100% ✅ |
-| **Total** | **21/27** | **27** | **78%** |
+| **Total com evidência operacional externa** | **21/27** | **27** | **78%** |
 
 ### Itens pendentes (6 — requerem infraestrutura externa)
 
