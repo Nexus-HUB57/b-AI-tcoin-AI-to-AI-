@@ -66,12 +66,12 @@ class NativeSwapService:
     def admit_intent(self, intent: SwapIntent, *, sender: str = "local") -> OrderState:
         self.sync_store.admit_intent(intent, sender, f"service:{intent.order_id}")
         state = self.executor.admit(intent)
-        self.sync_store.set_status(intent.order_id, state.value)
+        self._sync_status(intent.order_id, state)
         return state
 
     def process_order(self, order_id: str) -> OrderState:
         state = self.executor.process(order_id)
-        self.sync_store.set_status(order_id, state.value)
+        self._sync_status(order_id, state)
         return state
 
     def process_pending(self, limit: int = 100) -> dict[str, str]:
@@ -80,7 +80,7 @@ class NativeSwapService:
             try:
                 self.executor.admit(self._intent_from_store(order_id))
                 state = self.executor.process(order_id)
-                self.sync_store.set_status(order_id, state.value)
+                self._sync_status(order_id, state)
                 results[order_id] = state.value
             except Exception as exc:
                 results[order_id] = f"error:{type(exc).__name__}"
@@ -94,6 +94,44 @@ class NativeSwapService:
         raw.pop("origin_node", None)
         raw.pop("origin_seq", None)
         return SwapIntent.from_dict(raw)
+
+    def _sync_status(self, order_id: str, target: OrderState) -> None:
+        """Mirror executor jumps through the persisted monotonic state path.
+
+        The executor may observe a deposit and its confirmations in one call.
+        The sync store intentionally requires the observable intermediate
+        ``btc_observed`` state, so every skipped state is recorded in order.
+        """
+        current = self.sync_store.get_intent(order_id)
+        if current is None:
+            raise KeyError(order_id)
+        current_status = str(current["status"])
+        if current_status == target.value:
+            return
+        if target in {OrderState.RECONCILING, OrderState.REFUNDED}:
+            if current_status != target.value:
+                if target == OrderState.REFUNDED and current_status != OrderState.RECONCILING:
+                    self.sync_store.set_status(order_id, OrderState.RECONCILING.value)
+                self.sync_store.set_status(order_id, target.value)
+            return
+
+        path = [
+            OrderState.PENDING,
+            OrderState.INTENT_VALIDATED,
+            OrderState.BTC_OBSERVED,
+            OrderState.BTC_CONFIRMED,
+            OrderState.BAIT_SUBMITTED,
+            OrderState.SETTLED,
+        ]
+        try:
+            start = path.index(OrderState(current_status))
+            end = path.index(target)
+        except ValueError as exc:
+            raise RuntimeError(f"cannot synchronize swap state {current_status} -> {target.value}") from exc
+        if end < start:
+            raise RuntimeError(f"swap state regression {current_status} -> {target.value}")
+        for next_state in path[start + 1 : end + 1]:
+            self.sync_store.set_status(order_id, next_state.value)
 
     def _on_remote_intent(self, intent: SwapIntent, peer_id: str) -> None:
         try:
