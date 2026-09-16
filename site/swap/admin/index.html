@@ -1,0 +1,130 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Motor Swap — Admin | MyLink</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}body{background:#070b14;color:#e8f0ff;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
+.wrap{max-width:980px;margin:0 auto;padding:30px 20px}
+h1{font-size:1.7rem;color:#00ffc8}h2{font-size:1.05rem;color:#7b61ff;margin:26px 0 10px}
+.card{background:rgba(255,255,255,.04);border:1px solid rgba(0,255,200,.2);border-radius:14px;padding:22px;margin-top:16px}
+input,select{width:100%;padding:11px;border-radius:9px;border:1px solid #24304a;background:#0b1120;color:#e8f0ff;margin:6px 0;font-size:.95rem}
+button{background:linear-gradient(90deg,#00ffc8,#00b4ff);border:0;color:#04121a;font-weight:700;padding:12px 22px;border-radius:9px;cursor:pointer;font-size:.95rem}
+button:hover{opacity:.9}.err{color:#ff6b8a;font-size:.85rem;margin-top:8px}.ok{color:#00ffc8;font-size:.85rem;margin-top:8px}
+table{width:100%;border-collapse:collapse;font-size:.85rem;margin-top:10px}
+th,td{padding:9px 10px;border-bottom:1px solid #1c2740;text-align:left}th{color:#8fa3c8;font-weight:600}
+.tabs{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap}
+.tab{padding:9px 18px;border-radius:9px;background:#0b1120;border:1px solid #24304a;cursor:pointer;color:#8fa3c8;font-size:.88rem}
+.tab.on{border-color:#00ffc8;color:#00ffc8}
+.hidden{display:none}.mono{font-family:monospace;font-size:.78rem;word-break:break-all}
+.pill{padding:3px 10px;border-radius:999px;font-size:.72rem}.filled{background:rgba(0,255,200,.15);color:#00ffc8}.open{background:rgba(123,97,255,.15);color:#a58bff}
+.note{color:#54627f;font-size:.78rem;margin-top:14px}
+</style></head><body><div class="wrap">
+<h1>⚙️ Motor Swap — Painel Admin</h1>
+
+<div id="loginBox" class="card">
+<h2>🔐 Login Administrador</h2>
+<input id="email" type="email" placeholder="E-mail" value="">
+<input id="pass" type="password" placeholder="Senha">
+<button onclick="doLogin()">Entrar</button>
+<div id="loginMsg" class="err"></div>
+<div class="note">Primeiro acesso: lucasmpthomaz@gmail.com / senha inicial — o sistema exigirá troca imediata.</div>
+</div>
+
+<div id="changeBox" class="card hidden">
+<h2>🔑 Troca obrigatória de senha</h2>
+<input id="np1" type="password" placeholder="Nova senha (mín. 10 caracteres)">
+<input id="np2" type="password" placeholder="Confirmar nova senha">
+<button onclick="doChange()">Definir nova senha</button>
+<div id="chgMsg" class="err"></div>
+</div>
+
+<div id="panel" class="hidden">
+<div class="tabs">
+<div class="tab on" onclick="showTab('book',this)">📖 Livro de Ofertas</div>
+<div class="tab" onclick="showTab('exec',this)">✅ Execução (filled)</div>
+<div class="tab" onclick="showTab('wallet',this)">💼 Cadastrar Carteira</div>
+<div class="tab" onclick="showTab('orch',this)">🤖 Orchestrator</div>
+</div>
+
+<div id="tab-book" class="card">
+<h2>Livro de Ofertas — tempo real</h2>
+<button onclick="loadBook()">Atualizar</button>
+<div id="bookInfo" class="ok"></div>
+<table><thead><tr><th>ID</th><th>Par</th><th>Lado</th><th>Qtd</th><th>Status</th><th>Carteira BTC</th><th>Endereço BAIT</th></tr></thead><tbody id="bookRows"></tbody></table>
+</div>
+
+<div id="tab-exec" class="card hidden">
+<h2>Ordens executadas (filled) — fila do Orchestrator</h2>
+<table><thead><tr><th>ID</th><th>Par</th><th>Qtd</th><th>Contraparte</th><th>Ação</th></tr></thead><tbody id="execRows"></tbody></table>
+<div id="execMsg" class="ok"></div>
+</div>
+
+<div id="tab-wallet" class="card hidden">
+<h2>💼 Cadastrar Carteira de origem</h2>
+<input id="w-btc" placeholder="Endereço BTC de origem (pagador)">
+<input id="w-bait" placeholder="Endereço BAIT de destino (b'/t...)">
+<select id="w-pair"><option>BTC/BAIT</option><option>BAIT/BTC</option></select>
+<button onclick="regWallet()">Verificar saldo & cadastrar</button>
+<div id="wMsg"></div>
+<div class="note">O sistema consulta o saldo on-chain (mempool.space) antes de aceitar a carteira. Sem saldo suficiente, a carteira é rejeitada.</div>
+<table><thead><tr><th>BTC</th><th>BAIT</th><th>Par</th><th>Saldo BTC</th></tr></thead><tbody id="wRows"></tbody></table>
+</div>
+
+<div id="tab-orch" class="card hidden">
+<h2>🤖 Orchestrator Agent — liquidação autônoma</h2>
+<div id="orchStatus" class="mono">Carregando…</div>
+<button onclick="toggleOrch()" id="orchBtn">Ativar Orchestrator</button>
+<div id="orchLog" class="mono" style="margin-top:12px;max-height:260px;overflow:auto"></div>
+</div>
+</div>
+<div class="note">Motor Swap · b'AI'tcoin Hub V3 · rate vivo via /api/v1/swap/book · <a href="/swap/" style="color:#7b61ff">UI pública</a></div>
+</div>
+<script>
+const AUTH_KEY='swap_admin_auth_v1';
+async function sha(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+let S=JSON.parse(localStorage.getItem(AUTH_KEY)||'null');
+async function doLogin(){
+ const e=document.getElementById('email').value.trim(),p=document.getElementById('pass').value;
+ if(e!=='lucasmpthomaz@gmail.com'){msg('loginMsg','E-mail não autorizado.');return}
+ if(!S){ // primeiro acesso
+   if(p!=='123456'){msg('loginMsg','Senha inicial incorreta.');return}
+   document.getElementById('loginBox').classList.add('hidden');
+   document.getElementById('changeBox').classList.remove('hidden');return}
+ if(await sha(p)!==S.h){msg('loginMsg','Senha incorreta.');return}
+ enterPanel()}
+async function doChange(){
+ const a=document.getElementById('np1').value,b=document.getElementById('np2').value;
+ if(a.length<10){msg('chgMsg','Mínimo 10 caracteres.');return}
+ if(a!==b){msg('chgMsg','Senhas não conferem.');return}
+ S={h:await sha(a),set:Date.now()};localStorage.setItem(AUTH_KEY,JSON.stringify(S));
+ document.getElementById('changeBox').classList.add('hidden');enterPanel()}
+function msg(id,t){document.getElementById(id).textContent=t}
+function enterPanel(){document.getElementById('loginBox').classList.add('hidden');document.getElementById('panel').classList.remove('hidden');loadBook();loadOrch()}
+function showTab(n,el){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));el.classList.add('on');
+ ['book','exec','wallet','orch'].forEach(k=>document.getElementById('tab-'+k).classList.toggle('hidden',k!==n));
+ if(n==='exec')renderExec();if(n==='wallet')renderWallets()}
+let BOOK={offers:[],fills:[]};
+async function loadBook(){
+ try{const r=await fetch('/api/v1/swap/book');const d=await r.json();
+  BOOK.offers=d.offers||d.book?.offers||[];BOOK.fills=d.fills||d.book?.fills||[];
+  document.getElementById('bookInfo').textContent=`offers=${BOOK.offers.length} fills=${BOOK.fills.length} rate=${d.rate??'—'} BAIT/BTC`;
+  document.getElementById('bookRows').innerHTML=BOOK.offers.map(o=>`<tr><td class="mono">${(o.id||o.offer_id||'').slice(0,10)}</td><td>${o.pair||'BTC/BAIT'}</td><td>${o.side||'—'}</td><td>${o.amount_bait||o.quantity||o.amount||'—'}</td><td><span class="pill ${o.status==='filled'?'filled':'open'}">${o.status||'open'}</span></td><td class="mono">${o.wallet_btc||o.btc_address||'—'}</td><td class="mono">${o.wallet_bait||o.bait_address||'—'}</td></tr>`).join('')||'<tr><td colspan=7>Sem ofertas</td></tr>'}
+ catch(e){document.getElementById('bookInfo').textContent='Erro ao carregar livro.'}}
+function renderExec(){
+ document.getElementById('execRows').innerHTML=BOOK.fills.map(f=>`<tr><td class="mono">${(f.id||f.offer_id||'').slice(0,10)}</td><td>${f.pair||'BTC/BAIT'}</td><td>${f.amount_bait||f.quantity||'—'}</td><td class="mono">${f.wallet_btc||'—'}</td><td><button onclick="orchSettle('${f.id||f.offer_id}')">Liquidar</button></td></tr>`).join('')||'<tr><td colspan=5>Nenhuma ordem executada</td></tr>'}
+let ORCH=JSON.parse(localStorage.getItem('swap_orch')||'{"on":false}');
+function loadOrch(){document.getElementById('orchStatus').textContent='status: '+(ORCH.on?'ATIVO — monitorando livro a cada 30s':'INATIVO');document.getElementById('orchBtn').textContent=ORCH.on?'Desativar Orchestrator':'Ativar Orchestrator';if(ORCH.on)orchLoop()}
+function toggleOrch(){ORCH.on=!ORCH.on;localStorage.setItem('swap_orch',JSON.stringify(ORCH));loadOrch()}
+async function orchLoop(){if(!ORCH.on)return;await loadBook();log('tick '+new Date().toISOString()+' — offers='+BOOK.offers.length+' fills='+BOOK.fills.length);setTimeout(orchLoop,30000)}
+function log(t){const el=document.getElementById('orchLog');el.innerHTML=t+'<br>'+el.innerHTML}
+async function orchSettle(id){try{const r=await fetch('/api/v1/swap/execute',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({offer_id:id,agent_id:'orchestrator-admin'})});const d=await r.json();document.getElementById('execMsg').textContent=JSON.stringify(d);log('settle '+id+': '+JSON.stringify(d));loadBook()}catch(e){document.getElementById('execMsg').textContent='Erro: '+e}}
+async function regWallet(){
+ const btc=document.getElementById('w-btc').value.trim(),bait=document.getElementById('w-bait').value.trim(),pair=document.getElementById('w-pair').value;
+ const m=document.getElementById('wMsg');
+ if(!btc||!bait){m.innerHTML='<span class="err">Preencha ambos os endereços.</span>';return}
+ if(!bait.startsWith("b'/t")&&!bait.startsWith("b'")){m.innerHTML='<span class="err">Endereço BAIT inválido (deve iniciar com b\'/t).</span>';return}
+ m.innerHTML='Verificando saldo on-chain…';
+ let bal=0;try{const r=await fetch('https://mempool.space/api/address/'+btc);const d=await r.json();bal=(d.chain_stats.funded_txo_sum-d.chain_stats.spent_txo_sum)/1e8}catch(e){m.innerHTML='<span class="err">Falha ao consultar saldo.</span>';return}
+ const ws=JSON.parse(localStorage.getItem('swap_wallets')||'[]');ws.push({btc,bait,pair,bal,ts:Date.now()});localStorage.setItem('swap_wallets',JSON.stringify(ws));
+ m.innerHTML=`<span class="ok">Carteira cadastrada. Saldo: ${bal} BTC${bal<=0?' — ⚠️ sem saldo, ordens serão rejeitadas':''}</span>`;renderWallets()}
+function renderWallets(){const ws=JSON.parse(localStorage.getItem('swap_wallets')||'[]');
+ document.getElementById('wRows').innerHTML=ws.map(w=>`<tr><td class="mono">${w.btc}</td><td class="mono">${w.bait}</td><td>${w.pair}</td><td>${w.bal}</td></tr>`).join('')||'<tr><td colspan=4>Nenhuma carteira</td></tr>'}
+</script></body></html>

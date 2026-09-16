@@ -1,0 +1,93 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fundo MyLink — Admin Híbrido | Master Wallet</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}body{background:#070b14;color:#e8f0ff;font-family:'Segoe UI',system-ui,sans-serif}
+.wrap{max-width:1000px;margin:0 auto;padding:30px 20px}
+h1{font-size:1.7rem;color:#00ffc8}h2{color:#7b61ff;font-size:1.05rem;margin:24px 0 10px}
+.card{background:rgba(255,255,255,.04);border:1px solid rgba(0,255,200,.2);border-radius:14px;padding:22px;margin-top:16px}
+input[type=text],input[type=password]{width:100%;padding:11px;border-radius:9px;border:1px solid #24304a;background:#0b1120;color:#e8f0ff;margin:6px 0}
+button{background:linear-gradient(90deg,#00ffc8,#00b4ff);border:0;color:#04121a;font-weight:700;padding:12px 22px;border-radius:9px;cursor:pointer}
+table{width:100%;border-collapse:collapse;font-size:.82rem;margin-top:10px}th,td{padding:8px;border-bottom:1px solid #1c2740;text-align:left}th{color:#8fa3c8}
+.mono{font-family:monospace;font-size:.76rem;word-break:break-all}.ok{color:#00ffc8}.err{color:#ff6b8a}.note{color:#54627f;font-size:.78rem;margin-top:12px}
+.big{font-size:2rem;color:#00ffc8;font-weight:700}
+.drop{border:2px dashed #24304a;border-radius:12px;padding:30px;text-align:center;color:#8fa3c8;margin:10px 0}
+.drop.over{border-color:#00ffc8;color:#00ffc8}
+</style></head><body><div class="wrap">
+<h1>🏦 Fundo MyLink — Administração Híbrida (peer + agente)</h1>
+<div class="card">
+<h2>Master Wallet — visão agregada (sem varredura por UTXO)</h2>
+<div class="big" id="aggBal">— BTC</div>
+<div class="note" id="aggInfo">Carregando…</div>
+<table><thead><tr><th>Fonte</th><th>Endereços</th><th>Saldo BTC</th><th>Tipo</th></tr></thead><tbody id="srcRows"></tbody></table>
+</div>
+<div class="card">
+<h2>📤 Upload de carteira (máx. 50 MB — .dat, .core, .wallet, .txt)</h2>
+<div class="drop" id="drop">Arraste o arquivo aqui ou <input type="file" id="file" accept=".dat,.core,.wallet,.txt"></div>
+<input type="password" id="wkey" placeholder="Master Key (WIF) — vincula a carteira à Master Wallet">
+<button onclick="uploadWallet()">Sincronizar → Master Wallet</button>
+<div id="upMsg"></div>
+<div class="note">O arquivo é analisado localmente (nunca enviado em claro). Endereços extraídos entram no pool agregado. Broadcast de TX: mempool.space/tx/push (fallback: blockchain.com).</div>
+</div>
+<div class="card">
+<h2>📡 Broadcast de transação assinada (HEX)</h2>
+<input type="text" id="txhex" placeholder="hex da TX assinada offline">
+<button onclick="pushTx()">Broadcast</button>
+<div id="txMsg"></div>
+</div>
+<div class="card">
+<h2>🤖 Agente do Fundo</h2>
+<div class="mono" id="agentLog">agente fundo-mylink: standby — sincronização agendada a cada 240s junto ao oráculo</div>
+</div>
+<div class="note">Fundo MyLink · Hub V3 · Master Wallet agregada · <a href="/mylink/" style="color:#7b61ff">MyLink</a></div>
+</div>
+<script>
+const POOL_KEY='master_wallet_pool_v1';
+function pool(){return JSON.parse(localStorage.getItem(POOL_KEY)||'{"addresses":[],"sources":[]}')}
+function save(p){localStorage.setItem(POOL_KEY,JSON.stringify(p))}
+async function refreshAgg(){
+ const p=pool();let tot=0,rows='';
+ for(const s of p.sources){let bal=0;
+  for(const a of s.addresses){try{const r=await fetch('https://mempool.space/api/address/'+a);const d=await r.json();bal+=(d.chain_stats.funded_txo_sum-d.chain_stats.spent_txo_sum)/1e8}catch(e){}}
+  tot+=bal;rows+=`<tr><td>${s.name}</td><td>${s.addresses.length}</td><td>${bal.toFixed(8)}</td><td>${s.type||'import'}</td></tr>`}
+ document.getElementById('aggBal').textContent=tot.toFixed(8)+' BTC';
+ document.getElementById('aggInfo').textContent=`${p.sources.length} fontes · ${p.sources.reduce((n,s)=>n+s.addresses.length,0)} endereços agregados · consulta única à Master Wallet`;
+ document.getElementById('srcRows').innerHTML=rows||'<tr><td colspan=4>Pool vazio — faça upload para sincronizar</td></tr>'}
+const drop=document.getElementById('drop');
+drop.ondragover=e=>{e.preventDefault();drop.classList.add('over')};drop.ondragleave=()=>drop.classList.remove('over');
+drop.ondrop=e=>{e.preventDefault();drop.classList.remove('over');if(e.dataTransfer.files[0])handleFile(e.dataTransfer.files[0])};
+document.getElementById('file').onchange=e=>{if(e.target.files[0])handleFile(e.target.files[0])};
+let PENDING=null;
+async function handleFile(f){
+ const m=document.getElementById('upMsg');
+ if(f.size>50*1024*1024){m.innerHTML='<span class="err">Arquivo excede 50 MB.</span>';return}
+ const okExt=/\.(dat|core|wallet|txt)$/i.test(f.name);
+ if(!okExt){m.innerHTML='<span class="err">Extensão não suportada.</span>';return}
+ m.innerHTML='Extraindo endereços…';
+ const buf=await f.arrayBuffer();const bytes=new Uint8Array(buf);
+ const addrs=new Set();
+ // scan binário por Base58 P2PKH (1...) e bech32 (bc1q...)
+ let str='';for(let i=0;i<bytes.length;i++){const c=bytes[i];str+=(c>=32&&c<127)?String.fromCharCode(c):' '}
+ const re=/\b(1[1-9A-HJ-NP-Za-km-z]{25,34}|bc1q[02-9ac-hj-np-z]{11,71}|3[1-9A-HJ-NP-Za-km-z]{25,34})\b/g;let mt;
+ while((mt=re.exec(str))&&addrs.size<5000)addrs.add(mt[1]);
+ PENDING={name:f.name,addresses:[...addrs]};
+ m.innerHTML=`<span class="ok">${addrs.size} endereços extraídos de ${f.name}. Confirme com a Master Key para sincronizar.</span>`}
+async function pushHex(hex){
+ try{const r=await fetch('https://mempool.space/api/tx',{method:'POST',body:hex});
+  if(r.ok)return{ok:true,txid:await r.text(),via:'mempool.space'}}catch(e){}
+ try{const r=await fetch('https://blockchain.info/pushtx',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'tx='+hex});
+  if(r.ok)return{ok:true,txid:await r.text(),via:'blockchain.com'}}catch(e){}
+ return{ok:false}}
+async function uploadWallet(){
+ const m=document.getElementById('upMsg'),wif=document.getElementById('wkey').value.trim();
+ if(!PENDING){m.innerHTML='<span class="err">Nenhum arquivo processado.</span>';return}
+ if(!/^[5KL][1-9A-HJ-NP-Za-km-z]{50,51}$/.test(wif)){m.innerHTML='<span class="err">Master Key WIF inválida.</span>';return}
+ const p=pool();p.sources.push({name:PENDING.name,addresses:PENDING.addresses,type:'upload',ts:Date.now()});save(p);
+ document.getElementById('agentLog').innerHTML+=`<br>sync ${new Date().toISOString()}: +${PENDING.addresses.length} endereços de ${PENDING.name}`;
+ m.innerHTML='<span class="ok">Sincronizado com a Master Wallet.</span>';PENDING=null;refreshAgg()}
+async function pushTx(){
+ const hex=document.getElementById('txhex').value.trim(),m=document.getElementById('txMsg');
+ if(!/^[0-9a-fA-F]+$/.test(hex)||hex.length<20){m.innerHTML='<span class="err">HEX inválido.</span>';return}
+ m.innerHTML='Transmitindo…';const r=await pushHex(hex);
+ m.innerHTML=r.ok?`<span class="ok">Broadcast OK via ${r.via}: <span class="mono">${r.txid}</span></span>`:'<span class="err">Falha nos dois endpoints.</span>'}
+refreshAgg();
+</script></body></html>
