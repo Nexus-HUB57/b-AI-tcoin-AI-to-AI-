@@ -1117,6 +1117,26 @@ def _do_POST(self):
         self._j({'error': 'not_found', 'path': path}, 404)
 H.do_POST = _do_POST
 
+def _do_OPTIONS(self):
+    # FIX 2026-09-16 — CORS preflight.
+    # Sem este handler, browsers que fazem POST cross-origin com
+    # `Content-Type: application/json` recebem HTTP 501 do Python
+    # http.server (que não implementa OPTIONS) e bloqueiam o request
+    # real. O front-end via JSON {"error":"not_found"} 404 e o cadastro
+    # mostrava "Not Found" no toast. Agora respondemos 204 com os
+    # headers CORS canônicos.
+    self.send_response(204)
+    for k, v in [
+        ('Access-Control-Allow-Origin', '*'),
+        ('Access-Control-Allow-Methods', 'GET, POST, OPTIONS'),
+        ('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With'),
+        ('Access-Control-Max-Age', '86400'),
+        ('Content-Length', '0'),
+    ]:
+        self.send_header(k, v)
+    self.end_headers()
+H.do_OPTIONS = _do_OPTIONS
+
 if __name__ == '__main__':
     refresh()
     refresh_oracle()
