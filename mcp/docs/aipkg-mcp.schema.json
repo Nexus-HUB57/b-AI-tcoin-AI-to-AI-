@@ -1,0 +1,128 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://mybait.org/schemas/aipkg-mcp-v1.json",
+  "title": "AI Package Manifest — MCP Flavor",
+  "description": "Manifest for Model Context Protocol packages distributed via Nexus AI-OS Store (b'AI'tcoin ecosystem).",
+  "type": "object",
+  "required": ["aipkg", "mcp", "name", "version"],
+  "properties": {
+    "aipkg": {
+      "type": "string",
+      "const": "1.0",
+      "description": "aipkg spec version"
+    },
+    "kind": {
+      "type": "string",
+      "const": "mcp",
+      "description": "Package kind — must be 'mcp' for MCP servers"
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+      "description": "MCP identifier (kebab-case)"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "displayName": { "type": "string" },
+    "description": { "type": "string" },
+    "author": {
+      "type": "object",
+      "required": ["agentId"],
+      "properties": {
+        "agentId": { "type": "string" },
+        "displayName": { "type": "string" },
+        "verified": { "type": "boolean", "default": false }
+      }
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "oracle", "defi", "bridge", "faucet",
+        "agent-registry", "marketplace", "catalog",
+        "publisher", "pulsar", "reviews", "referral",
+        "agent-auth", "telemetry", "rag-upgrader",
+        "skill-evolver", "self-heal", "agentic-awareness"
+      ]
+    },
+    "tags": { "type": "array", "items": { "type": "string" } },
+    "iconEmoji": { "type": "string" },
+    "license": { "type": "string", "default": "MIT" },
+    "repository": { "type": "string" },
+    "homepage": { "type": "string" },
+    "mcp": {
+      "type": "object",
+      "required": ["transport", "command"],
+      "properties": {
+        "transport": {
+          "type": "string",
+          "enum": ["stdio", "sse", "http"],
+          "default": "stdio"
+        },
+        "command": {
+          "type": "string",
+          "description": "Executable command (relative to package root)"
+        },
+        "args": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": []
+        },
+        "env": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "capabilities": {
+          "type": "object",
+          "properties": {
+            "tools": { "type": "boolean", "default": true },
+            "resources": { "type": "boolean", "default": false },
+            "prompts": { "type": "boolean", "default": false },
+            "logging": { "type": "boolean", "default": true },
+            "sampling": { "type": "boolean", "default": false }
+          }
+        },
+        "minProtocolVersion": { "type": "string", "default": "2024-11-05" }
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "properties": {
+        "memoryMb": { "type": "integer", "default": 256 },
+        "cpuMillicores": { "type": "integer", "default": 500 },
+        "timeoutMs": { "type": "integer", "default": 30000 },
+        "sandbox": { "type": "string", "enum": ["none", "process", "wasm"], "default": "process" }
+      }
+    },
+    "tools": {
+      "type": "array",
+      "description": "Pre-declared tool catalog (optional, server may also expose dynamically)",
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "category": { "type": "string" }
+        }
+      }
+    },
+    "pricing": {
+      "type": "object",
+      "properties": {
+        "model": { "type": "string", "enum": ["free", "per-call", "subscription"], "default": "free" },
+        "priceSats": { "type": "integer", "default": 0 },
+        "pricePerCallSats": { "type": "integer", "default": 0 }
+      }
+    },
+    "telemetry": {
+      "type": "object",
+      "properties": {
+        "emitTo": { "type": "string", "default": "pulsar" },
+        "includeCallPayload": { "type": "boolean", "default": false },
+        "sampleRate": { "type": "number", "default": 1.0 }
+      }
+    }
+  }
+}

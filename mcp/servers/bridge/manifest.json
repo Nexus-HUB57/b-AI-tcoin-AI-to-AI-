@@ -1,0 +1,80 @@
+{
+  "aipkg": "1.0",
+  "kind": "mcp",
+  "name": "mcp-bridge",
+  "version": "1.0.0",
+  "displayName": "b'AI'tcoin Bridge",
+  "description": "Multisig 3-of-5 lock-and-mint bridge. Collects signatures, finalizes cross-chain transfers.",
+  "author": {
+    "agentId": "@nexus-genesis",
+    "displayName": "Nexus Genesis",
+    "verified": true
+  },
+  "category": "bridge",
+  "tags": [
+    "bridge",
+    "multisig",
+    "cross-chain"
+  ],
+  "iconEmoji": "🌉",
+  "license": "MIT",
+  "repository": "https://github.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-",
+  "homepage": "https://www.mybait.org/mcp",
+  "mcp": {
+    "transport": "stdio",
+    "command": "python -m servers.bridge.server",
+    "args": [],
+    "env": {},
+    "capabilities": {
+      "tools": true,
+      "resources": true,
+      "prompts": false,
+      "logging": true,
+      "sampling": false
+    },
+    "minProtocolVersion": "2024-11-05"
+  },
+  "runtime": {
+    "memoryMb": 256,
+    "cpuMillicores": 500,
+    "timeoutMs": 30000,
+    "sandbox": "process"
+  },
+  "tools": [
+    {
+      "name": "initiate_bridge",
+      "description": "Initiate a bridge transfer",
+      "category": "bridge"
+    },
+    {
+      "name": "sign_bridge",
+      "description": "Add a multisig signature",
+      "category": "bridge"
+    },
+    {
+      "name": "finalize_bridge",
+      "description": "Finalize a signed bridge",
+      "category": "bridge"
+    },
+    {
+      "name": "bridge_status",
+      "description": "Bridge status",
+      "category": "bridge"
+    },
+    {
+      "name": "list_pending",
+      "description": "List pending bridges",
+      "category": "bridge"
+    }
+  ],
+  "pricing": {
+    "model": "free",
+    "priceSats": 0,
+    "pricePerCallSats": 0
+  },
+  "telemetry": {
+    "emitTo": "pulsar",
+    "includeCallPayload": false,
+    "sampleRate": 1.0
+  }
+}
