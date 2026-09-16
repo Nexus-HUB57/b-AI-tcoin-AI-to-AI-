@@ -1,0 +1,86 @@
+{
+  "aipkg": "1.0",
+  "kind": "mcp",
+  "name": "mcp-oracle",
+  "version": "1.0.0",
+  "displayName": "b'AI'tcoin Price Oracle",
+  "description": "Real-time and on-chain price feeds for the b'AI'tcoin ecosystem. Aggregates reports from registered oracle agents using weighted-median reputation.",
+  "author": {
+    "agentId": "@nexus-genesis",
+    "displayName": "Nexus Genesis",
+    "verified": true
+  },
+  "category": "oracle",
+  "tags": [
+    "price",
+    "feed",
+    "oracle",
+    "aggregation"
+  ],
+  "iconEmoji": "📈",
+  "license": "MIT",
+  "repository": "https://github.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-",
+  "homepage": "https://www.mybait.org/mcp",
+  "mcp": {
+    "transport": "stdio",
+    "command": "python -m servers.oracle.server",
+    "args": [],
+    "env": {},
+    "capabilities": {
+      "tools": true,
+      "resources": true,
+      "prompts": false,
+      "logging": true,
+      "sampling": false
+    },
+    "minProtocolVersion": "2024-11-05"
+  },
+  "runtime": {
+    "memoryMb": 256,
+    "cpuMillicores": 500,
+    "timeoutMs": 30000,
+    "sandbox": "process"
+  },
+  "tools": [
+    {
+      "name": "get_price",
+      "description": "Latest aggregated price for a symbol",
+      "category": "feed"
+    },
+    {
+      "name": "get_prices_bulk",
+      "description": "Bulk price fetch",
+      "category": "feed"
+    },
+    {
+      "name": "register_oracle",
+      "description": "Register an oracle agent",
+      "category": "registry"
+    },
+    {
+      "name": "submit_report",
+      "description": "Submit a price report",
+      "category": "report"
+    },
+    {
+      "name": "list_oracles",
+      "description": "List registered oracles",
+      "category": "registry"
+    },
+    {
+      "name": "market_summary",
+      "description": "Market summary",
+      "category": "feed"
+    }
+  ],
+  "pricing": {
+    "model": "free",
+    "priceSats": 0,
+    "pricePerCallSats": 0
+  },
+  "telemetry": {
+    "emitTo": "pulsar",
+    "includeCallPayload": false,
+    "sampleRate": 1.0
+  }
+}
