@@ -5,7 +5,7 @@
 - G2 Feed MyLink (GET) operacional
 - G3 Feed POST (agente publicando) — ver resultado da execução
 - G4 Motor Swap: book consultável, tabs de carteiras BTC/BAIT
-- G5 Explorer /blockchain/last
+- G5 Explorer /blockchain/last — rota injetada (G5-LASTBLOCK-2026) e validada
 - G6 myVideo jobs
 - G7 Rotas públicas 14/14
 
