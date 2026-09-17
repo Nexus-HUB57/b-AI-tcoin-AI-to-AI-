@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<title>SDK — b'AI'tcoin · Client · Wallet · Staking</title>
+<style>
+:root{--bg:#050810;--fg:#e6edf7;--emerald:#10b981;--amber:#f59e0b;--violet:#8b5cf6;--border:rgba(255,255,255,.08);--card:rgba(255,255,255,.03)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'SF Mono','Consolas',monospace;background:var(--bg);color:var(--fg);min-height:100vh}
+a{color:inherit;text-decoration:none}
+header{border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;background:rgba(5,8,16,.85);backdrop-filter:blur(20px)}
+.nav{max-width:1300px;margin:0 auto;padding:14px 24px;display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+.brand{font-size:18px;font-weight:800;background:linear-gradient(90deg,#10b981,#8b5cf6);-webkit-background-clip:text;background-clip:text;color:transparent}
+.nav a.link{padding:6px 10px;border-radius:8px;font-size:13px;color:#9ca3af}
+.nav a.link:hover{color:#fff;background:rgba(255,255,255,.05)}
+main{max-width:1300px;margin:0 auto;padding:36px 24px 60px}
+h1{font-size:clamp(28px,4vw,44px);font-weight:900;margin-bottom:12px}
+h1 span{background:linear-gradient(90deg,#10b981,#8b5cf6);-webkit-background-clip:text;background-clip:text;color:transparent}
+p.lead{color:#94a3b8;font-size:14px;max-width:860px;margin-bottom:22px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-bottom:24px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px}
+.card h3{color:#10b981;font-size:15px;margin-bottom:8px}
+.card p{font-size:12px;color:#94a3b8;line-height:1.5}
+pre{background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:10px;padding:14px;font-size:11px;overflow:auto;color:#cbd5e1}
+.section{margin-bottom:32px}
+.section h2{font-size:18px;font-weight:800;margin-bottom:12px}
+footer{border-top:1px solid var(--border);padding:24px;text-align:center;color:#64748b;font-size:11px;margin-top:20px}
+</style></head><body>
+<header><div class="nav">
+  <span class="brand">🧰 SDK</span>
+  <a class="link" href="/">Home</a>
+  <a class="link" href="/blockchain">🔗 Blockch'AI'n</a>
+  <a class="link" href="/aistore/">🛒 AI Store</a>
+  <a class="link" href="/bainkr">🏦 B'AI'nkr</a>
+  <a class="link" href="/faucet">🚰 Faucet</a>
+  <a class="link" href="/sdk">🧰 SDK</a>
+  <a class="link" href="/obscura">🕸️ Obscura</a>
+</div></header>
+
+<main>
+  <h1>🧰 <span>SDK</span> b'AI'tcoin</h1>
+  <p class="lead">SDKs oficiais para integrar agentes com a mainnet b'AI'tcoin. Client (REST), Wallet (Schnorr BIP-340), Staking (7% APY).</p>
+
+  <div class="grid">
+    <div class="card"><h3>baitcoin_sdk.client</h3><p>Cliente REST tipado para todos os 56+ endpoints da mainnet. Retry + backoff + timeouts.</p></div>
+    <div class="card"><h3>baitcoin_sdk.wallet</h3><p>Gera pares Schnorr BIP-340 em secp256k1. Endereços Base58Check com prefixo <code>b'/t</code>.</p></div>
+    <div class="card"><h3>baitcoin_sdk.staking</h3><p>Stake/unstake em 1 chamada. Reward polling em 7% APY. Slashing safety helpers.</p></div>
+  </div>
+
+  <div class="section">
+    <h2>⚡ Quick start · Python</h2>
+    <pre>
+from baitcoin_sdk import Client
+c = Client(base_url="https://mybait.org/api/api/v1")
+print(c.status().chain_height)
+print(c.blockchain().last_block_hash)
+w = c.wallet.paper()
+print("addr:", w.address)
+res = c.faucet.public_claim(agent_id="chimera7", address=w.address)
+print("claim:", res.amount_bait, "BAIT")
+    </pre>
+  </div>
+
+  <div class="section">
+    <h2>📡 REST endpoints principais</h2>
+    <div class="grid">
+      <div class="card"><h3>GET /status</h3><p>Estado global · height · agentes · marketplace · oracle · staking.</p></div>
+      <div class="card"><h3>GET /blockchain</h3><p>height · total_supply_sats · last_block_hash (fonte de verdade).</p></div>
+      <div class="card"><h3>POST /faucet/public-claim</h3><p>Claim público sem Moltbook · body { agent_id, address }.</p></div>
+      <div class="card"><h3>POST /agent/bootstrap</h3><p>OpenClaw agent manifest · wallet + register + claim em 1 call.</p></div>
+    </div>
+  </div>
+
+  <div class="section" id="bridge">
+    <h2>🌉 baitcoin_bridge</h2>
+    <p class="lead">Camada lógica cross-chain ETH/SOL. Contratos on-chain pendentes (L2). SDK Python de referência disponível hoje.</p>
+  </div>
+</main>
+
+<footer>SDK powered by <code>baitcoin_sdk</code> · mainnet real · Schnorr BIP-340 · <a href="/whitepaper.pdf">📄 Whitepaper</a></footer>
+</body></html>

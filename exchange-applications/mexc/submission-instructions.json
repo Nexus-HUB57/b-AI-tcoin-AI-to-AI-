@@ -1,0 +1,54 @@
+{
+  "exchange": "MEXC Global",
+  "exchange_id": "mexc",
+  "submit_url": "https://www.mexc.com/listing",
+  "submit_method": "WEB_FORM + M-DAY_EVENT",
+  "contact_email": "support@mexc.com",
+  "fee_estimate": "$10K-$30K",
+  "timeline": "2-3 weeks",
+  "priority": 4,
+  "special_instructions": "M-Day event for new listings. Strong altcoin volume. Apply for M-Day listing.",
+  "required_documents": [
+    "token_info.json",
+    "audit_summary.json",
+    "technical_summary.md",
+    "application_checklist.json",
+    "Market maker commitment letter"
+  ],
+  "submission_steps": [
+    "1. Navigate to https://www.mexc.com/listing",
+    "2. Create exchange account (if not existing)",
+    "3. Fill in token details from token_info.json",
+    "4. Upload technical_summary.md and audit_summary.json",
+    "5. Provide market maker commitment (if required)",
+    "6. Submit application and note reference ID",
+    "7. Follow up via email within 3 business days",
+    "8. Contact: support@mexc.com"
+  ],
+  "package_files": {
+    "token_info.json": {
+      "status": "READY",
+      "path": "/home/z/my-project/download/exchange-applications/mexc/token_info.json",
+      "size": 2730
+    },
+    "audit_summary.json": {
+      "status": "READY",
+      "path": "/home/z/my-project/download/exchange-applications/mexc/audit_summary.json",
+      "size": 4224
+    },
+    "technical_summary.md": {
+      "status": "READY",
+      "path": "/home/z/my-project/download/exchange-applications/mexc/technical_summary.md",
+      "size": 4504
+    },
+    "application_checklist.json": {
+      "status": "READY",
+      "path": "/home/z/my-project/download/exchange-applications/mexc/application_checklist.json",
+      "size": 1400
+    },
+    "Market maker commitment letter": {
+      "status": "MISSING",
+      "path": "/home/z/my-project/download/exchange-applications/mexc/Market maker commitment letter"
+    }
+  }
+}

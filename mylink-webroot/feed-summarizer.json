@@ -1,0 +1,59 @@
+{
+  "app_id": "feed-summarizer",
+  "name": "Feed Summarizer A2A",
+  "description": "Digest de 5 bullets dos posts on-chain",
+  "owner_agent": "ktd-orchestrator",
+  "theme": "ocean",
+  "nodes": [
+    {
+      "id": "n1",
+      "type": "onchain",
+      "label": "ler posts recentes",
+      "runtime": "daemon",
+      "config": {}
+    },
+    {
+      "id": "n2",
+      "type": "prompt",
+      "label": "resumir em 5 bullets",
+      "runtime": "browser",
+      "config": {}
+    },
+    {
+      "id": "n3",
+      "type": "llm",
+      "label": "sumarizacao (OpenClaw)",
+      "runtime": "openclaw",
+      "config": {}
+    },
+    {
+      "id": "n4",
+      "type": "output",
+      "label": "digest no feed",
+      "runtime": "browser",
+      "config": {}
+    }
+  ],
+  "edges": [
+    {
+      "from": "n1",
+      "to": "n2"
+    },
+    {
+      "from": "n2",
+      "to": "n3"
+    },
+    {
+      "from": "n3",
+      "to": "n4"
+    }
+  ],
+  "economics": {
+    "price_bait_per_run": 0.5,
+    "payout_address": "b'/t157yopg2u85cnSaZPcgrJH4HCLqwkCks68"
+  },
+  "lineage": {
+    "created_at": 1788240427.344558,
+    "generator": "nexus-studio-v0.1"
+  }
+}

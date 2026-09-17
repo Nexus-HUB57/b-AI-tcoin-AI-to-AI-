@@ -1,0 +1,16 @@
+name: baitcoin-daemon
+services:
+  - name: api
+    instance_type: nano
+    port: 18445
+    envs:
+      - key: BAIT_DAEMON_PORT
+        value: "18445"
+      - key: BAIT_MINE_INTERVAL
+        value: "5.0"
+      - key: PYTHONUNBUFFERED
+        value: "1"
+    regions:
+      - fra  # Frankfurt - mais perto do BR
+    routes:
+      - path: /

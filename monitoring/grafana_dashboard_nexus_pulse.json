@@ -1,0 +1,117 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": 102,
+  "links": [],
+  "liveNow": true,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "id": 1,
+      "title": "Agentes Online (Ecossistema)",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "sum(baitcoin_agent_status{state=\"online\"})",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "green" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 6 }
+            ]
+          },
+          "unit": "none"
+        }
+      }
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 4, "w": 18, "x": 6, "y": 0 },
+      "id": 2,
+      "title": "Status dos 6 Agentes Principais (Moltbook Swarm)",
+      "type": "table",
+      "targets": [
+        {
+          "expr": "baitcoin_agent_status",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "color-background"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": 0 },
+              { "color": "green", "value": 1 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "id": 3,
+      "title": "A2A-RPC Success Rate (SLA 99.5%)",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "(sum(rate(baitcoin_a2a_rpc_requests_total{status=\"success\"}[5m])) / sum(rate(baitcoin_a2a_rpc_requests_total[5m]))) * 100",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 99.0 },
+              { "color": "green", "value": 99.5 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "id": 4,
+      "title": "Moltbook.com Sincronização de Feed A2A",
+      "type": "logs",
+      "targets": [
+        {
+          "expr": "{job=\"moltbook-feed-sync\"}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["baitcoin", "moltbook", "nexus-pulse", "agents"],
+  "time": { "from": "now-15m", "to": "now" },
+  "timezone": "browser",
+  "title": "NEXUS-PULSE: Agent Swarm & Moltbook Live Observability",
+  "uid": "nexus_pulse_agents_live",
+  "version": 2
+}

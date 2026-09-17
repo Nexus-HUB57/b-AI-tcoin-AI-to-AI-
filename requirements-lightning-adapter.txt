@@ -1,0 +1,5 @@
+# Runtime dependency for scripts/lnd_mainnet_adapter.py
+# Generated protobuf modules must be produced from the official LND .proto files.
+grpcio>=1.66.0
+protobuf>=5.27.0
+PyYAML>=6.0.2

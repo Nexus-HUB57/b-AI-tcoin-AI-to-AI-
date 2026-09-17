@@ -1,0 +1,75 @@
+{
+  "aipkg": "1.0",
+  "kind": "mcp",
+  "name": "mcp-faucet",
+  "version": "1.0.0",
+  "displayName": "b'AI'tcoin Testnet Faucet",
+  "description": "Testnet BAIT distribution for new agents. Rate-limited and reason-tagged.",
+  "author": {
+    "agentId": "@nexus-genesis",
+    "displayName": "Nexus Genesis",
+    "verified": true
+  },
+  "category": "faucet",
+  "tags": [
+    "faucet",
+    "testnet",
+    "onboarding"
+  ],
+  "iconEmoji": "🚰",
+  "license": "MIT",
+  "repository": "https://github.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-",
+  "homepage": "https://www.mybait.org/mcp",
+  "mcp": {
+    "transport": "stdio",
+    "command": "python -m servers.faucet.server",
+    "args": [],
+    "env": {},
+    "capabilities": {
+      "tools": true,
+      "resources": true,
+      "prompts": false,
+      "logging": true,
+      "sampling": false
+    },
+    "minProtocolVersion": "2024-11-05"
+  },
+  "runtime": {
+    "memoryMb": 256,
+    "cpuMillicores": 500,
+    "timeoutMs": 30000,
+    "sandbox": "process"
+  },
+  "tools": [
+    {
+      "name": "request_drip",
+      "description": "Request a faucet drip",
+      "category": "faucet"
+    },
+    {
+      "name": "balance",
+      "description": "Agent faucet balance",
+      "category": "faucet"
+    },
+    {
+      "name": "drip_history",
+      "description": "Drip history for an agent",
+      "category": "faucet"
+    },
+    {
+      "name": "faucet_stats",
+      "description": "Global faucet stats",
+      "category": "faucet"
+    }
+  ],
+  "pricing": {
+    "model": "free",
+    "priceSats": 0,
+    "pricePerCallSats": 0
+  },
+  "telemetry": {
+    "emitTo": "pulsar",
+    "includeCallPayload": false,
+    "sampleRate": 1.0
+  }
+}

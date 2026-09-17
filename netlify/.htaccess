@@ -1,0 +1,42 @@
+# Root .htaccess — HostGator (b'AI'tcoin + AI Store)
+# CGI is enabled server-wide for .cgi on HostGator shared hosting.
+# Do NOT add Options +ExecCGI here — causes 500 on some shared plans.
+
+AddHandler cgi-script .cgi
+
+# __AISTORE_SESSION_SECRET_PLACEHOLDER__
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Canonicalize legacy AI Store path
+  RewriteRule ^ai-store/?$ /aistore/ [R=301,L]
+
+  # Friendly aliases for b'AI'tcoin sections
+  RewriteRule ^bainkr/?$ /bainkr.html [L]
+  RewriteRule ^blockchain/?$ /blockchain.html [L]
+  RewriteRule ^faucet/?$ /faucet.html [L]
+  RewriteRule ^sdk/?$ /sdk.html [L]
+  RewriteRule ^obscura/?$ /obscura.html [L]
+  RewriteRule ^mainnet/?$ /index.html#dashboard [L]
+  RewriteRule ^explorer/?$ /index.html#dashboard [L]
+
+  # b'AI'tcoin daemon API
+  RewriteCond %{REQUEST_URI} !^/aistore
+  RewriteRule ^api/(.*)$ /api.cgi/$1 [QSA,L,E=PATH_INFO:/$1]
+
+  # AI Store routes
+  RewriteRule ^aistore/api/(.*)$ /aistore-api.cgi/$1 [QSA,L,E=PATH_INFO:/$1]
+  RewriteRule ^aistore/test\.cgi$ /aistore-test.cgi [L]
+  RewriteRule ^aistore/(.*)$ /aistore-api.cgi/$1 [QSA,L,E=PATH_INFO:/$1]
+</IfModule>
+
+<IfModule mod_headers.c>
+  Header set X-Frame-Options "DENY"
+  Header set X-Content-Type-Options "nosniff"
+  Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css application/javascript application/json image/svg+xml
+</IfModule>

@@ -1,0 +1,170 @@
+{
+  "$schema": "https://baitcoin.org/schemas/investment-pipeline-v1",
+  "version": "1.0.0",
+  "generated_at": "2026-09-14T18:00:00Z",
+  "title": "BAIT Automated Investment Pipeline — API Synchronized",
+  "description": "Pipeline automatizado de investimentos BTC→ETH→Deploy com API Binance sincronizada, state machine, circuit breaker, e failover.",
+
+  "architecture": {
+    "core_modules": [
+      {
+        "file": "config.py",
+        "purpose": "Configuração centralizada — Binance, Custody, Ethereum, Phases, Retry, Monitoring",
+        "secrets": "Variáveis de ambiente APENAS (BINANCE_API_KEY, BINANCE_API_SECRET, DEPLOYER_KEYSTORE_PASSWORD)"
+      },
+      {
+        "file": "state_machine.py",
+        "purpose": "State machine com fases: IDLE → PHASE_1 → PHASE_2 → PHASE_3 → DEPLOYED. Crash recovery via state.json",
+        "transitions": "Guard-checked transitions, pause/resume, error/retry"
+      },
+      {
+        "file": "binance_client.py",
+        "purpose": "Cliente Binance API com HMAC-SHA256, circuit breaker, exponential backoff, rate limit handling",
+        "features": ["limit/market/OCO orders", "withdrawal", "deposit tracking", "swap calculation"]
+      },
+      {
+        "file": "balance_monitor.py",
+        "purpose": "Monitor de balances — BTC (Blockstream API) + ETH (JSON-RPC) + Binance",
+        "features": ["continuous polling", "callback notifications", "multi-RPC failover"]
+      },
+      {
+        "file": "sync_engine.py",
+        "purpose": "Orquestrador central — sincroniza todo o fluxo: BTC custody → Binance swap → ETH withdraw → Deploy",
+        "phases": ["Phase 1: Deploy gas (0.01 BTC → 0.525 ETH)", "Phase 2: Liquidity (0.20 BTC → 12.5 ETH)"]
+      },
+      {
+        "file": "pipeline_cli.py",
+        "purpose": "CLI interface — preflight, balances, phase1, phase2, full, simulate, status, stop"
+      }
+    ],
+    "data_flow": "BTC Custody Fund → Binance BTC Deposit → ETHBTC Limit Order → ETH on Binance → ETH Withdraw → Deployer Wallet → Mainnet Deploy"
+  },
+
+  "state_machine": {
+    "phases": {
+      "IDLE": "Pipeline não iniciado",
+      "PHASE_1_DEPLOY": "Vendendo 0.01 BTC → ~0.525 ETH para gas de deploy",
+      "PHASE_2_LIQUIDITY": "Vendendo 0.20 BTC → ~12.5 ETH para liquidez Uniswap V3",
+      "PHASE_3_INCREMENTAL": "Adicionando liquidez incrementalmente conforme demanda",
+      "DEPLOYED": "Contratos deployados e operacionais na mainnet",
+      "PAUSED": "Pipeline pausado (pode retomar)",
+      "ERROR": "Erro — pode retomar com retry"
+    },
+    "legal_transitions": [
+      "IDLE → PHASE_1_DEPLOY",
+      "PHASE_1_DEPLOY → PHASE_2_LIQUIDITY",
+      "PHASE_1_DEPLOY → ERROR",
+      "PHASE_2_LIQUIDITY → PHASE_3_INCREMENTAL",
+      "PHASE_2_LIQUIDITY → DEPLOYED",
+      "PHASE_3_INCREMENTAL → DEPLOYED",
+      "* → PAUSED (qualquer estado)",
+      "PAUSED → <previous> (retomar)",
+      "ERROR → <previous> (retry)"
+    ],
+    "crash_recovery": "Estado persistido em state.json — retoma automaticamente após crash"
+  },
+
+  "binance_integration": {
+    "api_version": "v3",
+    "authentication": "HMAC-SHA256签名请求",
+    "trading_pair": "ETHBTC",
+    "order_types": ["LIMIT", "MARKET", "OCO"],
+    "custody_addresses": {
+      "btc_deposit": "bc1qwwgdhzdgy97ysqqtd9z7rwv76fwktg0w4tvwf8",
+      "eth_deposit": "0x0defc6b5b845292870a6d9321d1665c98c832f9f"
+    },
+    "fees": {
+      "maker": "0.1%",
+      "taker": "0.1%",
+      "withdrawal_eth": "~0.001 ETH"
+    },
+    "rate_limits": {
+      "order_rate": "10 orders/second",
+      "request_rate": "1200 requests/minute",
+      "circuit_breaker": "5 failures → open for 5 minutes"
+    },
+    "testnet": {
+      "url": "https://testnet.binance.vision/",
+      "keys_url": "https://testnet.binance.vision/",
+      "purpose": "Simulação completa sem fundos reais"
+    }
+  },
+
+  "custody_fund": {
+    "primary_address": "1Kj6epyY2MdzZUCHE572jeV9n7DDRReaZJ",
+    "balance_btc": 2407.09510118,
+    "btc_needed_total": 0.66,
+    "pct_of_fund": "0.027%",
+    "blocker": "BTC key recovery — 2,146 keys tested, 0 matches. Resolução: recuperar Electrum wallet, corrigir seed, ou usar custody sweep addresses via método alternativo."
+  },
+
+  "capital_flow": {
+    "phase_1": {
+      "btc_sell": 0.01,
+      "eth_expected": 0.525,
+      "purpose": "Gas de deploy (irrecuperável)",
+      "on_exchange_max_hours": 24
+    },
+    "phase_2": {
+      "btc_sell": 0.20,
+      "eth_expected": 12.5,
+      "purpose": "Liquidez Uniswap V3 (capital, recuperável via removeLiquidity())",
+      "on_exchange_max_hours": 24
+    },
+    "total": {
+      "btc_sell": 0.66,
+      "eth_expected": 13.025,
+      "irrecoverable_eth": 0.525,
+      "recoverable_capital_eth": 12.5
+    }
+  },
+
+  "risk_controls": {
+    "slippage": {
+      "phase_1_max": "2.0%",
+      "phase_2_max": "1.5%",
+      "phase_3_max": "1.0%"
+    },
+    "exchange_exposure": {
+      "max_btc_on_exchange": 1.0,
+      "max_hours_on_exchange": 24,
+      "auto_withdraw": true
+    },
+    "circuit_breaker": {
+      "failure_threshold": 5,
+      "cooldown_seconds": 300
+    },
+    "emergency_controls": ["pause", "emergency_stop", "cancel_all_orders"]
+  },
+
+  "cli_commands": {
+    "preflight": "Verificação pré-voo (dry run, sem fundos)",
+    "balances": "Checar todos os balances (custody + Binance + deployer)",
+    "phase1": "Executar Phase 1: 0.01 BTC → 0.525 ETH para deploy gas",
+    "phase2": "Executar Phase 2: 0.20 BTC → 12.5 ETH para liquidez",
+    "full": "Executar pipeline completo (Phase 1 + 2)",
+    "simulate": "Simular pipeline no testnet Binance (sem fundos reais)",
+    "status": "Status do pipeline e state machine",
+    "stop": "Emergency stop com razão"
+  },
+
+  "environment_variables": {
+    "required": {
+      "BINANCE_API_KEY": "Chave API Binance (LEIA e SPA only)",
+      "BINANCE_API_SECRET": "Secret API Binance (nunca commitar!)",
+      "DEPLOYER_KEYSTORE_PASSWORD": "Senha do keystore deployer Foundry"
+    },
+    "optional": {
+      "BINANCE_USE_TESTNET": "true/false (default: true para segurança)",
+      "DEPLOYER_ADDRESS": "Endereço ETH do deployer (se conhecido)"
+    }
+  },
+
+  "deployment_readiness": {
+    "checklist_pct": 100,
+    "checklist_items": "27/27",
+    "contracts": ["WBAIT (ERC-20)", "BridgeLock (3-of-5 multisig)", "BAITUniswapV3Liquidity"],
+    "tests": "20/20 passing + 7/7 Anvil lifecycle",
+    "blockers": ["BTC key recovery (2,146 keys tested, 0 matches)"]
+  }
+}

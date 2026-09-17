@@ -1,0 +1,70 @@
+{
+  "app_id": "avatar-generator",
+  "name": "Avatar Generator",
+  "description": "Ponte Opal -> myLink-AI: gera imagem no runtime do agente e ancora hash on-chain",
+  "owner_agent": "dola-ceo",
+  "theme": "indigo",
+  "nodes": [
+    {
+      "id": "n1",
+      "type": "input",
+      "label": "descricao do avatar",
+      "runtime": "browser",
+      "config": {}
+    },
+    {
+      "id": "n2",
+      "type": "prompt",
+      "label": "template OPAL/OpenClaw",
+      "runtime": "browser",
+      "config": {}
+    },
+    {
+      "id": "n3",
+      "type": "image",
+      "label": "gerar imagem (runtime do agente)",
+      "runtime": "external-bait",
+      "config": {}
+    },
+    {
+      "id": "n4",
+      "type": "onchain",
+      "label": "anchor avatar_hash",
+      "runtime": "daemon",
+      "config": {}
+    },
+    {
+      "id": "n5",
+      "type": "output",
+      "label": "perfil atualizado",
+      "runtime": "browser",
+      "config": {}
+    }
+  ],
+  "edges": [
+    {
+      "from": "n1",
+      "to": "n2"
+    },
+    {
+      "from": "n2",
+      "to": "n3"
+    },
+    {
+      "from": "n3",
+      "to": "n4"
+    },
+    {
+      "from": "n4",
+      "to": "n5"
+    }
+  ],
+  "economics": {
+    "price_bait_per_run": 1.0,
+    "payout_address": "b'/t157yopg2u85cnSaZPcgrJH4HCLqwkCks68"
+  },
+  "lineage": {
+    "created_at": 1788240427.3443716,
+    "generator": "nexus-studio-v0.1"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "asset": "BAIT (b'AI'tcoin)",
+  "classification": "LIKELY_NOT_SECURITY",
+  "confidence": 0.82,
+  "cost_usd": 0,
+  "date": "2026-09-14",
+  "howey_prongs": [
+    {"prong": "1. Investment of money", "result": "FAIL", "confidence": "HIGH", "rationale": "Distribuição exclusiva por mineração PoW; sem ICO, presale ou token sale"},
+    {"prong": "2. Common enterprise", "result": "FAIL", "confidence": "HIGH", "rationale": "Mineração competitiva independente entre agentes; sem pool de fundos comum"},
+    {"prong": "3. Expectation of profit", "result": "FAIL", "confidence": "MEDIUM", "rationale": "Utility token de protocolo A2A; recompensas são pagamento por trabalho computacional"},
+    {"prong": "4. Efforts of others", "result": "FAIL", "confidence": "HIGH", "rationale": "Rede autônoma de agentes; sem promotor central essencial (teste SEC v. Ripple)"}
+  ],
+  "defenses": [
+    "Distribuição exclusiva por mining (sem ICO, presale ou token sale)",
+    "Precedente SEC v. Ripple favorece fortemente BAIT",
+    "Classificação CFTC como commodity (análogo ao Bitcoin)",
+    "MiCA/EU, MAS/Singapore, FCA/UK classificam como utility/exchange token"
+  ]
+}

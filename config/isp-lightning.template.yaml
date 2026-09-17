@@ -1,0 +1,208 @@
+# Template operacional para sincronização ISP <-> motor Swap <-> Lightning.
+#
+# Regras de segurança:
+# - Não coloque seeds, frases mnemônicas, chaves privadas, WIFs ou certificados
+#   privados neste arquivo.
+# - Use referências a um secret manager ou variáveis de ambiente para credenciais.
+# - Mainnet permanece desabilitada até revisão e autorização operacional explícita.
+# - O executor inicia em dry-run para validar ordens, limites e transições de estado.
+
+schema_version: "1.0"
+config_name: "isp-lightning-swap"
+environment: "testnet" # testnet | regtest | mainnet
+
+# Liberação global do executor.
+execution:
+  enabled: true
+  mode: "dry-run" # dry-run | live
+  require_explicit_live_approval: true
+  live_approval_reference: "CHANGE-OR-AUTHORIZATION-ID"
+  startup_fail_closed: true
+  healthcheck_interval_seconds: 30
+  idempotency_required: true
+  max_concurrent_orders: 1
+
+# Para Mainnet, alterar todos os campos abaixo somente após revisão.
+mainnet_guard:
+  enabled: false
+  authorization_status: "not-authorized" # not-authorized | authorized
+  authorization_reference: ""
+  operator_allowlist:
+    - "operator@example.invalid"
+  require_two_person_release: true
+  require_manual_unlock: true
+  emergency_stop_enabled: true
+
+# 1. ISP: nome, especificação e identificação do serviço/protocolo.
+isp:
+  name: "REPLACE_WITH_FULL_ISP_NAME"
+  protocol: "REPLACE_WITH_PROTOCOL_NAME_AND_VERSION"
+  official_url: "https://REPLACE_WITH_OFFICIAL_DOCUMENTATION_URL"
+  network: "testnet"
+  service_id: "REPLACE_WITH_ISP_SERVICE_ID"
+  assets_allowed:
+    - "BTC"
+    # - "BAITCOIN" # habilitar somente após especificação e autorização
+  settlement_model: "REPLACE_WITH_MODEL"
+
+# 2. Endpoint autorizado do nó/custodiante Lightning.
+lightning:
+  implementation: "REPLACE_WITH_LND_CLN_ECLAIR_OR_CUSTODIAN"
+  node_alias: "REPLACE_WITH_AUTHORIZED_NODE_ALIAS"
+  node_pubkey: "REPLACE_WITH_NODE_PUBLIC_KEY"
+  network: "testnet"
+  endpoint:
+    protocol: "grpc" # grpc | rest | https
+    host: "REPLACE_WITH_AUTHORIZED_HOST"
+    port: 0000
+    base_path: ""
+    tls:
+      enabled: true
+      ca_source: "secret-manager://REPLACE_WITH_CA_REFERENCE"
+      server_name: "REPLACE_WITH_TLS_SERVER_NAME"
+      verify_peer: true
+  authentication:
+    method: "token" # token | macaroon | mtls | oauth2 | custodian_api_key
+    credential_source: "secret-manager://REPLACE_WITH_SECRET_REFERENCE"
+    scope: "REPLACE_WITH_MINIMAL_READ_SETTLE_SCOPE"
+    expires_at: "YYYY-MM-DDTHH:MM:SSZ"
+    rotation_days: 30
+  capabilities:
+    read_node_info: true
+    read_channels: true
+    create_invoices: false
+    pay_invoices: false
+    settle_swaps: false
+    broadcast_onchain_transactions: false
+
+# 3. Carteira de liquidação. Nunca referenciar material de assinatura privada aqui.
+settlement_wallet:
+  custody_type: "REPLACE_WITH_CUSTODIAL_OR_AUTHORIZED_NODE"
+  wallet_id: "REPLACE_WITH_WALLET_OR_ACCOUNT_ID"
+  node_pubkey: "REPLACE_WITH_WALLET_NODE_PUBKEY"
+  signing_method: "external_signer" # external_signer | custodian_api | hardware_wallet | multisig
+  signing_endpoint: "https://REPLACE_WITH_AUTHORIZED_SIGNER_ENDPOINT"
+  key_material_source: "external_signer_only"
+  private_key_in_config: false
+  seed_in_config: false
+  withdrawal_policy: "REPLACE_WITH_POLICY_REFERENCE"
+
+# 4. Swap/ISP synchronization behavior.
+swap:
+  enabled: true
+  direction: "REPLACE_WITH_ALLOWED_DIRECTION"
+  quote_ttl_seconds: 60
+  order_expiry_seconds: 900
+  allowed_counterparties:
+    - "REPLACE_WITH_COUNTERPARTY_ID"
+  require_counterparty_allowlist: true
+  require_quote_revalidation_before_settlement: true
+  require_exact_amount_match: true
+  require_asset_and_network_match: true
+  state_machine:
+    allowed_states:
+      - "created"
+      - "quoted"
+      - "btc_locked"
+      - "bait_confirmed"
+      - "settlement_pending"
+      - "settled"
+      - "cancelled"
+      - "expired"
+      - "rolled_back"
+
+# 5. Limites operacionais. Valores devem ser preenchidos em unidade explícita.
+limits:
+  currency: "BTC"
+  max_order_amount_btc: "0.00000000"
+  min_order_amount_btc: "0.00000000"
+  daily_limit_btc: "0.00000000"
+  hourly_limit_btc: "0.00000000"
+  max_pending_orders: 0
+  max_fee_rate_sat_vbyte: 0
+  max_lightning_fee_msat: 0
+  allowed_assets:
+    - "BTC"
+  allowed_networks:
+    - "testnet"
+  counterparty_allowlist_only: true
+  reject_unknown_counterparty: true
+  reject_over_limit: true
+  reject_expired_quote: true
+  reject_reused_payment_hash: true
+
+# 6. Política de confirmação e finalização.
+confirmation_policy:
+  bitcoin:
+    required_confirmations_for_btc_locked: 1
+    required_confirmations_for_final_settlement: 3
+    max_reorg_depth_tolerance: 0
+    min_relay_fee_sat_vbyte: 1
+    reorg_action: "pause_and_review"
+  lightning:
+    require_payment_preimage: true
+    require_payment_state: "succeeded"
+    max_pending_seconds: 900
+    timeout_action: "cancel_and_pause"
+  state_requirements:
+    btc_locked:
+      requires:
+        - "onchain_txid"
+        - "tx_observed_by_authorized_backend"
+        - "required_btc_confirmations_reached"
+    bait_confirmed:
+      requires:
+        - "isp_confirmation_reference"
+        - "exact_amount_match"
+        - "asset_and_network_match"
+        - "counterparty_allowlisted"
+    settled:
+      requires:
+        - "all_previous_state_requirements"
+        - "lightning_payment_succeeded_or_authorized_settlement_receipt"
+        - "audit_event_persisted"
+
+# 7. Rollback e resposta a incidentes.
+rollback:
+  procedure_id: "REPLACE_WITH_APPROVED_ROLLBACK_PROCEDURE_ID"
+  pause_executor_command: "REPLACE_WITH_OPERATOR_CONTROLLED_PAUSE_ACTION"
+  cancel_pending_orders: true
+  cancel_only_unsettled_orders: true
+  reverse_config_without_delete: true
+  preserve_audit_log: true
+  preserve_order_records: true
+  do_not_rebroadcast_transactions: true
+  do_not_restore_private_keys: true
+  incident_contact: "REPLACE_WITH_ON_CALL_CONTACT"
+  escalation_timeout_minutes: 15
+  resume_requires_manual_review: true
+
+# 8. Auditoria, observabilidade e proteção contra replay.
+audit:
+  enabled: true
+  immutable_event_log: true
+  log_requests_without_secrets: true
+  redact_credentials: true
+  redact_payment_preimages: true
+  retain_days: 365
+  include_operator_identity: true
+  include_config_hash: true
+  alerts:
+    on_authentication_failure: true
+    on_limit_rejection: true
+    on_confirmation_regression: true
+    on_reorg: true
+    on_duplicate_order: true
+    on_unexpected_mainnet_activity: true
+
+# Testes obrigatórios antes de qualquer modo live.
+validation:
+  require_config_schema_validation: true
+  require_endpoint_tls_validation: true
+  require_auth_scope_validation: true
+  require_allowlist_validation: true
+  require_limit_boundary_tests: true
+  require_confirmation_transition_tests: true
+  require_rollback_drill: true
+  require_dry_run_report: true
+  prohibit_live_broadcast_in_dry_run: true

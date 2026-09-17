@@ -1,0 +1,61 @@
+name: deploy-mybait
+
+# Deploy end-to-end do mybait.org usando EXCLUSIVAMENTE os secrets do repo.
+# Nenhuma credencial fica em código ou em log (o GitHub mascara secrets automaticamente).
+#
+# Secrets obrigatórios (Settings → Secrets and variables → Actions):
+#   VPS_SSH_KEY  — chave privada SSH (conteúdo de golive_root_key)
+#   VPS_HOST     — 143.95.213.237
+#   VPS_PORT     — 22022
+#   VPS_USER     — root
+#
+# Cadastro via CLI (sem expor no terminal do repo):
+#   gh secret set VPS_SSH_KEY < ~/.ssh/golive_root_key
+#   gh secret set VPS_HOST --body "143.95.213.237"
+#   gh secret set VPS_PORT --body "22022"
+#   gh secret set VPS_USER --body "root"
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["site/**", "ops/**", ".github/workflows/deploy.yml"]
+
+concurrency:
+  group: deploy-mybait
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH (secret)
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY || secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p "${{ secrets.VPS_PORT || secrets.SSH_PORT }}" -H "${{ secrets.VPS_HOST || secrets.SSH_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Enviar pacote (somente arquivos novos/alterados)
+        run: |
+          tar czf /tmp/mybait-site.tgz site ops
+          scp -i ~/.ssh/deploy_key -P "${{ secrets.VPS_PORT || secrets.SSH_PORT }}" /tmp/mybait-site.tgz \
+            "${{ secrets.VPS_USER || secrets.SSH_USER }}@${{ secrets.VPS_HOST || secrets.SSH_HOST }}:/tmp/mybait-site.tgz"
+
+      - name: Aplicar no VPS (idempotente, com backups)
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "${{ secrets.VPS_PORT || secrets.SSH_PORT }}" \
+            "${{ secrets.VPS_USER || secrets.SSH_USER }}@${{ secrets.VPS_HOST || secrets.SSH_HOST }}" \
+            'cd /tmp && tar xzf mybait-site.tgz && bash ops/apply_mylink.sh'
+
+      - name: Validação end-to-end
+        run: |
+          set -e
+          for p in / /mylink /blockchain /faucet "/bainkr?v=3" /mainnet /aistore/; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "https://www.mybait.org$p")
+            echo "$p -> $code"; [ "$code" = "200" ] || exit 1
+          done
+          curl -s https://www.mybait.org/api/api/v1/mylink/agents | python3 -c "import sys,json;d=json.load(sys.stdin);print('agentes:',d.get('total'))"
+          curl -s "https://www.mybait.org/api/api/v1/blocks?limit=2" | head -c 600

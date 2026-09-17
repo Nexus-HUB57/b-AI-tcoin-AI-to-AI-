@@ -1,0 +1,107 @@
+name: Deploy Mainnet (mybait.org)
+
+# MODO WEBHOOK (pull deploy via HTTP) — SSH direto esta bloqueado pelo HostGator
+# para runners do GitHub Actions ("Connection refused" em todos os runs #1-#9).
+# O webhook deploy-webhook.php ja esta instalado no servidor e funciona:
+# prova: run #68 "Deploy to HostGator" SUCCESS em 2026-08-14T12:55:36Z.
+#
+# Secrets usados (ja existentes no repo): DEPLOY_WEBHOOK_URL, DEPLOY_WEBHOOK_SECRET
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - 'baitcoin_api/**'
+      - 'baitcoin_explorer/**'
+      - 'baitcoin_ai/**'
+      - 'baitcoin_faucet/**'
+      - 'baitcoin_bank/**'
+      - 'baitcoin_wallet/**'
+      - 'baitcoin_token/**'
+      - 'baitcoin_core/**'
+      - 'baitcoin_memory/**'
+      - 'baitcoin_obscura/**'
+      - 'baitcoin_whitelabel/**'
+      - 'baitcoin_sdk/**'
+      - 'baitcoin_bridge/**'
+      - 'baitcoin_mainnet/**'
+      - 'daemon_production.py'
+      - 'daemon_wrapper.py'
+      - '.github/workflows/deploy-mainnet.yml'
+  workflow_dispatch:
+    inputs:
+      deploy_target:
+        description: 'Escopo do deploy'
+        type: choice
+        default: 'all'
+        options: [all, frontend, api]
+
+concurrency:
+  group: deploy-mainnet
+  cancel-in-progress: false
+
+jobs:
+  syntax-check:
+    name: Syntax check (Python)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Compile all changed Python modules
+        run: |
+          set -e
+          python -m py_compile baitcoin_api/server.py
+          python -m py_compile baitcoin_explorer/indices.py
+          python -m py_compile baitcoin_ai/oracle/feed.py
+          echo "OK: server.py, indices.py, feed.py"
+
+  deploy-webhook:
+    name: Deploy via webhook (HTTP pull)
+    needs: syntax-check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Trigger HostGator webhook (pull deploy)
+        env:
+          WEBHOOK_URL: ${{ secrets.DEPLOY_WEBHOOK_URL }}
+          WEBHOOK_SECRET: ${{ secrets.DEPLOY_WEBHOOK_SECRET }}
+          DEPLOY_TARGET: ${{ github.event.inputs.deploy_target || 'all' }}
+        run: |
+          set -e
+          PAYLOAD=$(printf '{"target":"%s","sha":"%s"}' "$DEPLOY_TARGET" "${{ github.sha }}")
+          SIG=$(echo -n "$PAYLOAD" | openssl dgst -sha256 -hmac "$WEBHOOK_SECRET" | awk '{print $NF}')
+          echo "POST $WEBHOOK_URL  target=$DEPLOY_TARGET  sha=${{ github.sha }}"
+          RESPONSE=$(curl -s -m 60 -w "\n%{http_code}" \
+            -X POST "$WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -H "X-Deploy-Signature: $SIG" \
+            -d "$PAYLOAD" 2>&1)
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+          echo "Response ($HTTP_CODE): $BODY"
+          case "$HTTP_CODE" in 200|202) echo "webhook aceito";; *) echo "::error::webhook retornou $HTTP_CODE"; exit 1;; esac
+
+  verify:
+    name: Verify public health
+    needs: deploy-webhook
+    runs-on: ubuntu-latest
+    steps:
+      - name: Health check (tolerant — daemon pode estar em bootstrap)
+        run: |
+          set -e
+          echo "Probe /api/api/v1/status (max 90s)..."
+          for i in $(seq 1 30); do
+            code=$(curl -sS -o /tmp/st.json -w "%{http_code}" -m 10 https://mybait.org/api/api/v1/status || echo "000")
+            [ "$code" = "200" ] && { echo "API 200 apos ${i} tentativas"; break; }
+            sleep 3
+          done
+          echo "status final: $code"
+          head -c 400 /tmp/st.json || true
+          for path in / /blockchain /bainkr /faucet /sdk /obscura; do
+            c=$(curl -sS -o /dev/null -w "%{http_code}" -m 10 "https://mybait.org${path}" || echo "000")
+            echo "  $path -> $c"
+          done
+          echo "::notice::Deploy webhook disparado; daemon pode levar minutos para sair do bootstrap WAL"

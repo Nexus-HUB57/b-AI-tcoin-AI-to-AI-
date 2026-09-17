@@ -1,0 +1,48 @@
+{
+  "timestamp": "2026-09-13T14:18:42.061525+00:00",
+  "overall_readiness": 33,
+  "categories": {
+    "smart_contracts": {
+      "readiness": "39%",
+      "items_ready": 5,
+      "items_total": 11,
+      "weight_achieved": 31,
+      "weight_total": 79
+    },
+    "bridge": {
+      "readiness": "37%",
+      "items_ready": 2,
+      "items_total": 4,
+      "weight_achieved": 6,
+      "weight_total": 16
+    },
+    "dex_liquidity": {
+      "readiness": "0%",
+      "items_ready": 0,
+      "items_total": 3,
+      "weight_achieved": 0,
+      "weight_total": 13
+    },
+    "aggregators": {
+      "readiness": "0%",
+      "items_ready": 0,
+      "items_total": 5,
+      "weight_achieved": 0,
+      "weight_total": 18
+    },
+    "compliance": {
+      "readiness": "0%",
+      "items_ready": 0,
+      "items_total": 4,
+      "weight_achieved": 0,
+      "weight_total": 12
+    },
+    "exchange_applications": {
+      "readiness": "100%",
+      "items_ready": 6,
+      "items_total": 6,
+      "weight_achieved": 14,
+      "weight_total": 14
+    }
+  }
+}

@@ -1,0 +1,87 @@
+name: Deploy Frontend to mybait.org
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'netlify/**.html'
+      - 'netlify/**.cgi'
+      - 'netlify/.htaccess'
+      - 'netlify/favicon.svg'
+      - 'netlify/whitepaper.pdf'
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Deploy target'
+        required: false
+        default: 'frontend'
+        type: choice
+        options:
+          - frontend
+          - all
+
+jobs:
+  deploy:
+    name: Deploy to mybait.org
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy frontend HTML/CSS/CGI files
+        env:
+          DEPLOY_URL: 'https://www.mybait.org/deploy-trigger.php'
+          DEPLOY_SECRET: ${{ secrets.DEPLOY_SECRET }}
+        run: |
+          echo "Deploying frontend files to mybait.org..."
+          
+          # Lista de arquivos para deploy
+          FILES=(
+            "netlify/index.html:index.html"
+            "netlify/blockchain.html:blockchain.html"
+            "netlify/bainkr.html:bainkr.html"
+            "netlify/faucet.html:faucet.html"
+            "netlify/.htaccess:.htaccess"
+            "netlify/api.cgi:api.cgi"
+            "netlify/favicon.svg:favicon.svg"
+          )
+          
+          OK=0
+          FAIL=0
+          
+          for pair in "${FILES[@]}"; do
+            SRC="${pair%%:*}"
+            DEST="${pair##*:}"
+            if [ ! -f "$SRC" ]; then
+              echo "SKIP: $SRC not found"
+              continue
+            fi
+            
+            # Upload via deploy-trigger.php com HMAC auth
+            SIG=$(openssl dgst -sha256 -hmac "${DEPLOY_SECRET:-baitcoin-deploy-2024}" -hex <<<"$DEST" | awk '{print $NF}')
+            RESP=$(curl -s --max-time 30 -X POST "${DEPLOY_URL}" \
+              -F "secret=${DEPLOY_SECRET:-baitcoin-deploy-2024}" \
+              -F "path=$DEST" \
+              -F "file=@$SRC" \
+              -F "sig=$SIG" 2>&1)
+            
+            if echo "$RESP" | grep -q '"ok"'; then
+              echo "OK: $DEST"
+              OK=$((OK+1))
+            else
+              echo "FAIL: $DEST -> $RESP"
+              FAIL=$((FAIL+1))
+            fi
+          done
+          
+          echo ""
+          echo "Deploy: $OK OK, $FAIL FAIL"
+          
+          # Verify deploy
+          echo ""
+          echo "Verifying bainkr.html on server..."
+          curl -s --max-time 10 'https://www.mybait.org/bainkr.html' | head -c 200
+          echo ""
+          echo "Verifying blockchain.html on server..."
+          curl -s --max-time 10 'https://www.mybait.org/blockchain.html' | head -c 200

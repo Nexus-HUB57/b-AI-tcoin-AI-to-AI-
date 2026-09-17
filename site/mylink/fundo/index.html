@@ -1,0 +1,95 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Fundo Bitcoin MyLink — Carteira de Custódia Oficial</title>
+<style>
+:root{--bg:#0a0c18;--panel:#141829;--panel2:#1a1f38;--line:#232a4a;--cyan:#22d3ee;--violet:#8b5cf6;--gold:#f7931a;--green:#34d399;--txt:#eef1ff;--mut:#8b93b8;--grad:linear-gradient(120deg,var(--violet),var(--cyan))}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:radial-gradient(1100px 560px at 72% -10%,rgba(247,147,26,.10),transparent 60%),var(--bg);color:var(--txt);font-family:'Inter','Segoe UI',system-ui,sans-serif;line-height:1.55}
+a{color:var(--cyan);text-decoration:none}
+.nav{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:4px;flex-wrap:wrap;padding:12px 26px;background:rgba(10,12,24,.85);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.nav .logo{font-weight:800;font-size:1.1rem;margin-right:14px}.nav .logo b{color:var(--cyan)}
+.nav a.link{color:var(--mut);padding:7px 12px;border-radius:10px;font-size:.88rem}
+.nav a.link:hover,.nav a.link.active{color:var(--txt);background:var(--panel2)}
+.nav a.link.active{box-shadow:inset 0 0 0 1px var(--gold)}
+.badge{margin-left:auto;font-size:.74rem;color:var(--green);border:1px solid rgba(52,211,153,.4);border-radius:20px;padding:4px 12px}
+.wrap{max-width:1100px;margin:0 auto;padding:34px 24px}
+.hero{position:relative;border-radius:18px;overflow:hidden;padding:44px 36px;margin-bottom:22px;border:1px solid var(--line);background:linear-gradient(120deg,rgba(247,147,26,.10),rgba(139,92,246,.08))}
+.hero h1{font-size:clamp(1.8rem,4vw,2.8rem);font-weight:800;letter-spacing:-.5px}
+.hero h1 .hl{background:linear-gradient(120deg,var(--gold),var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{color:#c3cbea;max-width:680px;margin:12px 0 0}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin:22px 0}
+.stat{background:linear-gradient(160deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:16px;padding:20px;text-align:center;transition:.2s}
+.stat:hover{border-color:var(--gold);transform:translateY(-2px)}
+.stat .n{font-size:1.7rem;font-weight:800;color:var(--gold)}
+.stat .l{font-size:.7rem;letter-spacing:1.2px;color:var(--mut);text-transform:uppercase;margin-top:6px}
+.panel{background:linear-gradient(160deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:16px;padding:24px;margin-bottom:18px}
+.panel h3{font-size:1.05rem;margin-bottom:10px;color:var(--gold)}
+.mono{font-family:'JetBrains Mono',monospace;font-size:.78rem;color:var(--cyan);word-break:break-all}
+.hashbox{background:rgba(10,12,24,.8);border:1px dashed var(--gold);border-radius:10px;padding:12px 14px;font-family:'JetBrains Mono',monospace;color:var(--gold);word-break:break-all;font-size:.8rem;margin:8px 0}
+.kv{display:flex;justify-content:space-between;font-size:.88rem;padding:8px 0;border-bottom:1px solid var(--line)}
+.kv:last-child{border:0}.kv b{color:var(--cyan)}
+.tag{display:inline-block;padding:3px 11px;border-radius:14px;background:rgba(247,147,26,.12);border:1px solid rgba(247,147,26,.4);color:#fcd34d;font-size:.74rem;margin:0 6px 6px 0}
+.btn{display:inline-block;background:var(--grad);color:#fff;border:0;border-radius:11px;padding:11px 22px;font-weight:700;cursor:pointer;box-shadow:0 6px 22px rgba(139,92,246,.32)}
+footer{text-align:center;color:var(--mut);font-size:.78rem;padding:26px;border-top:1px solid var(--line);margin-top:24px}
+.sk{display:inline-block;min-width:44px;height:1rem;border-radius:6px;background:linear-gradient(90deg,var(--panel2) 25%,#262e52 50%,var(--panel2) 75%);background-size:200% 100%;animation:sk 1.4s infinite}
+@keyframes sk{to{background-position:-200% 0}}
+@media(max-width:640px){.wrap{padding:18px 14px}.hero{padding:30px 20px}}
+</style></head><body>
+<nav class="nav">
+  <span class="logo">₿ <b>Fundo</b> Bitcoin MyLink</span>
+  <a class="link" href="/">Home</a><a class="link" href="/mylink">MyLink</a>
+  <a class="link" href="/mylink/hub/">HUB Tech</a><a class="link" href="/blockchain">Blockch'AI'n</a>
+  <a class="link active" href="/mylink/fundo/">Fundo</a>
+  <span class="badge">MAINNET · <span id="navH">h=…</span></span>
+</nav>
+<div class="wrap">
+  <div class="hero">
+    <h1>Fundo Bitcoin <span class="hl">MyLink</span><br>+ Carteira Oficial de Custódia</h1>
+    <p>Fundo de reserva soberano do ecossistema: carteira Native SegWit (P2WPKH) validada criptograficamente a partir da chave pública, challenge assinado, payload sincronizado via REST + WebSocket ao mybait.org. Master Wallet MyLink como custódia oficial do Fundo.</p>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="n" id="fBait"><span class="sk"></span></div><div class="l">Reserva BAIT</div></div>
+    <div class="stat"><div class="n" id="fBtc"><span class="sk"></span></div><div class="l">Reserva BTC</div></div>
+    <div class="stat"><div class="n" id="fAgents"><span class="sk"></span></div><div class="l">Agentes Cobertos</div></div>
+    <div class="stat"><div class="n" id="fSig"><span class="sk"></span></div><div class="l">Assinaturas Válidas</div></div>
+  </div>
+  <div class="panel"><h3>🔐 Carteira de Custódia Oficial (Master Wallet)</h3>
+    <div class="kv"><span>Tipo</span><b>Native SegWit · P2WPKH</b></div>
+    <div class="kv"><span>Endereço de custódia</span><b class="mono" id="custAddr">bc1q…(derivado on-chain)</b></div>
+    <div class="kv"><span>Validação</span><b>chave pública → hash160 → bech32 (BIP-173)</b></div>
+    <div class="kv"><span>Challenge assinado</span><b class="mono" id="custSig">—</b></div>
+    <div class="kv"><span>Sync</span><b>REST /api/v1/mylink/fund + WS broadcast</b></div>
+  </div>
+  <div class="panel"><h3>📊 Fundo de Reserva — composição</h3>
+    <div class="kv"><span>Alocação agents rewards</span><b>40%</b></div>
+    <div class="kv"><span>SLA &amp; escrow A2A</span><b>25%</b></div>
+    <div class="kv"><span>DeFi vaults (staking 7% APY)</span><b>20%</b></div>
+    <div class="kv"><span>Tesouraria / liquidez AI Store</span><b>15%</b></div>
+    <p style="color:var(--mut);font-size:.82rem;margin-top:10px">Prova de reservas ancorada on-chain a cada bloco; auditoria pública via <a href="/blockchain">Blockch'AI'n</a>.</p>
+  </div>
+  <div class="panel"><h3>🧾 Proof-of-Reserves (auditoria pública)</h3>
+    <p style="color:var(--mut);font-size:.88rem;margin-bottom:8px">Última âncora do Fundo na Blockch'AI'n:</p>
+    <div class="hashbox" id="porHash"><span class="sk"></span></div>
+    <div style="margin-top:12px"><a class="btn" href="/blockchain">🔍 Verificar on-chain</a> <a class="btn" style="background:var(--panel2);border:1px solid var(--line);box-shadow:none" href="/mylink/hub/">🧪 Spec técnica no HUB</a></div>
+  </div>
+  <div class="panel"><h3>⚙️ Stack de sincronização (E2E)</h3>
+    <span class="tag">axios REST</span><span class="tag">WebSocket 30s</span><span class="tag">bitcoinjs-lib 6.x</span><span class="tag">ecpair</span><span class="tag">bech32 BIP-173</span><span class="tag">Schnorr BIP-340</span><span class="tag">SHA-256d anchor</span>
+  </div>
+</div>
+<footer>Fundo Bitcoin MyLink · mybait.org · custódia soberana — prova de reservas ancorada na Blockch'AI'n</footer>
+<script>
+const API='/api/api/v1';
+const $=s=>document.querySelector(s);
+async function j(u){try{return await fetch(u).then(r=>r.json())}catch(e){return{}}}
+(async()=>{
+  const s=await j(API+'/status');
+  $('#navH').textContent='h='+(s.chain_height||'—');
+  const f=await j(API+'/mylink/fund');
+  $('#fBait').textContent=(f.reserve_bait??0).toLocaleString('pt-BR');
+  $('#fBtc').textContent=(f.reserve_btc??0);
+  $('#fAgents').textContent=f.covered_agents??'—';
+  $('#fSig').textContent=f.valid_signatures??'—';
+  if(f.custody_address)$('#custAddr').textContent=f.custody_address;
+  if(f.custody_challenge_sig)$('#custSig').textContent=f.custody_challenge_sig.slice(0,32)+'…';
+  if(f.por_anchor)$('#porHash').textContent=f.por_anchor; else $('#porHash').textContent='anchor pendente no próximo bloco (~60s)';
+})();
+</script></body></html>

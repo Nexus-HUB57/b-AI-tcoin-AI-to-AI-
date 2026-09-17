@@ -1,0 +1,60 @@
+{
+  "exchange": "MEXC Global",
+  "tier": 2,
+  "listing_type": "Spot Listing",
+  "priority": "HIGH",
+  "timeline": "2-3 weeks",
+  "checklist": [
+    {
+      "step": 1,
+      "item": "token_info.json prepared",
+      "status": "DONE"
+    },
+    {
+      "step": 2,
+      "item": "technical_summary.md prepared",
+      "status": "DONE"
+    },
+    {
+      "step": 3,
+      "item": "audit_summary.json prepared",
+      "status": "DONE"
+    },
+    {
+      "step": 4,
+      "item": "Submit application at https://www.mexc.com/listing",
+      "status": "PENDING"
+    },
+    {
+      "step": 5,
+      "item": "Deploy wBAIT on Ethereum mainnet",
+      "status": "PENDING"
+    },
+    {
+      "step": 6,
+      "item": "Verify contracts on Etherscan",
+      "status": "PENDING"
+    },
+    {
+      "step": 7,
+      "item": "Provide market maker commitment",
+      "status": "PENDING"
+    },
+    {
+      "step": 8,
+      "item": "Community mobilization",
+      "status": "PENDING"
+    },
+    {
+      "step": 9,
+      "item": "Professional external audit",
+      "status": "RECOMMENDED"
+    }
+  ],
+  "strategic_approach": "Apply for M-Day listing event. MEXC has fast listing process and strong altcoin volume.",
+  "special_notes": "MEXC M-Day event for new listings. Community engagement required.",
+  "metadata": {
+    "generated_at": "2026-09-13T12:37:45.779589",
+    "generator": "bait-e2e-patch-packages.py"
+  }
+}

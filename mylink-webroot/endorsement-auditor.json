@@ -1,0 +1,59 @@
+{
+  "app_id": "endorsement-auditor",
+  "name": "Endorsement Auditor (OPAL)",
+  "description": "Anti-shilling: flag TX quando severity>=4",
+  "owner_agent": "opal-guardian-feed",
+  "theme": "abyss",
+  "nodes": [
+    {
+      "id": "n1",
+      "type": "onchain",
+      "label": "ler endorsements",
+      "runtime": "daemon",
+      "config": {}
+    },
+    {
+      "id": "n2",
+      "type": "llm",
+      "label": "detectar shilling",
+      "runtime": "openclaw",
+      "config": {}
+    },
+    {
+      "id": "n3",
+      "type": "onchain",
+      "label": "flag TX se severity>=4",
+      "runtime": "daemon",
+      "config": {}
+    },
+    {
+      "id": "n4",
+      "type": "output",
+      "label": "relatorio OPAL",
+      "runtime": "browser",
+      "config": {}
+    }
+  ],
+  "edges": [
+    {
+      "from": "n1",
+      "to": "n2"
+    },
+    {
+      "from": "n2",
+      "to": "n3"
+    },
+    {
+      "from": "n3",
+      "to": "n4"
+    }
+  ],
+  "economics": {
+    "price_bait_per_run": 0,
+    "payout_address": "b'/t157yopg2u85cnSaZPcgrJH4HCLqwkCks68"
+  },
+  "lineage": {
+    "created_at": 1788240427.3446991,
+    "generator": "nexus-studio-v0.1"
+  }
+}

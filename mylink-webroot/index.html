@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="MYVIDEOS — Organismo agêntico generativo de vídeo KTD × b'AI'tcoin" />
+  <title>MYVIDEOS · KAIR-S-SONICA × BAIT</title>
+  <style>
+    :root { --bg:#0a0a0f; --panel:#12121a; --line:#23232e; --amber:#d4a017; --blue:#4a6fa5; --txt:#e8e6df; --dim:#8a8778; }
+    * { box-sizing:border-box; margin:0; }
+    body { background:var(--bg); color:var(--txt); font-family:'Segoe UI',system-ui,sans-serif; min-height:100vh; }
+    .shell { max-width:960px; margin:0 auto; padding:2rem 1.25rem; }
+    .hero { display:flex; justify-content:space-between; align-items:flex-start; border-bottom:1px solid var(--line); padding-bottom:1.5rem; margin-bottom:1.5rem; flex-wrap:wrap; gap:1rem; }
+    .eyebrow { color:var(--amber); font-size:.7rem; letter-spacing:.2em; text-transform:uppercase; }
+    h1 { font-size:2rem; letter-spacing:.05em; }
+    h1 span { color:var(--amber); }
+    .lede { color:var(--dim); margin-top:.4rem; max-width:34rem; }
+    .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:1.25rem; margin-bottom:1.25rem; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:.75rem; }
+    label { display:flex; flex-direction:column; gap:.3rem; font-size:.75rem; color:var(--dim); text-transform:uppercase; letter-spacing:.08em; }
+    input,select,textarea { background:var(--bg); border:1px solid var(--line); border-radius:8px; color:var(--txt); padding:.6rem .7rem; font-size:.95rem; }
+    button { background:var(--amber); color:#000; border:none; border-radius:8px; padding:.8rem 1.5rem; font-weight:700; cursor:pointer; font-size:.95rem; }
+    button:disabled { opacity:.4; cursor:not-allowed; }
+    .wallet-bar { display:flex; gap:.75rem; align-items:center; flex-wrap:wrap; }
+    .wallet-bar input { flex:1; min-width:260px; font-family:monospace; }
+    .balance { font-size:1.4rem; font-weight:700; color:var(--amber); }
+    .chip { border:1px solid var(--amber); color:var(--amber); border-radius:99px; padding:.2rem .8rem; font-size:.7rem; letter-spacing:.1em; }
+    table { width:100%; border-collapse:collapse; font-size:.85rem; }
+    th { text-align:left; color:var(--dim); font-size:.7rem; text-transform:uppercase; letter-spacing:.1em; padding:.5rem .4rem; border-bottom:1px solid var(--line); }
+    td { padding:.6rem .4rem; border-bottom:1px solid var(--line); }
+    .cost { color:var(--amber); font-weight:700; }
+    .feedback { margin-top:.75rem; font-size:.85rem; color:var(--dim); min-height:1.2em; }
+    .ok { color:#7dc383; } .err { color:#e06c5b; }
+    .jobs li { padding:.5rem 0; border-bottom:1px solid var(--line); font-size:.85rem; display:flex; justify-content:space-between; }
+  </style>
+</head>
+<body>
+<main class="shell">
+  <header class="hero">
+    <div>
+      <p class="eyebrow">KAIR-S-SONICA × b'AI'tcoin</p>
+      <h1>MY<span>VIDEOS</span></h1>
+      <p class="lede">Organismo agêntico generativo de conteúdo audiovisual. Produção paga em tokens BAIT, com queima por complexidade e faucet diário.</p>
+    </div>
+    <span class="chip">MAINNET · PoW SHA-256d</span>
+  </header>
+
+  <section class="card">
+    <p class="eyebrow">1 · Identidade — Carteira BAIT</p>
+    <div class="wallet-bar" style="margin-top:.75rem">
+      <input id="wallet" placeholder="Endereço BAIT (agente ou peer humano)" autocomplete="off" />
+      <button id="connect">Conectar</button>
+    </div>
+    <div class="wallet-bar" style="margin-top:.75rem">
+      <span>Saldo:</span><span class="balance" id="balance">— BAIT</span>
+      <button id="faucet" disabled>Resgatar 10 BAIT (24h)</button>
+    </div>
+    <p class="feedback" id="wallet-feedback">Primeiro acesso: 100 BAIT gratuitos creditados no cadastro do endereço.</p>
+  </section>
+
+  <section class="card">
+    <p class="eyebrow">2 · Produção — Tabela de queima</p>
+    <table style="margin-top:.75rem">
+      <thead><tr><th>Tarefa</th><th>Complexidade</th><th>Queima</th></tr></thead>
+      <tbody>
+        <tr><td>Imagem simples (jpg/png)</td><td>Simples</td><td class="cost">1 BAIT</td></tr>
+        <tr><td>Imagem complexa (composição, multi-elemento)</td><td>Complexa</td><td class="cost">2 BAIT</td></tr>
+        <tr><td>Imagem realista (retrato editorial KTD)</td><td>Realista</td><td class="cost">3 BAIT</td></tr>
+        <tr><td>Vídeo simples (10s)</td><td>Simples</td><td class="cost">1 BAIT / 10s</td></tr>
+        <tr><td>Vídeo complexo (10s, câmera dinâmica)</td><td>Complexo</td><td class="cost">2 BAIT / 10s</td></tr>
+        <tr><td>Vídeo realista live-action (10s, padrão KTD)</td><td>Realista</td><td class="cost">3 BAIT / 10s</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="card">
+    <p class="eyebrow">3 · Nova produção</p>
+    <form id="job-form" class="grid" style="margin-top:.75rem">
+      <label>Tipo
+        <select name="kind">
+          <option value="image">Imagem</option>
+          <option value="video">Vídeo</option>
+        </select>
+      </label>
+      <label>Complexidade
+        <select name="tier">
+          <option value="simple">Simples (1 BAIT)</option>
+          <option value="complex">Complexa (2 BAIT)</option>
+          <option value="realistic">Realista (3 BAIT)</option>
+        </select>
+      </label>
+      <label>Duração (vídeo, s)
+        <input name="duration" type="number" min="10" max="60" step="10" value="10" />
+      </label>
+      <label style="grid-column:1/-1">Prompt criativo
+        <textarea name="prompt" rows="3" placeholder="Descreva a cena, a identidade KTD, a ação..." required></textarea>
+      </label>
+      <div style="grid-column:1/-1; display:flex; align-items:center; gap:1rem">
+        <button type="submit" id="submit" disabled>Queimar e produzir</button>
+        <span class="feedback" id="cost-preview">Custo estimado: — BAIT</span>
+      </div>
+    </form>
+    <p class="feedback" id="job-feedback"></p>
+  </section>
+
+  <section class="card">
+    <p class="eyebrow">4 · Fila de produção</p>
+    <ul class="jobs" id="jobs" style="list-style:none; margin-top:.5rem"><li><span>Nenhuma tarefa nesta sessão.</span><span>—</span></li></ul>
+  </section>
+
+  <p class="feedback" style="text-align:center; margin-top:2rem">KAIR-S-SONICA · MYVIDEOS · sincronizado ao ecossistema b'AI'tcoin (mybait.org) · queima deflacionária por complexidade</p>
+</main>
+<script type="module" src="./app.js"></script>
+</body>
+</html>

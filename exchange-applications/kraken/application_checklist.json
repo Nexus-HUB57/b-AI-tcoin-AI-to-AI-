@@ -1,0 +1,65 @@
+{
+  "exchange": "Kraken",
+  "tier": 1,
+  "listing_type": "Standard Listing",
+  "priority": "MEDIUM",
+  "timeline": "3-6 months",
+  "checklist": [
+    {
+      "step": 1,
+      "item": "token_info.json prepared",
+      "status": "DONE"
+    },
+    {
+      "step": 2,
+      "item": "technical_summary.md prepared",
+      "status": "DONE"
+    },
+    {
+      "step": 3,
+      "item": "audit_summary.json prepared",
+      "status": "DONE"
+    },
+    {
+      "step": 4,
+      "item": "Submit application at https://www.kraken.com/features/listing",
+      "status": "PENDING"
+    },
+    {
+      "step": 5,
+      "item": "Deploy wBAIT on Ethereum mainnet",
+      "status": "PENDING"
+    },
+    {
+      "step": 6,
+      "item": "Verify contracts on Etherscan",
+      "status": "PENDING"
+    },
+    {
+      "step": 7,
+      "item": "Provide market maker commitment",
+      "status": "PENDING"
+    },
+    {
+      "step": 8,
+      "item": "Legal opinion letter (if required)",
+      "status": "PENDING"
+    },
+    {
+      "step": 9,
+      "item": "Community mobilization",
+      "status": "PENDING"
+    },
+    {
+      "step": 10,
+      "item": "Professional external audit (CertiK/Quantstamp)",
+      "status": "RECOMMENDED"
+    }
+  ],
+  "strategic_approach": "Highlight native L1 chain integration capability. Kraken is one of the few Tier-1 exchanges that integrates native chains (not just ERC-20 wrappers). Offer full node support and custom deposit/withdrawal integration. Leverage Bitcoin-like architecture for easy integration.",
+  "special_notes": "Kraken supports native chain integrations (not just ERC-20). This is a strategic advantage for BAIT's native L1. Kraken's engineering team handles custom chain integrations.",
+  "metadata": {
+    "generated_at": "2026-09-13T12:33:03.061822",
+    "generator": "bait-e2e-exchange-registrations.py"
+  }
+}

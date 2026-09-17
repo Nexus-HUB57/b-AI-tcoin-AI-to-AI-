@@ -1,0 +1,24 @@
+name: Verify Go-Live (mybait.org)
+
+# Verificação pública do checklist C01-C11 — disparável manualmente
+# (workflow_dispatch) ou por push. NÃO faz deploy (deploy exige webhook PHP
+# ou SSH, ambos bloqueados até B3). Uso: gh workflow run verify-golive.yml
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'verify_golive.sh'
+      - '.github/workflows/verify-golive.yml'
+
+jobs:
+  verify:
+    name: verify_golive.sh (C01-C11)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Baixar e executar verify_golive.sh
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-/main/verify_golive.sh -o /tmp/verify_golive.sh
+          bash /tmp/verify_golive.sh https://mybait.org

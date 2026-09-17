@@ -1,0 +1,139 @@
+name: Deploy to HostGator
+
+# HostGator blocks all incoming connections from GitHub Actions.
+# Solution: webhook-based pull deploy. The server pulls from GitHub.
+#
+# SETUP (one-time):
+#   1. Upload netlify/deploy-webhook.php to public_html/ via cPanel File Manager
+#   2. Set DEPLOY_SECRET in both GitHub secret DEPLOY_WEBHOOK_SECRET
+#      and in the PHP file (edit the define() on line 16)
+#   3. On next push, this workflow POSTs to the webhook URL
+#   4. The webhook downloads files from GitHub raw URLs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'netlify/**'
+      - 'docs/whitepaper/**'
+      - 'baitcoin_api/**'
+      - 'baitcoin_core/**'
+      - 'baitcoin_token/**'
+      - 'baitcoin_bank/**'
+      - 'baitcoin_ai/**'
+      - 'baitcoin_explorer/**'
+      - 'baitcoin_wallet/**'
+      - 'baitcoin_memory/**'
+      - 'baitcoin_whitelabel/**'
+      - 'baitcoin_faucet/**'
+      - 'baitcoin_obscura/**'
+      - 'baitcoin_bridge/**'
+      - 'baitcoin_sdk/**'
+      - 'baitcoin_mainnet/**'
+      - 'config/**'
+      - 'main_daemon.py'
+      - 'requirements.txt'
+      - '.github/workflows/deploy_hostgator.yml'
+  workflow_dispatch:
+    inputs:
+      deploy_target:
+        description: 'What to deploy'
+        required: false
+        default: 'frontend'
+        type: choice
+        options:
+          - all
+          - frontend
+          - api
+
+jobs:
+  trigger-webhook:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Trigger HostGator webhook (pull deploy)
+        env:
+          WEBHOOK_URL: ${{ secrets.DEPLOY_WEBHOOK_URL || 'https://www.mybait.org/deploy-webhook.php' }}
+          WEBHOOK_SECRET: ${{ secrets.DEPLOY_WEBHOOK_SECRET || 'baitcoin-deploy-2024' }}
+          DEPLOY_TARGET: ${{ github.event.inputs.deploy_target || 'frontend' }}
+        run: |
+          # Compute HMAC-SHA256 signature
+          TARGET="$DEPLOY_TARGET"
+          PAYLOAD="{\"target\":\"$TARGET\"}"
+          SIG=$(echo -n "$PAYLOAD" | openssl dgst -sha256 -hmac "$WEBHOOK_SECRET" | awk '{print $NF}')
+
+          echo "Triggering webhook: $WEBHOOK_URL"
+          echo "Payload: $PAYLOAD"
+          echo "Signature: $SIG"
+          echo "Target: $TARGET"
+
+          # Send the webhook (try HTTP/1.1 to avoid HTTP/2 stream errors after reboot)
+          RESPONSE=$(curl -s --http1.1 -m 30 -w "\n%{http_code}" \
+            -X POST "$WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -H "X-Deploy-Signature: $SIG" \
+            -d "$PAYLOAD" 2>&1 || true)
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+
+          echo "Response ($HTTP_CODE):"
+          echo "$BODY" | python3 -m json.tool 2>/dev/null || echo "$BODY" | head -c 500
+
+          if [ "$HTTP_CODE" = "200" ]; then
+            # Check if response is valid JSON (PHP working) or error page
+            if echo "$BODY" | python3 -c "import sys,json; json.load(sys.stdin)" 2>/dev/null; then
+              echo ""
+              echo "Deploy triggered successfully!"
+              echo "The server is now pulling files from GitHub."
+            else
+              echo ""
+              echo "WARNING: PHP not executing (got HTML error page)"
+              echo "Fix: restart PHP-FPM on VPS (systemctl restart php*-fpm)"
+              echo "Quick fix: bash <(curl -sL https://raw.githubusercontent.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-/main/quick_deploy.sh)"
+            fi
+          else
+            echo ""
+            echo "WARNING: Webhook returned HTTP $HTTP_CODE"
+            echo "PHP-FPM may be down after VPS reboot. Fix options:"
+            echo ""
+            echo "Option A — Quick deploy (no PHP needed):"
+            echo "  Via VNC/cPanel Terminal, run as root:"
+            echo "  bash <(curl -sL https://raw.githubusercontent.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-/main/quick_deploy.sh)"
+            echo ""
+            echo "Option B — Full go-live (daemon + nginx + auto-update):"
+            echo "  curl -fsSL https://raw.githubusercontent.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-/main/apply_golive_v5.sh -o /tmp/golive.sh"
+            echo "  bash /tmp/golive.sh --full-backup"
+            echo ""
+            echo "Option C — Fix PHP only:"
+            echo "  systemctl restart php*-fpm"
+          fi
+
+      - name: Verify deployment
+        if: always()
+        run: |
+          echo "[+] Verifying mybait.org..."
+          CODE=$(curl -s -o /dev/null -w "%{http_code}" -m 15 "https://www.mybait.org" 2>/dev/null || echo "000")
+          echo "  https://www.mybait.org -> HTTP $CODE"
+
+          # Check if content is updated (Mainnet, not Pre-Alpha)
+          CONTENT=$(curl -s -m 15 "https://www.mybait.org" 2>/dev/null)
+          if echo "$CONTENT" | grep -q "Mainnet"; then
+            echo "  Content: Mainnet (updated)"
+          elif echo "$CONTENT" | grep -q "Pre-Alpha"; then
+            echo "  Content: Pre-Alpha (STALE - deploy-webhook.php not installed yet)"
+          else
+            echo "  Content: could not verify"
+          fi
+
+      - name: Deploy summary
+        if: always()
+        run: |
+          echo ""
+          echo "======================================"
+          echo "  HostGator Deploy (Webhook)"
+          echo "======================================"
+          echo "  Frontend:  https://www.mybait.org"
+          echo "  Bainkr:    https://www.mybait.org/bainkr"
+          echo "  API:       https://www.mybait.org/api/api/v1/status"
+          echo "======================================"

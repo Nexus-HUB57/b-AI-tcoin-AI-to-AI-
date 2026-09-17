@@ -1,0 +1,64 @@
+{
+  "exchange": "Kraken",
+  "exchange_id": "kraken",
+  "submit_url": "https://www.kraken.com/features/listing",
+  "submit_method": "WEB_FORM + ENGINEERING_REVIEW",
+  "contact_email": "listing@kraken.com",
+  "fee_estimate": "Negotiable",
+  "timeline": "3-6 months",
+  "priority": 12,
+  "special_instructions": "Native L1 chain integration (not just ERC-20). Offer full node support. Bitcoin-like architecture for easy integration.",
+  "required_documents": [
+    "token_info.json",
+    "audit_summary.json",
+    "technical_summary.md",
+    "application_checklist.json",
+    "Professional audit report",
+    "Native chain integration documentation",
+    "Full node setup guide"
+  ],
+  "submission_steps": [
+    "1. Navigate to https://www.kraken.com/features/listing",
+    "2. Create exchange account (if not existing)",
+    "3. Fill in token details from token_info.json",
+    "4. Upload technical_summary.md and audit_summary.json",
+    "5. Provide market maker commitment (if required)",
+    "6. Submit application and note reference ID",
+    "7. Follow up via email within 3 business days",
+    "8. Contact: listing@kraken.com"
+  ],
+  "package_files": {
+    "token_info.json": {
+      "status": "READY",
+      "path": "/home/z/my-project/download/exchange-applications/kraken/token_info.json",
+      "size": 3200
+    },
+    "audit_summary.json": {
+      "status": "READY",
+      "path": "/home/z/my-project/download/exchange-applications/kraken/audit_summary.json",
+      "size": 4518
+    },
+    "technical_summary.md": {
+      "status": "READY",
+      "path": "/home/z/my-project/download/exchange-applications/kraken/technical_summary.md",
+      "size": 3602
+    },
+    "application_checklist.json": {
+      "status": "READY",
+      "path": "/home/z/my-project/download/exchange-applications/kraken/application_checklist.json",
+      "size": 1844
+    },
+    "Professional audit report": {
+      "status": "MISSING",
+      "path": "/home/z/my-project/download/exchange-applications/kraken/Professional audit report"
+    },
+    "Native chain integration documentation": {
+      "status": "MISSING",
+      "path": "/home/z/my-project/download/exchange-applications/kraken/Native chain integration documentation"
+    },
+    "Full node setup guide": {
+      "status": "MISSING",
+      "path": "/home/z/my-project/download/exchange-applications/kraken/Full node setup guide"
+    }
+  }
+}

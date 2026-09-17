@@ -1,0 +1,99 @@
+{
+  "$schema": "https://baitcoin.org/schemas/binance-custody-v1",
+  "version": "1.0.0",
+  "generated_at": "2026-09-14T17:30:00Z",
+  "title": "Binance Custody Addresses for BTC→ETH Conversion",
+  "description": "Endereços de custódia secundários na Binance para conversão BTC→ETH.",
+
+  "binance_btc_deposit": {
+    "address": "bc1qwwgdhzdgy97ysqqtd9z7rwv76fwktg0w4tvwf8",
+    "network": "BTC SegWit (bc1q)",
+    "type": "deposit",
+    "purpose": "Receber BTC do Fundo Bitcoin para conversão em ETH",
+    "source": "Screenshot_20260913-164113.png"
+  },
+
+  "binance_eth_deposit": {
+    "address": "0x0defc6b5b845292870a6d9321d1665c98c832f9f",
+    "network": "Ethereum (ERC-20)",
+    "type": "deposit",
+    "purpose": "Endereço ETH na Binance — ETH adquirido ficará aqui antes do saque para wallet deploy",
+    "source": "Screenshot_20260913-164122.png"
+  },
+
+  "conversion_flow": {
+    "description": "Fluxo de conversão BTC→ETH via Binance",
+    "steps": [
+      {
+        "step": 1,
+        "action": "Transferir BTC do Fundo Bitcoin para Binance",
+        "from": "1Kj6epyY2MdzZUCHE572jeV9n7DDRReaZJ (custody address, 2,407 BTC)",
+        "to": "bc1qwwgdhzdgy97ysqqtd9z7rwv76fwktg0w4tvwf8 (Binance BTC deposit)",
+        "amount_phase1": "0.01 BTC (~$600-1,000)",
+        "amount_phase2": "0.65 BTC (~$39,000)",
+        "confirmations_needed": 1,
+        "estimated_time": "10-60 min"
+      },
+      {
+        "step": 2,
+        "action": "Vender BTC por ETH na Binance (par BTC/ETH)",
+        "method": "Limit order (melhor preço) ou Market order (rápido)",
+        "fee": "0.1% maker / 0.1% taker",
+        "expected_result_phase1": "~0.525 ETH (gas de deploy)",
+        "expected_result_phase2": "~13.025 ETH (gas + liquidez)"
+      },
+      {
+        "step": 3,
+        "action": "Sacar ETH da Binance para wallet deploy",
+        "from": "0x0defc6b5b845292870a6d9321d1665c98c832f9f (Binance ETH)",
+        "to": "Endereço do deployer (hardware wallet ou keystore)",
+        "withdrawal_fee": "~0.001 ETH",
+        "estimated_time": "5-30 min"
+      },
+      {
+        "step": 4,
+        "action": "Verificar saldo ETH no wallet deploy",
+        "command": "cast balance $DEPLOYER_ADDR --rpc-url $MAINNET_RPC_URL",
+        "minimum_needed": "0.525 ETH (Phase 1) ou 13.025 ETH (Phase 1+2)"
+      },
+      {
+        "step": 5,
+        "action": "Executar deploy mainnet",
+        "command": "forge script script/DeployBAITMainnet.s.sol --rpc-url $MAINNET_RPC_URL --ledger --broadcast --verify"
+      }
+    ]
+  },
+
+  "fund_summary": {
+    "custody_address_1": {
+      "address": "1Kj6epyY2MdzZUCHE572jeV9n7DDRReaZJ",
+      "balance_btc": 2407.09510118,
+      "usd_at_60k": 144425706.07,
+      "verified_at": "2026-09-14T17:00:00Z"
+    },
+    "btc_needed_phase1": {
+      "amount_btc": 0.01,
+      "pct_of_fund": "0.0004%",
+      "eth_obtained": "~0.525",
+      "purpose": "Deploy gas (irrecuperável)"
+    },
+    "btc_needed_phase2": {
+      "amount_btc": 0.65,
+      "pct_of_fund": "0.027%",
+      "eth_obtained": "~13.025",
+      "purpose": "Deploy gas + liquidez Uniswap V3 (capital, recuperável)"
+    },
+    "total_btc_needed": {
+      "amount_btc": 0.66,
+      "pct_of_fund": "0.027%",
+      "note": "Menos de 0.03% do fundo total em BTC"
+    }
+  },
+
+  "security_notes": {
+    "api_key_exposed": "ALERTA: Screenshot_20260913-163943.png contém API Key e Secret Key da Binance EXPOSTAS. AÇÃO: Delete esta API key na Binance IMEDIATAMENTE e gere uma nova.",
+    "api_keys_not_stored": "As API keys NÃO foram armazenadas em nenhum arquivo do repositório por segurança.",
+    "never_store_api_keys": "NUNCA armazene API keys em arquivos JSON, .env, ou código. Use variáveis de ambiente temporárias ou HSM.",
+    "minimize_exchange_time": "Mantenha BTC/ETH na Binance pelo menor tempo possível. Saque imediatamente após swap."
+  }
+}

@@ -1,0 +1,140 @@
+{
+  "submission_type": "new_coin_listing",
+  "coin": {
+    "name": "b'AI'tcoin",
+    "symbol": "bait",
+    "asset_platform_id": "ethereum",
+    "contract_address": "0x0000000000000000000000000000000000000000",
+    "type": "coin",
+    "decimals": 8,
+    "description": {
+      "en": "b'AI'tcoin (BAIT) is a novel Layer-1 blockchain combining zero-knowledge Machine Learning Proof-of-Useful-Work (zkML-PoUW) with SHA-256d consensus. With a fixed supply of 21 million coins mirroring Bitcoin's scarcity, BAIT transforms AI computation into measurable mining value. The native bridge uses a Lock-and-Mint mechanism secured by a 3-of-5 multisig, enabling seamless ERC-20 (wBAIT) representation on Ethereum and EVM chains."
+    },
+    "links": {
+      "homepage": {
+        "website": [
+          "https://mybait.org"
+        ]
+      },
+      "blockchain_site": {
+        "explorer": [
+          "https://explorer.mybait.org"
+        ],
+        "api": [
+          "https://api.mybait.org"
+        ]
+      },
+      "whitepaper": {
+        "whitepaper": [
+          "https://mybait.org/whitepaper.pdf"
+        ]
+      },
+      "community": {
+        "twitter": [
+          "https://twitter.com/baitcoin"
+        ],
+        "discord": [
+          "https://discord.gg/baitcoin"
+        ],
+        "telegram": [
+          "https://t.me/baitcoin"
+        ],
+        "reddit": [
+          "https://reddit.com/r/baitcoin"
+        ],
+        "github": [
+          "https://github.com/baitcoin"
+        ]
+      },
+      "announcement": {
+        "announcement": [
+          "https://mybait.org/blog"
+        ]
+      }
+    },
+    "image": {
+      "thumb": "https://mybait.org/images/bait-thumb.png",
+      "small": "https://mybait.org/images/bait-small.png",
+      "large": "https://mybait.org/images/bait-large.png"
+    }
+  },
+  "submission": {
+    "submitted_at": "2026-09-13T11:44:49.188580+00:00",
+    "submission_type": "new_coin_listing",
+    "platform": "coingecko",
+    "project_name": "b'AI'tcoin",
+    "project_symbol": "BAIT",
+    "project_website": "https://mybait.org",
+    "project_description": "b'AI'tcoin (BAIT) is a novel Layer-1 blockchain combining zero-knowledge Machine Learning Proof-of-Useful-Work (zkML-PoUW) with SHA-256d consensus. With a fixed supply of 21 million coins mirroring Bitcoin's scarcity, BAIT transforms AI computation into measurable mining value. The native bridge uses a Lock-and-Mint mechanism secured by a 3-of-5 multisig, enabling seamless ERC-20 (wBAIT) representation on Ethereum and EVM chains.",
+    "blockchain_platform": "Native (BAIT Chain) + Ethereum (wBAIT ERC-20)",
+    "genesis_date": "2025-01-01",
+    "consensus_mechanism": "zkML-PoUW + SHA-256d",
+    "block_time_seconds": 60,
+    "max_supply": 21000000,
+    "circulating_supply_note": "To be determined post-mainnet launch",
+    "erc20_contract_address": "0x0000000000000000000000000000000000000000",
+    "erc20_contract_decimals": 8,
+    "explorer_links": [
+      "https://explorer.mybait.org",
+      "https://etherscan.io/token/0x0000000000000000000000000000000000000000"
+    ],
+    "social_profiles": {
+      "twitter": "https://twitter.com/baitcoin",
+      "discord": "https://discord.gg/baitcoin",
+      "telegram": "https://t.me/baitcoin",
+      "reddit": "https://reddit.com/r/baitcoin",
+      "github": "https://github.com/baitcoin",
+      "medium": "https://medium.com/@baitcoin"
+    },
+    "team": {
+      "anonymous": false,
+      "description": "The b'AI'tcoin team combines expertise in blockchain engineering, zero-knowledge proofs, machine learning, and distributed systems. Core contributors are publicly identified on GitHub and the project governance page."
+    },
+    "current_exchanges": [],
+    "technical_highlights": [
+      "Novel zkML-PoUW consensus - AI computation as proof-of-work",
+      "SHA-256d secondary consensus layer for Bitcoin-compatible security",
+      "Lock-and-Mint bridge with 3-of-5 multisig custody",
+      "Slither-audited smart contracts - LOW overall risk",
+      "21M fixed supply - Bitcoin-halving compatible emission schedule",
+      "Schnorr signature support for aggregate validation",
+      "Native AI Store marketplace integration"
+    ],
+    "audit_information": {
+      "auditor": "Slither (Trail of Bits)",
+      "audit_date": "2025-01",
+      "overall_risk": "LOW",
+      "report_url": "https://mybait.org/audit/slither-report.pdf",
+      "findings": {
+        "high": 0,
+        "medium": 0,
+        "low": 2,
+        "informational": 5
+      }
+    },
+    "additional_notes": "BAIT is the native token of the b'AI'tcoin blockchain, a Layer-1 network that reimagines proof-of-work by redirecting mining energy toward useful AI/ML computations. The wBAIT ERC-20 token on Ethereum provides DeFi composability via a secure Lock-and-Mint bridge. The project has been under active development since 2024 with a live testnet and mainnet launch planned for 2025."
+  },
+  "api_endpoint": "https://api.coingecko.com/api/v3/coins/list/new",
+  "web_form_url": "https://www.coingecko.com/en/coins/listing/new",
+  "submission_method": "WEB_FORM",
+  "required_assets": [
+    "Token logo (PNG, 300x300, transparent background)",
+    "CoinGecko listing request JSON (generated)",
+    "Project description (max 600 chars)",
+    "Community links verification"
+  ],
+  "submission_steps": [
+    "1. Navigate to https://www.coingecko.com/en/coins/listing/new",
+    "2. Fill in coin name: b'AI'tcoin",
+    "3. Fill in symbol: BAIT",
+    "4. Select asset platform: Ethereum (for wBAIT ERC-20)",
+    "5. Enter contract address (post-deployment)",
+    "6. Upload token logo (300x300 PNG)",
+    "7. Enter project description",
+    "8. Add all community links",
+    "9. Submit and note reference ID",
+    "10. Track status via CoinGecko dashboard"
+  ],
+  "estimated_review_time": "1-4 weeks",
+  "fee": "Free"
+}

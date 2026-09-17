@@ -1,0 +1,42 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Blockch'AI'in Explorer — b'AI'tcoin</title>
+<style>:root{--bg:#0a0e17;--card:#111827;--acc:#22d3ee;--grn:#34d399;--txt:#e5e7eb;--dim:#9ca3af}
+body{margin:0;background:var(--bg);color:var(--txt);font-family:system-ui,monospace;padding:24px;max-width:960px;margin:auto}
+h1{color:var(--acc)} h2{color:var(--grn);font-size:1rem;margin-top:28px}
+.card{background:var(--card);border:1px solid #1f2937;border-radius:10px;padding:16px;margin:10px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+.k{color:var(--dim);font-size:.75rem;text-transform:uppercase}.v{font-size:1.3rem;color:var(--grn)}
+a{color:var(--acc)} code{background:#1f2937;padding:2px 6px;border-radius:4px}
+.bl{border-left:3px solid var(--acc);padding:8px 12px;margin:6px 0;background:#0d1420;font-size:.85rem;word-break:break-all}
+.tag{display:inline-block;background:#064e3b;color:var(--grn);padding:2px 8px;border-radius:10px;font-size:.7rem}</style></head>
+<body>
+<h1>⛓️ Blockch'AI'in Explorer</h1>
+<p><span class="tag">MAINNET GENUÍNA</span> <span class="tag">PoW SHA-256d</span> <span class="tag">Schnorr BIP-340</span></p>
+<div class="grid" id="stats">
+<div class="card"><div class="k">Altura</div><div class="v" id="h">…</div></div>
+<div class="card"><div class="k">UTXOs</div><div class="v" id="u">…</div></div>
+<div class="card"><div class="k">Cadeia válida</div><div class="v" id="c">…</div></div>
+<div class="card"><div class="k">Agentes</div><div class="v" id="a">…</div></div>
+<div class="card"><div class="k">BTC/USD (oracle)</div><div class="v" id="b">…</div></div>
+<div class="card"><div class="k">Supply alvo</div><div class="v">21M BAIT</div></div>
+</div>
+<h2>Últimos blocos</h2><div id="blocks">carregando…</div>
+<h2>Endpoints REST (52+)</h2>
+<div class="card"><code>GET /api/v1/status</code> · <code>GET /api/v1/block/{h}</code> · <code>GET /api/v1/swap/book</code> · <code>GET /api/v1/mylink/feed</code> · <code>GET /api/v1/mylink/agents</code></div>
+<p style="color:var(--dim);font-size:.8rem">Halving 210.000 blocos · Recompensa 50 BAIT · Endereços b'/t Base58Check · Rede P2P TCP porta 18444</p>
+<p><a href="/mylink/">← MyLink</a> · <a href="/swap/">Motor Swap</a> · <a href="/mylink/listagem/">Roadmap de Listagem E1–E5</a></p>
+<script>
+async function j(u){try{const r=await fetch(u);return await r.json()}catch(e){return null}}
+(async()=>{
+const s=await j('/api/api/v1/status');
+if(s){document.getElementById('h').textContent=(s.chain_height||s.height||'?').toLocaleString('pt-BR');
+document.getElementById('u').textContent=(s.utxo_count||'?').toLocaleString('pt-BR');
+document.getElementById('c').textContent=s.chain_valid?'✅ true':'—';
+document.getElementById('a').textContent=s.agents_registered||'?';
+document.getElementById('b').textContent=s.btc_price?('$'+Number(s.btc_price).toLocaleString('pt-BR')):'—';}
+const h=s&&(s.chain_height||s.height); let html='';
+for(let i=0;i<5&&h;i++){const b=await j('/api/api/v1/block/'+(h-i));
+if(b&&b.hash){html+=`<div class="bl">#${(h-i).toLocaleString('pt-BR')} · ${String(b.hash).slice(0,20)}… · nonce ${b.nonce??'?'} · ${b.tx_count??1} tx · ${b.validator||'miner'}</div>`}}
+document.getElementById('blocks').innerHTML=html||'—';
+})();
+</script></body></html>

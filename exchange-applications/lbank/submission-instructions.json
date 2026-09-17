@@ -1,0 +1,49 @@
+{
+  "exchange": "LBank",
+  "exchange_id": "lbank",
+  "submit_url": "https://www.lbank.info/listing",
+  "submit_method": "WEB_FORM + EMAIL",
+  "contact_email": "business@lbank.info",
+  "fee_estimate": "$5K-$15K",
+  "timeline": "1-2 weeks",
+  "priority": 2,
+  "special_instructions": "Often lists within 1 week. Send application to business@lbank.info",
+  "required_documents": [
+    "token_info.json",
+    "audit_summary.json",
+    "technical_summary.md",
+    "application_checklist.json"
+  ],
+  "submission_steps": [
+    "1. Navigate to https://www.lbank.info/listing",
+    "2. Create exchange account (if not existing)",
+    "3. Fill in token details from token_info.json",
+    "4. Upload technical_summary.md and audit_summary.json",
+    "5. Provide market maker commitment (if required)",
+    "6. Submit application and note reference ID",
+    "7. Follow up via email within 3 business days",
+    "8. Contact: business@lbank.info"
+  ],
+  "package_files": {
+    "token_info.json": {
+      "status": "READY",
+      "path": "/home/z/my-project/download/exchange-applications/lbank/token_info.json",
+      "size": 2828
+    },
+    "audit_summary.json": {
+      "status": "READY",
+      "path": "/home/z/my-project/download/exchange-applications/lbank/audit_summary.json",
+      "size": 4517
+    },
+    "technical_summary.md": {
+      "status": "READY",
+      "path": "/home/z/my-project/download/exchange-applications/lbank/technical_summary.md",
+      "size": 3590
+    },
+    "application_checklist.json": {
+      "status": "READY",
+      "path": "/home/z/my-project/download/exchange-applications/lbank/application_checklist.json",
+      "size": 1499
+    }
+  }
+}

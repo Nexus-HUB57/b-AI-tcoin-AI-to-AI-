@@ -1,0 +1,54 @@
+{
+  "version": "1.0.0",
+  "generated_at": "2026-09-14T12:00:00Z",
+  "stack": {
+    "metrics_collector": "Prometheus",
+    "visualization": "Grafana",
+    "alerting": "AlertManager",
+    "log_aggregation": "Loki"
+  },
+  "prometheus": {
+    "scrape_interval": "12s",
+    "evaluation_interval": "15s",
+    "targets": [
+      {"name": "wbait-contract", "type": "evm_contract", "chain": "ethereum-mainnet"},
+      {"name": "bridgelock-contract", "type": "evm_contract", "chain": "ethereum-mainnet"},
+      {"name": "uniswap-v3-pool", "type": "evm_contract", "chain": "ethereum-mainnet"},
+      {"name": "bridge-monitor", "type": "python_service", "port": 9898},
+      {"name": "dex-monitor", "type": "python_service", "port": 9899}
+    ],
+    "custom_metrics": [
+      "bait_wbait_total_supply",
+      "bait_wbait_daily_minted",
+      "bait_bridgelock_pending_requests",
+      "bait_bridgelock_rate_limit_remaining",
+      "bait_uniswap_tvl",
+      "bait_uniswap_volume_24h",
+      "bait_bridge_operator_confirmations"
+    ]
+  },
+  "grafana": {
+    "dashboards": [
+      {"name": "BAIT Bridge Overview", "panels": ["total_supply", "daily_mint_volume", "pending_requests", "operator_status", "rate_limit_usage"]},
+      {"name": "BAIT DEX Metrics", "panels": ["tvl", "volume_24h", "price", "liquidity_depth", "swap_count"]},
+      {"name": "BAIT Security Alerts", "panels": ["pause_events", "large_mints", "supply_cap_proximity", "rate_limit_breaches"]}
+    ],
+    "alert_channels": ["slack", "telegram", "pagerduty"]
+  },
+  "alertmanager": {
+    "rules": [
+      {"name": "contract_paused", "severity": "critical", "action": "page_on_call"},
+      {"name": "supply_cap_90pct", "severity": "warning", "threshold": "90%", "action": "notify_slack"},
+      {"name": "large_mint_50k", "severity": "warning", "threshold": "50000 wBAIT", "action": "notify_slack"},
+      {"name": "rate_limit_breach", "severity": "high", "action": "notify_slack_and_page"},
+      {"name": "operator_key_compromise", "severity": "critical", "action": "page_on_call_and_freeze"},
+      {"name": "bridge_drain_attempt", "severity": "critical", "action": "emergency_pause"},
+      {"name": "dex_price_deviation_5pct", "severity": "warning", "action": "notify_slack"}
+    ]
+  },
+  "deployment": {
+    "docker_compose": "docker-compose.monitoring.yaml",
+    "requirements": ["prom/prometheus:latest", "grafana/grafana:latest", "prom/alertmanager:latest", "grafana/loki:latest"],
+    "estimated_monthly_cost_usd": 50
+  }
+}

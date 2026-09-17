@@ -1,0 +1,128 @@
+name: ApprovalGate Security Tests
+
+on:
+  pull_request:
+    paths:
+      - "scripts/approval_gate.py"
+      - "scripts/macaroon_provider.py"
+      - "scripts/macaroon_rotation.py"
+      - "scripts/lnd_monitor.py"
+      - "scripts/lnd_mainnet_adapter.py"
+      - "scripts/lnd_channel_rotation.py"
+      - "baitcoin_bridge/authorization.py"
+      - "baitcoin_bridge/manager.py"
+      - "native_processing/bridge_handoff.py"
+      - "tests/test_approval_and_macaroon_local.py"
+      - "tests/test_lnd_mainnet_adapter_local.py"
+      - "tests/test_lnd_monitor_rotation_local.py"
+      - "tests/test_lnd_channel_authorization_local.py"
+      - "tests/test_bridge_authorization_handoff_local.py"
+      - "requirements*.txt"
+      - ".github/workflows/approval-gate-security.yml"
+  push:
+    branches: [main]
+    paths:
+      - "scripts/approval_gate.py"
+      - "scripts/macaroon_provider.py"
+      - "scripts/macaroon_rotation.py"
+      - "scripts/lnd_monitor.py"
+      - "scripts/lnd_mainnet_adapter.py"
+      - "scripts/lnd_channel_rotation.py"
+      - "baitcoin_bridge/authorization.py"
+      - "baitcoin_bridge/manager.py"
+      - "native_processing/bridge_handoff.py"
+      - "tests/test_approval_and_macaroon_local.py"
+      - "tests/test_lnd_mainnet_adapter_local.py"
+      - "tests/test_lnd_monitor_rotation_local.py"
+      - "tests/test_lnd_channel_authorization_local.py"
+      - "tests/test_bridge_authorization_handoff_local.py"
+      - "requirements*.txt"
+      - ".github/workflows/approval-gate-security.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: approval-gate-security-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  LND_MAINNET_ENABLED: "false"
+  LND_SETTLEMENT_MODE: "dry-run"
+  LND_ENDPOINT: "disabled://ci-no-network"
+  PYTHONDONTWRITEBYTECODE: "1"
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  security-tests:
+    name: ApprovalGate security tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-native-processing.txt
+            requirements-lightning-adapter.txt
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt -r requirements-lightning-adapter.txt pytest
+
+      - name: Assert CI safety guardrails
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$LND_MAINNET_ENABLED" = "false"
+          test "$LND_SETTLEMENT_MODE" = "dry-run"
+          test "$LND_ENDPOINT" = "disabled://ci-no-network"
+          if grep -RInE 'BEGIN .*PRIVATE KEY|[5KL][1-9A-HJ-NP-Za-km-z]{50,}|xprv|mnemonic' \
+              scripts/approval_gate.py scripts/macaroon_provider.py \
+              scripts/macaroon_rotation.py scripts/lnd_monitor.py \
+              scripts/lnd_mainnet_adapter.py scripts/lnd_channel_rotation.py \
+              baitcoin_bridge/authorization.py baitcoin_bridge/manager.py \
+              native_processing/bridge_handoff.py \
+              tests/test_approval_and_macaroon_local.py tests/test_lnd_mainnet_adapter_local.py \
+              tests/test_lnd_monitor_rotation_local.py tests/test_lnd_channel_authorization_local.py \
+              tests/test_bridge_authorization_handoff_local.py; then
+            echo "Potential private key material found in adapter/bridge/test source" >&2
+            exit 1
+          fi
+
+      - name: Compile security components
+        run: |
+          python -m py_compile \
+            scripts/approval_gate.py scripts/macaroon_provider.py \
+            scripts/macaroon_rotation.py scripts/lnd_monitor.py \
+            scripts/lnd_mainnet_adapter.py scripts/lnd_channel_rotation.py \
+            baitcoin_bridge/authorization.py baitcoin_bridge/manager.py \
+            native_processing/bridge_handoff.py
+
+      - name: Run authorization, rotation, monitor, and mocked gRPC tests
+        run: |
+          python -m pytest -q \
+            tests/test_approval_and_macaroon_local.py \
+            tests/test_lnd_mainnet_adapter_local.py \
+            tests/test_lnd_monitor_rotation_local.py \
+            tests/test_lnd_channel_authorization_local.py \
+            tests/test_bridge_authorization_handoff_local.py
+
+      - name: Check repository whitespace
+        run: git diff --check
+
+      - name: Dependency vulnerability audit
+        run: |
+          python -m pip install pip-audit
+          pip-audit -r requirements.txt -r requirements-lightning-adapter.txt

@@ -1,0 +1,72 @@
+{
+  "token": {
+    "name": "b'AI'tcoin",
+    "symbol": "BAIT",
+    "wrapped_symbol": "wBAIT",
+    "decimals": 8,
+    "max_supply": 21000000,
+    "circulating_supply": "TBD post-mainnet",
+    "total_supply": 21000000,
+    "description": "b'AI'tcoin (BAIT) is a novel Layer-1 blockchain combining zero-knowledge Machine Learning Proof-of-Useful-Work (zkML-PoUW) with SHA-256d consensus. With a fixed supply of 21 million coins mirroring Bitcoin's scarcity, BAIT transforms AI computation into measurable mining value. The native bridge uses a Lock-and-Mint mechanism secured by a 3-of-5 multisig, enabling seamless ERC-20 (wBAIT) representation on Ethereum and EVM chains.",
+    "website": "https://mybait.org",
+    "whitepaper": "https://mybait.org/whitepaper.pdf",
+    "explorer": "https://explorer.mybait.org",
+    "github": "https://github.com/baitcoin"
+  },
+  "blockchain": {
+    "platform": "Native BAIT Chain + Ethereum (wBAIT)",
+    "consensus": "zkML-PoUW + SHA-256d",
+    "block_time": "60 seconds",
+    "type": "Layer-1"
+  },
+  "contracts": {
+    "wBAIT_erc20": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "chain": "Ethereum",
+      "decimals": 8,
+      "verified": false,
+      "verification_url": "https://etherscan.io/address/0x0000000000000000000000000000000000000000#code"
+    },
+    "bridge": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "chain": "Ethereum",
+      "type": "Lock-and-Mint (3-of-5 multisig)"
+    },
+    "multisig": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "chain": "Ethereum",
+      "threshold": "3-of-5",
+      "owners": 5
+    }
+  },
+  "deposit_information": {
+    "supported_networks": [
+      "ERC-20"
+    ],
+    "min_withdrawal": "0.01 BAIT",
+    "deposit_note": "For ERC-20 deposits, use the wBAIT contract address. For native BAIT deposits, use Bech32 addresses (bait1...)."
+  },
+  "social": {
+    "twitter": "https://twitter.com/baitcoin",
+    "discord": "https://discord.gg/baitcoin",
+    "telegram": "https://t.me/baitcoin",
+    "reddit": "https://reddit.com/r/baitcoin",
+    "github": "https://github.com/baitcoin",
+    "medium": "https://medium.com/@baitcoin"
+  },
+  "exchange_specific": {
+    "target_exchange": "KuCoin",
+    "listing_type": "CEX",
+    "application_url": "https://www.kucoin.com/listing",
+    "fees": {
+      "listing_fee_estimate": "20,000 - 100,000 USDT",
+      "market_maker_deposit": "30,000 USDT minimum"
+    },
+    "notes": "KuCoin Spotlight program requires community voting. Budget for voting campaign."
+  },
+  "metadata": {
+    "generated_at": "2026-09-13T11:44:49.163671+00:00",
+    "generator": "bait-exchange-cex-applications.py",
+    "version": "1.0.0"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "version": "1.0.0",
+  "generated_at": "2026-09-14T12:00:00Z",
+  "platform": "Immunefi",
+  "program_name": "BAIT (b'AI'tcoin) Bug Bounty",
+  "scope": {
+    "contracts": [
+      {"name": "WBAIT", "type": "ERC-20", "severity_scope": "Critical + High"},
+      {"name": "BridgeLock", "type": "3-of-5 Multisig Bridge", "severity_scope": "Critical + High + Medium"},
+      {"name": "BAITUniswapV3Liquidity", "type": "Uniswap V3 Bootstrapper", "severity_scope": "Critical + High"}
+    ],
+    "in_scope": [
+      "Unauthorized minting of wBAIT tokens",
+      "Bridge lock-mint bypass (minting without L1 lock)",
+      "Burn-release bypass (releasing without L1 burn)",
+      "Operator threshold bypass",
+      "Rate limit bypass",
+      "Reentrancy leading to fund loss",
+      "Governance takeover (owner/operator compromise)",
+      "Integer overflow/underflow leading to incorrect balances"
+    ],
+    "out_of_scope": [
+      "Frontend/DAPP issues",
+      "Social engineering attacks",
+      "DDoS attacks",
+      "Issues already reported",
+      "Issues in third-party contracts (OpenZeppelin, Uniswap)"
+    ]
+  },
+  "rewards": {
+    "critical": {"min_usd": 50000, "max_usd": 250000, "payout": "USDC or ETH"},
+    "high": {"min_usd": 5000, "max_usd": 50000, "payout": "USDC or ETH"},
+    "medium": {"min_usd": 1000, "max_usd": 5000, "payout": "USDC or ETH"}
+  },
+  "timeline": {
+    "launch": "Within 2 weeks of mainnet deployment",
+    "initial_tvl_based_rewards": true,
+    "kv_threshold_usd": 100000
+  },
+  "contacts": {
+    "security_email": "security@mybait.org",
+    "pgp_key": "To be published pre-launch"
+  }
+}

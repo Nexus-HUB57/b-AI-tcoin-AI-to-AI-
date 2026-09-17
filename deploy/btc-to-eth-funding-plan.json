@@ -1,0 +1,237 @@
+{
+  "$schema": "https://baitcoin.org/schemas/btc-to-eth-funding-v1",
+  "version": "1.0.0",
+  "generated_at": "2026-09-14T17:00:00Z",
+  "title": "BTC → ETH Funding Plan for BAIT Mainnet Deployment",
+  "description": "Plano de conversão BTC→ETH via exchange para capitalizar o deploy mainnet. Fundo atualmente 100% em Bitcoin.",
+
+  "capital_requirements": {
+    "deployment_gas": {
+      "eth": 0.35,
+      "usd_at_3000": 1050,
+      "note": "3 contracts deploy at 30 gwei, irrecuperável"
+    },
+    "gas_buffer_50pct": {
+      "eth": 0.175,
+      "usd_at_3000": 525,
+      "note": "Buffer for gas spikes, irrecuperável"
+    },
+    "liquidity_seeding": {
+      "eth": 12.5,
+      "usd_at_3000": 37500,
+      "note": "Capital DEPOSITADO na Uniswap V3 pool, recuperável via removeLiquidity()"
+    },
+    "total_irrecoverable": {
+      "eth": 0.525,
+      "usd_at_3000": 1575,
+      "note": "Apenas gas + buffer — este é o custo real"
+    },
+    "total_with_liquidity": {
+      "eth": 13.025,
+      "usd_at_3000": 39150,
+      "note": "Gas + liquidez. Liquidez é capital, não custo."
+    }
+  },
+
+  "btc_amounts_needed": {
+    "at_btc_60k": {
+      "deployment_only": 0.00875,
+      "with_buffer": 0.02625,
+      "with_liquidity": 0.65,
+      "note": "BTC/USD = $60,000"
+    },
+    "at_btc_100k": {
+      "deployment_only": 0.00525,
+      "with_buffer": 0.01575,
+      "with_liquidity": 0.39,
+      "note": "BTC/USD = $100,000"
+    }
+  },
+
+  "recommended_phased_approach": {
+    "description": "Abordagem em fases para minimizar risco e capital travado",
+    "phase_1_minimal_deploy": {
+      "step": 1,
+      "btc_to_sell": "0.01 BTC (~$600–1,000)",
+      "eth_target": 0.525,
+      "purpose": "Deploy dos 3 contratos na mainnet (gas apenas)",
+      "result": "wBAIT + BridgeLock + BAITUniswapV3Liquidity on-chain, ownership transfer to multisig",
+      "reversible": false,
+      "note": "Contratos deployados, sem liquidez ainda. Pool criada mas vazia."
+    },
+    "phase_2_seed_liquidity": {
+      "step": 2,
+      "btc_to_sell": "0.20 BTC (~$12,000–20,000)",
+      "eth_target": 12.5,
+      "purpose": "Seed Uniswap V3 pool com liquidez inicial",
+      "result": "wBAIT/WETH pool negociável, preço de mercado discoverível",
+      "reversible": true,
+      "note": "Liquidez recuperável via removeLiquidity(). Pode ser feito em parcels."
+    },
+    "phase_3_increase_liquidity": {
+      "step": 3,
+      "btc_to_sell": "Variável (market making)",
+      "eth_target": "Incremental",
+      "purpose": "Aumentar liquidez conforme demanda de negociação",
+      "result": "Melhor preço, menor slippage para traders",
+      "reversible": true,
+      "note": "Adicionar liquidez incrementalmente conforme volume justifique."
+    }
+  },
+
+  "exchange_options": {
+    "description": "Exchanges para executar BTC→ETH swap",
+    "tier_1_recommended": [
+      {
+        "name": "Binance",
+        "pair": "BTC/ETH",
+        "fee": "0.1% (maker) / 0.1% (taker)",
+        "advantage": "Maior liquidez BTC/ETH, menor slippage",
+        "kyc_required": true,
+        "withdrawal_fee_eth": "0.001 ETH",
+        "btc_deposit_confirmations": 1,
+        "eth_withdrawal_time": "5-30 min"
+      },
+      {
+        "name": "Coinbase",
+        "pair": "BTC/ETH",
+        "fee": "0.6% (maker) / 0.6% (taker)",
+        "advantage": "Regulado EUA, seguro para grandes volumes",
+        "kyc_required": true,
+        "withdrawal_fee_eth": "0.001 ETH",
+        "btc_deposit_confirmations": 3,
+        "eth_withdrawal_time": "5-15 min"
+      }
+    ],
+    "tier_2_alternatives": [
+      {
+        "name": "Kraken",
+        "pair": "BTC/ETH",
+        "fee": "0.25% (maker) / 0.4% (taker)"
+      },
+      {
+        "name": "Bybit",
+        "pair": "BTC/ETH",
+        "fee": "0.1% (maker) / 0.1% (taker)"
+      },
+      {
+        "name": "OKX",
+        "pair": "BTC/ETH",
+        "fee": "0.08% (maker) / 0.1% (taker)"
+      }
+    ],
+    "dex_alternative": {
+      "name": "THORChain (THORSwap)",
+      "pair": "BTC/ETH cross-chain",
+      "fee": "~0.5-1.5% (variable, includes liquidity fee + outbound fee)",
+      "advantage": "Non-custodial, sem KYC para volumes menores",
+      "note": "Para volumes < 1 BTC, THORSwap pode ser mais rápido sem KYC"
+    }
+  },
+
+  "execution_procedure": {
+    "description": "Passo-a-passo para executar a conversão BTC→ETH",
+    "steps": [
+      {
+        "step": 1,
+        "action": "RESOLVER BTC KEY RECOVERY",
+        "details": "Recuperar acesso às chaves do Fundo Bitcoin. Opções: (a) recuperar arquivo Electrum wallet, (b) corrigir seed phrase, (c) usar custody sweep addresses (3 endereços hardcoded) se tiver acesso via outro método",
+        "critical": true,
+        "status": "BLOCKED"
+      },
+      {
+        "step": 2,
+        "action": "ESCOLHER EXCHANGE",
+        "details": "Binance (menor fee) ou Coinbase (mais seguro). Verificar KYC completo.",
+        "critical": true
+      },
+      {
+        "step": 3,
+        "action": "DEPOSITAR BTC NA EXCHANGE",
+        "details": "Enviar 0.01 BTC (Phase 1) para o endereço de depósito da exchange. Aguardar confirmações (1-3 blocks).",
+        "critical": true
+      },
+      {
+        "step": 4,
+        "action": "EXECUTAR SWAP BTC→ETH",
+        "details": "Vender 0.01 BTC por ETH na exchange. Usar limit order para melhor preço. Resultado esperado: ~0.525 ETH (ou mais se BTC subiu).",
+        "critical": true
+      },
+      {
+        "step": 5,
+        "action": "RETIRAR ETH PARA WALLET DEPLOY",
+        "details": "Sacar ETH para o endereço do deployer (keystore ou hardware wallet). Taxa: ~0.001 ETH.",
+        "critical": true
+      },
+      {
+        "step": 6,
+        "action": "VERIFICAR BALANCE",
+        "details": "cast balance $DEPLOYER_ADDR --rpc-url $MAINNET_RPC_URL. Deve ser >= 0.525 ETH.",
+        "critical": true
+      },
+      {
+        "step": 7,
+        "action": "EXECUTAR DEPLOY MAINNET",
+        "details": "forge script script/DeployBAITMainnet.s.sol --rpc-url $MAINNET_RPC_URL --ledger --broadcast --verify",
+        "critical": true
+      },
+      {
+        "step": 8,
+        "action": "REPETIR PARA PHASE 2 (LIQUIDEZ)",
+        "details": "Vender 0.20 BTC → 12.5 ETH → addLiquidity() na Uniswap V3 pool.",
+        "critical": false
+      }
+    ]
+  },
+
+  "blockers": {
+    "CRITICAL": [
+      {
+        "id": "btc_key_recovery",
+        "description": "Private key mismatch — 2,146 keys tested, 0 matches to funded addresses",
+        "impact": "Não é possível acessar o BTC do Fundo Bitcoin",
+        "resolution_options": [
+          "Recuperar arquivo Electrum wallet (.wallet) do backup",
+          "Corrigir seed phrase (verificar palavras, ordem, derivação)",
+          "Verificar se as chaves no CSV são de testnet/mainnet diferentes",
+          "Usar os 3 custody sweep addresses se acessíveis por outro método",
+          "Importar chaves diretamente no Electrum e verificar balances"
+        ]
+      }
+    ],
+    "HIGH": [
+      {
+        "id": "exchange_kyc",
+        "description": "KYC completo necessário na exchange escolhida",
+        "impact": "Sem KYC, não é possível sacar ETH",
+        "resolution": "Completar KYC na Binance ou Coinbase antes do swap"
+      }
+    ]
+  },
+
+  "custody_sweep_addresses": {
+    "description": "3 endereços BTC hardcoded no custody sweep que podem ser fonte alternativa",
+    "addresses": [
+      {
+        "address": "1Kj6epyY2MdzZUCHE572jeV9n7DDRReaZJ",
+        "purpose": "Fundo Bitcoin custody address 1"
+      },
+      {
+        "address": "1LhMC7JxBbtNfK9ABuLGJ7J8PmWt16qZKN",
+        "purpose": "Fundo Bitcoin custody address 2"
+      },
+      {
+        "address": "14UNwf2XH2ET24EsZyD1gNFmkPL4rBK7Ew",
+        "purpose": "Fundo Bitcoin custody address 3"
+      }
+    ],
+    "note": "Verificar saldos via mempool.space ou&https://mempool.space/api/address/{address}"
+  },
+
+  "risk_mitigation": {
+    "price_volatility": "Usar limit orders, não market orders. O BTC pode cair entre depósito e execução.",
+    "exchange_risk": "Não manter BTC/ETH na exchange por mais de 24h. Sacar imediatamente após swap.",
+    "gas_uncertainty": "Verificar gas price (eth_gasPrice) antes do deploy. Esperar gwei < 20 se possível.",
+    "key_security": "Usar hardware wallet (Ledger) para o deployer. Nunca importar chaves do fundo em software wallet conectado à internet."
+  }
+}

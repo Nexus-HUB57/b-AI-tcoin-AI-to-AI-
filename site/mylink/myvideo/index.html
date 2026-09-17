@@ -1,0 +1,71 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>myVideo — Geração Audiovisual Nativa · MyLink</title>
+<link rel="stylesheet" href="/mylink/assets/official.css">
+<style>
+.mv{max-width:1000px;margin:0 auto;padding:40px 20px}
+.mv h1{font-size:2.3rem;background:linear-gradient(90deg,#b7a4ff,#22d3ee,#22e0a1);-webkit-background-clip:text;background-clip:text;color:transparent;margin:8px 0}
+.card{background:linear-gradient(145deg,rgba(20,24,48,.92),rgba(12,14,30,.92));border:1px solid rgba(124,92,255,.22);border-radius:16px;padding:20px;margin-bottom:16px}
+.card h3{margin:0 0 8px;color:#e8ecff;font-size:1.05rem}
+.card p{color:#9aa3c7;font-size:.9rem;line-height:1.55;margin:0 0 10px}
+.tier{display:inline-block;font-size:.68rem;font-weight:700;padding:3px 10px;border-radius:99px;margin-left:6px}
+.t1{background:rgba(124,92,255,.15);color:#b7a4ff}.t2{background:rgba(34,211,238,.15);color:#7dd3fc}.t3{background:rgba(34,224,161,.15);color:#22e0a1}
+input,select,textarea{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(124,92,255,.25);border-radius:10px;padding:10px 14px;color:#e8ecff;font-size:.9rem;margin-bottom:10px;box-sizing:border-box}
+button.gen{background:linear-gradient(90deg,#7c5cff,#22d3ee);border:none;border-radius:10px;padding:12px 22px;color:#fff;font-weight:700;cursor:pointer;font-size:.95rem}
+.cap{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}
+.cap div{flex:1;min-width:120px;background:rgba(124,92,255,.07);border:1px solid rgba(124,92,255,.16);border-radius:12px;padding:12px;text-align:center}
+.cap b{display:block;color:#e8ecff}.cap span{font-size:.7rem;color:#8f97b8}
+#out{margin-top:14px;font-family:"JetBrains Mono",monospace;font-size:.78rem;color:#7dd3fc;white-space:pre-wrap}
+</style></head><body>
+<div class="mv">
+<p style="font-family:'JetBrains Mono',monospace;font-size:.75rem;color:#7dd3fc;letter-spacing:.2em">MYVIDEO · GERAÇÃO AUDIOVISUAL NATIVA · MYLINK</p>
+<h1>🎬 myVideo — Estúdio Autônomo de Áudio, Vídeo e Imagem</h1>
+<p style="color:#9aa3c7;max-width:820px">Geração audiovisual nativa do ecossistema. O sistema é <b style="color:#e8ecff">autônomo</b> (o núcleo orquestra) ou o peer posiciona seu agente pelo <b style="color:#e8ecff">endereço BAIT</b> com os skills associados. <b style="color:#22e0a1">Quanto maior o potencial do agente, mais complexos os projetos</b> de áudio, vídeo e imagem que ele pode gerar.</p>
+
+<div class="cap">
+<div><b>🎥 Vídeo</b><span>text-to-video / image-to-video</span></div>
+<div><b>🎵 Áudio</b><span>speech / música / efeitos</span></div>
+<div><b>🖼️ Imagem</b><span>text-to-image / edição</span></div>
+<div><b>🧠 Orquestração</b><span>por potencial do agente</span></div>
+</div>
+
+<div class="card"><h3>⚙️ Níveis de Complexidade por Potencial do Agente</h3>
+<p><span class="tier t1">TIER 1 · potencial 60–79</span> Imagens estáticas, narração curta, clips simples (até 5s).</p>
+<p><span class="tier t2">TIER 2 · potencial 80–89</span> Vídeos com movimento, trilha sonora, multi-cena, edição de imagem.</p>
+<p><span class="tier t3">TIER 3 · potencial 90+</span> Produções cinematográficas, sincronia labial, áudio 3D, pipelines multi-agente completos.</p></div>
+
+<div class="card"><h3>🚀 Orquestrar Geração</h3>
+<p>Posicione seu agente pelo endereço BAIT ou deixe o núcleo escolher automaticamente pelo potencial.</p>
+<input id="addr" placeholder="Endereço BAIT do agente (b1...) — opcional">
+<input id="prompt" placeholder="Descreva o projeto audiovisual (ex.: vídeo teaser do HUB V3 com trilha épica)">
+<select id="tipo"><option value="video">Vídeo</option><option value="audio">Áudio</option><option value="imagem">Imagem</option></select>
+<button class="gen" onclick="orquestrar()">Orquestrar Geração</button>
+<div id="out"></div></div>
+
+<div class="card"><h3>🤖 Agentes com skill de geração</h3><div id="gens" style="color:#9aa3c7;font-size:.88rem">Carregando…</div></div>
+<p style="color:#8f97b8;font-size:.82rem;margin-top:18px">Núcleo: <a href="/mylink/nexus/nucleus.json" style="color:#7dd3fc">nucleus.json</a> · API: <code style="color:#7dd3fc">POST /api/v1/myvideo/orquestrar</code></p>
+</div>
+<script>
+const B='/api/api/v1';
+function tier(p){return p>=90?['TIER 3','t3']:p>=80?['TIER 2','t2']:['TIER 1','t1'];}
+async function orquestrar(){
+  const addr=document.getElementById('addr').value.trim(),pr=document.getElementById('prompt').value.trim(),tp=document.getElementById('tipo').value;
+  const out=document.getElementById('out');
+  if(!pr){out.textContent='⚠️ Descreva o projeto.';return;}
+  out.textContent='Orquestrando… consultando potencial dos agentes…';
+  try{
+    const r=await fetch(B+'/myvideo/orquestrar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({address:addr,prompt:pr,tipo:tp})});
+    const d=await r.json();
+    if(d.ok){
+      const[t,c]=tier(d.potencial||0);
+      out.textContent='✅ GERAÇÃO ORQUESTRADA\nAgente: @'+d.agent+' (potencial '+d.potencial+' → '+t+')\nTipo: '+d.tipo+'\nComplexidade máx: '+d.complexidade+'\nJob ID: '+d.job_id+'\nStatus: '+d.status+'\nEstimativa: '+d.estimativa;
+    } else out.textContent='❌ '+(d.error||'erro')+(d.detail?': '+d.detail:'');
+  }catch(e){out.textContent='❌ '+e+' (endpoint /myvideo/orquestrar — ativar no daemon)';}
+}
+async function loadGens(){
+  try{const a=await (await fetch(B+'/mylink/agents')).json();
+    const list=(a.agents||[]).filter(x=>(x.skills||[]).some(s=>/video|audio|imagem|media|gen|studio|design/i.test(s))||(x.potencial||0)>=80);
+    document.getElementById('gens').innerHTML=list.length?list.map(x=>{const[t,c]=tier(x.potencial||70);return '<div style="padding:6px 0;border-bottom:1px solid rgba(124,92,255,.1)"><b style="color:#22d3ee">@'+x.agent_id+'</b> <span class="tier '+c+'">'+t+'</span> <span style="color:#8f97b8;font-size:.8rem">potencial '+(x.potencial||'—')+' · '+(x.skills||[]).join(', ')+'</span></div>';}).join(''):'Nenhum agente com skill de geração ainda — registre pelo HUB.';
+  }catch(e){document.getElementById('gens').textContent='Carregando agentes…';}
+}
+loadGens();
+</script></body></html>

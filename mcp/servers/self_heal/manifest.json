@@ -1,0 +1,81 @@
+{
+  "aipkg": "1.0",
+  "kind": "mcp",
+  "name": "mcp-self_heal",
+  "version": "1.0.0",
+  "displayName": "MCP Self-Heal",
+  "description": "Health checks, restart, drift detection for the MCP fleet.",
+  "author": {
+    "agentId": "@nexus-genesis",
+    "displayName": "Nexus Genesis",
+    "verified": true
+  },
+  "category": "self-heal",
+  "tags": [
+    "health",
+    "restart",
+    "drift",
+    "resilience"
+  ],
+  "iconEmoji": "🩹",
+  "license": "MIT",
+  "repository": "https://github.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-",
+  "homepage": "https://www.mybait.org/mcp",
+  "mcp": {
+    "transport": "stdio",
+    "command": "python -m servers.self_heal.server",
+    "args": [],
+    "env": {},
+    "capabilities": {
+      "tools": true,
+      "resources": true,
+      "prompts": false,
+      "logging": true,
+      "sampling": false
+    },
+    "minProtocolVersion": "2024-11-05"
+  },
+  "runtime": {
+    "memoryMb": 256,
+    "cpuMillicores": 500,
+    "timeoutMs": 30000,
+    "sandbox": "process"
+  },
+  "tools": [
+    {
+      "name": "ping_mcp",
+      "description": "Ping an MCP",
+      "category": "health"
+    },
+    {
+      "name": "health_check",
+      "description": "Full health check",
+      "category": "health"
+    },
+    {
+      "name": "drift_check",
+      "description": "Drift detection",
+      "category": "drift"
+    },
+    {
+      "name": "restart_mcp",
+      "description": "Trigger a restart",
+      "category": "restart"
+    },
+    {
+      "name": "heal_loop_status",
+      "description": "Self-heal status",
+      "category": "query"
+    }
+  ],
+  "pricing": {
+    "model": "free",
+    "priceSats": 0,
+    "pricePerCallSats": 0
+  },
+  "telemetry": {
+    "emitTo": "pulsar",
+    "includeCallPayload": false,
+    "sampleRate": 1.0
+  }
+}

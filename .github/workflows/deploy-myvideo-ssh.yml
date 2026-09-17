@@ -1,0 +1,115 @@
+name: Deploy MyVideo System (SSH)
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type DEPLOY to confirm'
+        required: true
+        default: 'DEPLOY'
+
+jobs:
+  deploy-ssh:
+    name: Deploy MyVideo via SSH
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: ${{ github.event.inputs.confirm == 'DEPLOY' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p ${{ secrets.SSH_PORT || 22 }} -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Deploy frontend files via SCP
+        run: |
+          SSH_OPTS="-o StrictHostKeyChecking=no -i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT || 22 }}"
+          USER_HOST="${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}"
+          
+          echo "=== Deploying frontend HTML files ==="
+          for f in index.html blockchain.html bainkr.html faucet.html fundo.html swap.html sdk.html obscura.html myvideo.html favicon.svg .htaccess; do
+            if [ -f "netlify/$f" ]; then
+              echo "  Uploading netlify/$f → public_html/$f"
+              scp $SSH_OPTS "netlify/$f" "$USER_HOST:public_html/$f" 2>&1 || echo "  WARN: $f failed"
+            fi
+          done
+          
+          echo "=== Deploying api.cgi ==="
+          scp $SSH_OPTS netlify/api.cgi "$USER_HOST:public_html/api.cgi" 2>&1
+          
+          echo "=== Setting permissions ==="
+          ssh $SSH_OPTS "$USER_HOST" 'chmod 0755 public_html/api.cgi 2>/dev/null; chmod 0644 public_html/*.html public_html/.htaccess public_html/favicon.svg 2>/dev/null; echo "Permissions set"'
+          
+      - name: Deploy MyLink sub-pages
+        run: |
+          SSH_OPTS="-o StrictHostKeyChecking=no -i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT || 22 }}"
+          USER_HOST="${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}"
+          
+          echo "=== Creating sub-directories ==="
+          ssh $SSH_OPTS "$USER_HOST" 'mkdir -p public_html/mylink/fundo public_html/mylink/fundo/swap public_html/mylink/myvideo 2>/dev/null; echo "Directories created"'
+          
+          echo "=== Deploying fundo ==="
+          scp $SSH_OPTS netlify/fundo.html "$USER_HOST:public_html/mylink/fundo/index.html" 2>&1 || echo "  WARN: fundo failed"
+          
+          echo "=== Deploying fundo/swap ==="
+          scp $SSH_OPTS netlify/swap.html "$USER_HOST:public_html/mylink/fundo/swap/index.html" 2>&1 || echo "  WARN: swap failed"
+          
+          echo "=== Deploying myvideo ==="
+          scp $SSH_OPTS netlify/myvideo.html "$USER_HOST:public_html/mylink/myvideo/index.html" 2>&1 || echo "  WARN: myvideo failed"
+          
+          echo "=== Setting sub-page permissions ==="
+          ssh $SSH_OPTS "$USER_HOST" 'chmod 0644 public_html/mylink/fundo/index.html public_html/mylink/fundo/swap/index.html public_html/mylink/myvideo/index.html 2>/dev/null; echo "Sub-page permissions set"'
+
+      - name: Restart daemon
+        run: |
+          SSH_OPTS="-o StrictHostKeyChecking=no -i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT || 22 }}"
+          USER_HOST="${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}"
+          
+          echo "=== Restarting daemon ==="
+          ssh $SSH_OPTS "$USER_HOST" '
+            PIDFILE=~/baitcoin-api/daemon.pid
+            if [ -f "$PIDFILE" ]; then
+              PID=$(cat "$PIDFILE")
+              kill "$PID" 2>/dev/null && echo "Killed daemon PID $PID" || echo "PID $PID not running"
+              sleep 2
+              rm -f "$PIDFILE"
+              echo "Removed PID file — daemon will cold-start on next request"
+            else
+              echo "No PID file — daemon will cold-start on next request"
+            fi
+          '
+
+      - name: Verify deployment
+        run: |
+          echo "=== Verifying deployed files ==="
+          
+          echo "Checking myvideo page..."
+          CODE=$(curl -s -o /dev/null -w "%{http_code}" -m 15 "https://www.mybait.org/mylink/myvideo/" 2>/dev/null || echo "000")
+          echo "  /mylink/myvideo/ → HTTP $CODE"
+          
+          echo "Checking fundo page..."
+          CODE=$(curl -s -o /dev/null -w "%{http_code}" -m 15 "https://www.mybait.org/mylink/fundo/" 2>/dev/null || echo "000")
+          echo "  /mylink/fundo/ → HTTP $CODE"
+          
+          echo "Checking myvideo API status..."
+          sleep 5  # Wait for daemon to cold-start
+          for i in $(seq 1 6); do
+            RESP=$(curl -s -m 10 "https://www.mybait.org/api/v1/myvideo/status" 2>/dev/null)
+            if echo "$RESP" | grep -q "myvideo_autonomous"; then
+              echo "  /api/v1/myvideo/status → OK (myvideo_autonomous system detected)"
+              echo "$RESP" | python3 -m json.tool 2>/dev/null | head -15
+              break
+            fi
+            echo "  Attempt $i: waiting for daemon cold-start..."
+            sleep 10
+          done
+          
+          echo ""
+          echo "=== Deployment Summary ==="
+          echo "  MyVideo:  https://www.mybait.org/mylink/myvideo/"
+          echo "  Fundo:    https://www.mybait.org/mylink/fundo/"
+          echo "  API:      https://www.mybait.org/api/v1/myvideo/status"

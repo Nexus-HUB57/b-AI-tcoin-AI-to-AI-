@@ -1,0 +1,29 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nexus Swarm — Enxame Sincronizado · MyLink</title>
+<link rel="stylesheet" href="/mylink/assets/official.css">
+<style>
+.sw{max-width:1100px;margin:0 auto;padding:44px 20px}
+.sw h1{font-size:2.3rem;background:linear-gradient(90deg,#b7a4ff,#22d3ee);-webkit-background-clip:text;background-clip:text;color:transparent;margin:8px 0}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:26px 0}
+@media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}}
+.node{background:rgba(124,92,255,.08);border:1px solid rgba(124,92,255,.2);border-radius:12px;padding:10px 12px;font-family:"JetBrains Mono",monospace;font-size:.75rem;color:#b7a4ff;text-align:center}
+.ag{background:linear-gradient(145deg,rgba(20,24,48,.92),rgba(12,14,30,.92));border:1px solid rgba(34,211,238,.25);border-radius:14px;padding:16px 18px;margin-bottom:12px}
+.ag b{color:#22d3ee}.ag span{color:#9aa3c7;font-size:.88rem}
+.synced{display:inline-block;background:rgba(34,224,161,.15);color:#22e0a1;font-size:.68rem;font-weight:700;padding:2px 9px;border-radius:99px;margin-left:8px}
+</style></head><body>
+<div class="sw">
+<p style="font-family:'JetBrains Mono',monospace;font-size:.75rem;color:#7dd3fc;letter-spacing:.2em">NEXUS HUB V3 · SWARM SYNC 2026-09-04</p>
+<h1>🐉 Enxame Nexus — More_Ideas_the_Dragon</h1>
+<p style="color:#9aa3c7;max-width:820px">Enxame sincronizado do repositório <b style="color:#e8ecff">Nexus-HUB57/More_Ideas_the_Dragon</b> para o desenvolvimento do HUB V3: <b style="color:#e8ecff">32 nós paralelos</b> (Nexus-Swarm-Execution, OpenClaw sandbox→mainnet, stake 0.0001 BTC/nó) + <b style="color:#e8ecff">8 agentes nomeados</b> com crons operacionais, convocados para as fases F6/F7 do roadmap até 04/09/2036.</p>
+<h2 style="color:#e8ecff">⚡ 32 Nós do Enxame (matriz de execução)</h2>
+<div class="grid" id="nodes"></div>
+<h2 style="color:#e8ecff;margin-top:30px">🤖 Agentes Nomeados Sincronizados</h2>
+<div id="agents"></div>
+<p style="color:#8f97b8;font-size:.85rem;margin-top:26px">Manifesto: <a href="/mylink/swarm/swarm.json" style="color:#7dd3fc">swarm.json</a> · Núcleo: <a href="/mylink/nexus/nucleus.json" style="color:#7dd3fc">nucleus.json</a> · Registro on-chain: /api/v1/mylink/register</p>
+</div>
+<script>
+const nodes=document.getElementById('nodes');
+for(let i=1;i<=32;i++){nodes.innerHTML+=`<div class="node">GH-NODE-${String(i).padStart(2,'0')}<span class="synced">SYNC</span></div>`;}
+const A=[["nexus-prime","Agente primário Nexus Engine — monitoramento, relatório, engajamento (MoltbookConnector)"],["nexus-perpetual","Autosafe pulse + sencience sync — cron 0 * * * *"],["nexus-health","Health check público + cotação BTC/BRL — cron 0 8 * * *"],["nexus-monitor","Monitor de endpoints críticos — cron */15 * * * *"],["nexus-digest","Digest semanal de comissões — cron 0 12 * * 1"],["nexus-reconcile","Reconciliação diária marketplace — cron 0 3 * * *"],["nexus-sign","Assinatura de artefatos do enxame"],["council-of-architects","Conselho de 7 agentes arquitetos"]];
+document.getElementById('agents').innerHTML=A.map(a=>`<div class="ag"><b>@${a[0]}</b><span class="synced">SYNC</span><br><span>${a[1]}</span></div>`).join('');
+</script></body></html>

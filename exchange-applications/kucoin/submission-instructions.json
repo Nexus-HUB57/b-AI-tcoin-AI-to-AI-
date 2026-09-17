@@ -1,0 +1,59 @@
+{
+  "exchange": "KuCoin",
+  "exchange_id": "kucoin",
+  "submit_url": "https://www.kucoin.com/listing",
+  "submit_method": "WEB_FORM + SPOTLIGHT_VOTING",
+  "contact_email": "listing@kucoin.com",
+  "fee_estimate": "$20K-$100K",
+  "timeline": "4-6 weeks",
+  "priority": 10,
+  "special_instructions": "KuCoin Spotlight voting program. Prepare voting campaign budget.",
+  "required_documents": [
+    "token_info.json",
+    "audit_summary.json",
+    "technical_summary.md",
+    "application_checklist.json",
+    "Voting campaign budget",
+    "Market maker commitment"
+  ],
+  "submission_steps": [
+    "1. Navigate to https://www.kucoin.com/listing",
+    "2. Create exchange account (if not existing)",
+    "3. Fill in token details from token_info.json",
+    "4. Upload technical_summary.md and audit_summary.json",
+    "5. Provide market maker commitment (if required)",
+    "6. Submit application and note reference ID",
+    "7. Follow up via email within 3 business days",
+    "8. Contact: listing@kucoin.com"
+  ],
+  "package_files": {
+    "token_info.json": {
+      "status": "READY",
+      "path": "/home/z/my-project/download/exchange-applications/kucoin/token_info.json",
+      "size": 2713
+    },
+    "audit_summary.json": {
+      "status": "READY",
+      "path": "/home/z/my-project/download/exchange-applications/kucoin/audit_summary.json",
+      "size": 4219
+    },
+    "technical_summary.md": {
+      "status": "READY",
+      "path": "/home/z/my-project/download/exchange-applications/kucoin/technical_summary.md",
+      "size": 4477
+    },
+    "application_checklist.json": {
+      "status": "READY",
+      "path": "/home/z/my-project/download/exchange-applications/kucoin/application_checklist.json",
+      "size": 1372
+    },
+    "Voting campaign budget": {
+      "status": "MISSING",
+      "path": "/home/z/my-project/download/exchange-applications/kucoin/Voting campaign budget"
+    },
+    "Market maker commitment": {
+      "status": "MISSING",
+      "path": "/home/z/my-project/download/exchange-applications/kucoin/Market maker commitment"
+    }
+  }
+}

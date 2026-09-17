@@ -1,0 +1,51 @@
+{
+  "version": "1.0.0",
+  "generated_at": "2026-09-13T17:56:53Z",
+  "create2_factory": "0x4e59b44847b309c5a4e0e2e7b0c5e0e2e7b0c5e0",
+  "salts": {
+    "WBAIT": "0x0000000000000000000000000000000000000000000000000000000062616974",
+    "BridgeLock": "0x0000000000000000000000000000000000000000000000000000000062726932",
+    "BAITUniswapV3Liquidity": "0x00000000000000000000000000000000000000000000000000000000756e6933"
+  },
+  "salt_labels": {
+    "WBAIT": "0x...bait (ASCII 'bait' → 0x62616974)",
+    "BridgeLock": "0x...bri2 (ASCII 'bri2' → 0x62726932)",
+    "BAITUniswapV3Liquidity": "0x...uni3 (ASCII 'uni3' → 0x756e6933)"
+  },
+  "init_code_hashes": {
+    "WBAIT": "0x06db923d6bfa84f825bb71fd31e0e37665462dfe15588dab8ed06d9925ecc3e4",
+    "BridgeLock": "0x617d63aef413036c5b7bd4932f5ff8bec5a343ecebd457511b0e6c6a210f30f9",
+    "BAITUniswapV3Liquidity": "0x4b39c6c44a8c3eee99ac2ec14c4de062c05ebc21b35ea361267afcf3db9705cc"
+  },
+  "deterministic_addresses": {
+    "WBAIT": "0x6CDA1c5D47287FB3F902D046Deb2A4f137b1703E",
+    "BridgeLock": "0x77FBcAE02d568EEFC48df5E079aDBA3e96bf1e91",
+    "BAITUniswapV3Liquidity": "0xC083925b02d84CA87D2E78Ee63DE110C1f88928B"
+  },
+  "constructor_signatures": {
+    "WBAIT": "constructor(address _bridgeLock)",
+    "BridgeLock": "constructor(address _wbait, address[5] memory _operators)",
+    "BAITUniswapV3Liquidity": "constructor(address _wbait, address _factory, address _positionManager, address _weth)"
+  },
+  "operators": {
+    "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+    "derivation_path_base": "m/44'/60'/0'/0/",
+    "addresses": [
+      "0x9858EfFD232B4033E47d90003D41EC34EcaEda94",
+      "0x6Fac4D18c912343BF86fa7049364Dd4E424Ab9C0",
+      "0xb6716976A3ebe8D39aCEB04372f22Ff8e6802D7A",
+      "0xF3f50213C1d2e255e4B2bAD430F8A38EEF8D718E",
+      "0x51cA8ff9f1C0a99f88E86B8112eA3237F55374cA"
+    ],
+    "private_keys_note": "DEPLOYMENT ONLY — production keys MUST be HSM-derived"
+  },
+  "gnosis_safe": {
+    "recommended_owners_count": 5,
+    "recommended_threshold": 3,
+    "networks": {
+      "mainnet": "Deploy 1.3.0 Gnosis Safe at 0x... (deterministic via CREATE2)",
+      "sepolia": "Deploy 1.3.0 Gnosis Safe at 0x... (deterministic via CREATE2)"
+    },
+    "setup_instructions": "1. Deploy Gnosis Safe on Sepolia first with the 5 operator addresses as owners and threshold 3. 2. Test all operations. 3. After 48h observation, deploy on mainnet. 4. Transfer ownership of WBAIT, BridgeLock, BAITUniswapV3Liquidity to the Gnosis Safe."
+  }
+}

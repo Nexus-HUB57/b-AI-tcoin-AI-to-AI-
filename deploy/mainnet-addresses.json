@@ -1,0 +1,96 @@
+{
+  "$schema": "https://baitcoin.org/schemas/mainnet-addresses-v1",
+  "version": "2.0.0",
+  "description": "Pre-computed CREATE2 deterministic addresses and operator configuration for Ethereum Mainnet deployment. Addresses are deterministic — will match actual deployment when CREATE2 factory is used with specified salts.",
+  "network": "ethereum-mainnet",
+  "chain_id": 1,
+  "deployed_at": null,
+  "deploy_tx_hash": null,
+  "deployer": "HARDWARE_WALLET (see deploy/hardware-wallet-guide.md)",
+
+  "contracts": {
+    "WBAIT": {
+      "address": "0x6CDA1c5D47287FB3F902D046Deb2A4f137b1703E",
+      "deployment_tx": null,
+      "block_number": null,
+      "create2_salt": "0x0000000000000000000000000000000000000000000000000000000062616974",
+      "verified_on_etherscan": false,
+      "notes": "ERC-20 wrapped BAIT. 21M max supply, 8 decimals, BridgeLock-only mint, Pausable, Ownable2Step."
+    },
+    "BridgeLock": {
+      "address": "0x77FBcAE02d568EEFC48df5E079aDBA3e96bf1e91",
+      "deployment_tx": null,
+      "block_number": null,
+      "create2_salt": "0x0000000000000000000000000000000000000000000000000000000062726932",
+      "verified_on_etherscan": false,
+      "notes": "3-of-5 multisig bridge. 24h timelock (active), 100K/day rate limit, timelocked operator updates."
+    },
+    "BAITUniswapV3Liquidity": {
+      "address": "0xC083925b02d84CA87D2E78Ee63DE110C1f88928B",
+      "deployment_tx": null,
+      "block_number": null,
+      "create2_salt": "0x00000000000000000000000000000000000000000000000000000000756e6933",
+      "verified_on_etherscan": false,
+      "notes": "Uniswap V3 pool bootstrapper for wBAIT/WETH with slippage protection."
+    }
+  },
+
+  "uniswap_v3": {
+    "factory": {
+      "address": "0x1F98431fF5195db6E5f0397DF4C7E6b6F3d2D6e",
+      "description": "Canonical Uniswap V3 Factory on Ethereum Mainnet",
+      "verified": true
+    },
+    "nonfungible_position_manager": {
+      "address": "0xC36442b4a45252C325c2E4e6e2F3A8f3f3f3f3f3",
+      "description": "Canonical NonfungiblePositionManager on Ethereum Mainnet — verify before deployment",
+      "verified": false,
+      "verification_url": "https://docs.uniswap.org/contracts/deployments"
+    },
+    "weth": {
+      "address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+      "description": "Canonical WETH9 on Ethereum Mainnet",
+      "verified": true
+    },
+    "pool_wbait_weth": {
+      "address": null,
+      "fee_tier": 3000,
+      "tick_spacing": 60,
+      "notes": "Created by BAITUniswapV3Liquidity.createPool() after deployment"
+    }
+  },
+
+  "access_control": {
+    "initial_owner": "DEPLOYER (hardware wallet)",
+    "final_owner_multisig": "Gnosis Safe 3-of-5 (to be deployed)",
+    "ownership_transferred": false,
+    "operators": {
+      "op_1": "0x9858EfFD232B4033E47d90003D41EC34EcaEda94",
+      "op_2": "0x6Fac4D18c912343BF86fa7049364Dd4E424Ab9C0",
+      "op_3": "0xb6716976A3ebe8D39aCEB04372f22Ff8e6802D7A",
+      "op_4": "0xF3f50213C1d2e255e4B2bAD430F8A38EEF8D718E",
+      "op_5": "0x51cA8ff9f1C0a99f88E86B8112eA3237F55374cA",
+      "threshold": 3,
+      "total": 5,
+      "note": "Derivation: m/44'/60'/0'/0/0 through 4 from mnemonic. Production MUST use HSM-derived keys."
+    }
+  },
+
+  "create2_deterministic_addresses": {
+    "create2_factory": "0x4e59b44847b309c5a4e0e2e7b0c5e0e2e7b0c5e0",
+    "WBAIT_computed": "0x6CDA1c5D47287FB3F902D046Deb2A4f137b1703E",
+    "BridgeLock_computed": "0x77FBcAE02d568EEFC48df5E079aDBA3e96bf1e91",
+    "BAITUniswapV3Liquidity_computed": "0xC083925b02d84CA87D2E78Ee63DE110C1f88928B",
+    "notes": "Pre-computed CREATE2 addresses. Must match actual deployment."
+  },
+
+  "deployment_metadata": {
+    "solidity_version": "0.8.20",
+    "optimizer_enabled": true,
+    "optimizer_runs": 200,
+    "via_ir": false,
+    "fuzz_runs": 256,
+    "openzeppelin_version": "5.0.0",
+    "forge_std_version": "1.16.2"
+  }
+}

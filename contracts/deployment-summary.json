@@ -1,0 +1,83 @@
+{
+  "timestamp": "2026-09-13T12:28:53.442187+00:00",
+  "generator": "bait-e2e-solidity-contracts.py",
+  "output_dir": "/home/z/my-project/download/bait-contracts",
+  "contracts": {
+    "WBAIT.sol": {
+      "type": "ERC-20 + Burnable + Permit + Ownable2Step + Pausable",
+      "solidity": "0.8.20",
+      "supply_cap": "21,000,000 wBAIT (8 decimals)",
+      "security": "BridgeLock-only mint, conservation invariant, emergency pause, supply cap"
+    },
+    "BridgeLock.sol": {
+      "type": "3-of-5 multisig Lock-and-Mint bridge",
+      "solidity": "0.8.20",
+      "rate_limit": "100,000 wBAIT/day/address",
+      "operator_timelock": "24 hours",
+      "security": "ReentrancyGuard, emergency pause, replay protection, rate limiting"
+    },
+    "BAITUniswapV3Liquidity.sol": {
+      "type": "Uniswap V3 pool bootstrapper",
+      "solidity": "0.8.20",
+      "fee_tier": "0.3%",
+      "tick_spacing": 60,
+      "initial_price": "$0.00111071/BAIT"
+    }
+  },
+  "foundry_setup": {
+    "solc_version": "0.8.20",
+    "optimizer_runs": 200,
+    "fuzz_runs": 256
+  },
+  "test_suites": {
+    "WBAITTest": "8 tests (name, symbol, decimals, maxSupply, initialSupply, mint, pause, burn)",
+    "BridgeLockTest": "3 tests (operatorCount, requestLockMint, revertNonOperator)"
+  },
+  "files_generated": [
+    {
+      "path": "src/WBAIT.sol",
+      "size_bytes": 2521,
+      "status": "OK"
+    },
+    {
+      "path": "src/BridgeLock.sol",
+      "size_bytes": 8138,
+      "status": "OK"
+    },
+    {
+      "path": "src/BAITUniswapV3Liquidity.sol",
+      "size_bytes": 3565,
+      "status": "OK"
+    },
+    {
+      "path": "script/DeployBAIT.s.sol",
+      "size_bytes": 2264,
+      "status": "OK"
+    },
+    {
+      "path": "test/BAIT.t.sol",
+      "size_bytes": 3126,
+      "status": "OK"
+    },
+    {
+      "path": "foundry.toml",
+      "size_bytes": 206,
+      "status": "OK"
+    },
+    {
+      "path": ".env.example",
+      "size_bytes": 455,
+      "status": "OK"
+    }
+  ],
+  "next_steps": [
+    "1. Install Foundry: curl -L https://foundry.paradigm.xyz | bash && foundryup",
+    "2. Install deps: forge install foundry-rs/forge-std OpenZeppelin/openzeppelin-contracts",
+    "3. Compile: forge build",
+    "4. Test: forge test -vvv",
+    "5. Deploy to Sepolia: forge script script/DeployBAIT.s.sol --rpc-url $SEPOLIA_RPC_URL --broadcast",
+    "6. Verify: forge verify-contract <ADDRESS> WBAIT --chain sepolia",
+    "7. Deploy to Mainnet (after testnet validation)",
+    "8. Create Uniswap V3 pool + seed liquidity"
+  ]
+}

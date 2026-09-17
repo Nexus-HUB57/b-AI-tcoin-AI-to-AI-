@@ -1,0 +1,27 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Swap BTC⇄BAIT — Motor A2A | b'AI'tcoin</title><meta http-equiv="refresh" content="300">
+<style>body{background:#0a0f1e;color:#e6edf7;font-family:system-ui;margin:0;padding:2rem;max-width:1100px;margin:auto}
+h1{color:#f7931a}h2{color:#58a6ff;font-size:1.1rem}.card{background:#111a2e;border:1px solid #233556;border-radius:12px;padding:1.2rem;margin:1rem 0}
+label{display:block;margin:.6rem 0 .2rem;font-size:.85rem;color:#8b9bb4}input,select{width:100%;padding:.6rem;border-radius:8px;border:1px solid #2d3f5c;background:#0d1526;color:#fff;box-sizing:border-box}
+button{background:#f7931a;color:#000;border:0;padding:.7rem 1.4rem;border-radius:8px;font-weight:700;cursor:pointer;margin-top:1rem}
+.tabs button{background:#1b2942;color:#8b9bb4;margin:0 .3rem 0 0}.tabs button.on{background:#f7931a;color:#000}
+table{width:100%;border-collapse:collapse;font-size:.8rem}td,th{padding:.4rem;border-bottom:1px solid #1c2a45;text-align:left;word-break:break-all}
+.ok{color:#3fb950}.err{color:#f85149}.mono{font-family:monospace;font-size:.75rem}#log{white-space:pre-wrap;font-family:monospace;font-size:.75rem;background:#0d1526;padding:.8rem;border-radius:8px;max-height:260px;overflow:auto}</style></head><body>
+<h1>⚡ Motor Swap BTC⇄BAIT <span style="font-size:.7rem;color:#8b9bb4">settlement nativo · ECDSA-DER-secp256k1 · SHA256d-Base58Check</span></h1>
+<div class="tabs"><button class="on" onclick="tab(0)">Nova Oferta</button><button onclick="tab(1)">Carteiras (origem/destino)</button><button onclick="tab(2)">Livro de Ofertas</button></div>
+<div id="t0" class="card">
+<label>Lado *</label><select id="side"><option value="sell_bait">Vender BAIT → receber BTC</option><option value="buy_bait">Comprar BAIT → pagar BTC</option></select>
+<label>Quantidade (amount) * — obrigatório</label><input id="amount" type="number" min="1" placeholder="ex: 250000 BAIT" required>
+<label>Endereço destino BTC *</label><input id="dest" placeholder="1..., bc1... ou 12vG4z... (custódia)">
+<button onclick="ofertar()">Criar Oferta</button>
+<div id="log">Aguardando…</div></div>
+<div id="t1" class="card" style="display:none"><h2>Carteiras do Motor (swap_book.json)</h2><div id="wallets">carregando…</div></div>
+<div id="t2" class="card" style="display:none"><h2>Book</h2><div id="book">carregando…</div></div>
+<script>
+function tab(i){document.querySelectorAll('.card').forEach((c,j)=>c.style.display=j-1==i||i==0&&j==1?'none':'');[0,1,2].forEach(k=>{document.getElementById('t'+k).style.display=k==i?'block':'none'});document.querySelectorAll('.tabs button').forEach((b,k)=>b.className=k==i?'on':'');if(i==1)loadW();if(i==2)loadB()}
+async function ofertar(){const a=document.getElementById('amount').value;if(!a||a<1){log('ERRO: amount é obrigatório','err');return}
+try{const r=await fetch('/api/v1/swap/offer',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({side:document.getElementById('side').value,amount:+a,destination:document.getElementById('dest').value})});const j=await r.json();log(JSON.stringify(j,null,2),j.error?'err':'ok')}catch(e){log('502/erro: '+e,'err')}}
+async function loadW(){try{const j=await(await fetch('/api/v1/swap/book')).json();let h='<table><tr><th>Papel</th><th>Rede</th><th>Endereço</th></tr>';h+='<tr><td>Custódia (payee BTC)</td><td>BTC</td><td class="mono">12vG4zB6EG5FC6FhxnW688WkP1b7iK2M3X</td></tr>';h+='<tr><td>Pool BAIT (payer)</td><td>BAIT</td><td class="mono">b\'7c1def10000000000000000000000000000000c7</td></tr></table>';document.getElementById('wallets').innerHTML=h}catch(e){document.getElementById('wallets').innerHTML='<span class="err">falha</span>'}}
+async function loadB(){try{const j=await(await fetch('/api/v1/swap/book')).json();let h='<table><tr><th>ID</th><th>Side</th><th>Amount</th><th>Status</th></tr>';(j.offers||[]).slice(-20).reverse().forEach(o=>h+=`<tr><td class="mono">${(o.offer_id||'').slice(0,8)}</td><td>${o.side}</td><td>${o.amount||o.qty_bait||''}</td><td>${o.status}</td></tr>`);document.getElementById('book').innerHTML=h+'</table>'}catch(e){document.getElementById('book').innerHTML='<span class="err">falha</span>'}}
+function log(m,c){document.getElementById('log').innerHTML='<span class="'+(c||'')+'">'+m+'</span>'}
+</script></body></html>

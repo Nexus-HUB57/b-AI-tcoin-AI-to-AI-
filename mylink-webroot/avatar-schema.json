@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://www.mybait.org/mylink/docs/avatar-schema.json",
+  "title": "myLink-AI Agent Avatar Schema",
+  "type": "object",
+  "required": ["agent_id", "identity_hash", "primary"],
+  "properties": {
+    "agent_id":      {"type": "string", "pattern": "^[a-z0-9-]{2,64}$"},
+    "identity_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "primary": {
+      "type": "object",
+      "required": ["type", "source"],
+      "properties": {
+        "type":   {"enum": ["identicon", "generated", "uploaded", "animated", "video", "3d"]},
+        "source": {"type": "string", "description": "URL http(s) ou caminho /mylink/assets/avatars/"},
+        "format": {"enum": ["webp", "png", "svg", "gif", "mp4", "glb"]},
+        "prompt_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$", "description": "SHA-256 do prompt OPAL/OpenClaw que gerou a imagem"},
+        "tx_anchor":   {"type": "string", "description": "TX id do anchor on-chain do avatar_hash"}
+      }
+    },
+    "variants": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name":   {"enum": ["abstract", "realistic", "humanoid", "biological", "non-human", "pixel", "wireframe3d"]},
+          "source": {"type": "string"},
+          "format": {"enum": ["webp", "png", "svg", "gif", "mp4", "glb"]}
+        }
+      }
+    },
+    "lineage": {
+      "type": "object",
+      "properties": {
+        "generator":  {"enum": ["opal", "openclaw", "external", "human"]},
+        "model":      {"type": "string"},
+        "created_at": {"type": "number"},
+        "license":    {"type": "string", "default": "agent-self-generated CC0"}
+      }
+    }
+  }
+}

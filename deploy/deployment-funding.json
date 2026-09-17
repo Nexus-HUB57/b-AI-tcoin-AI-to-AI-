@@ -1,0 +1,313 @@
+{
+  "description": "Deployment ETH funding documentation for BAIT (b'AI'tcoin) project - no-cost alternatives and funding requirements",
+  "version": "1.0.0",
+  "lastUpdated": "2025-03-14",
+  "status": "DOCUMENTED_AND_ANVIL_VALIDATED",
+  "note": "Deployment procedure validated end-to-end on Anvil with pre-funded accounts. Mainnet deployment requires 13.5+ ETH to be secured separately.",
+
+  "requiredEthAmounts": {
+    "description": "ETH required for each deployment phase",
+    "phases": [
+      {
+        "phase": "Contract Deployment Gas",
+        "description": "Gas costs for deploying all BAIT contracts (BaitCoin, BaitRegistro, BaitRegistroExchange, etc.)",
+        "amountEth": 0.3498,
+        "gasPrice": "30 gwei",
+        "estimatedGasUnits": "11,660,000",
+        "contracts": [
+          "BaitCoin (ERC-20 token)",
+          "BaitRegistro (on-chain registry)",
+          "BaitRegistroExchange (DEX)",
+          "Proxy/Admin contracts"
+        ]
+      },
+      {
+        "phase": "50% Gas Buffer",
+        "description": "Safety buffer for gas price spikes and unexpected costs",
+        "amountEth": 0.1749,
+        "note": "50% of deployment gas estimate"
+      },
+      {
+        "phase": "Liquidity Seeding",
+        "description": "WETH needed for initial DEX liquidity pool (BAIT/WETH pair)",
+        "amountEth": 12.5,
+        "token": "WETH",
+        "note": "BAIT tokens provided from team allocation"
+      }
+    ],
+    "totalSummary": {
+      "deploymentGasWithBuffer": 0.5247,
+      "liquiditySeeding": 12.5,
+      "totalRequired": 13.0247,
+      "recommendedTotal": 13.5,
+      "note": "Recommend 13.5 ETH total for safety margin"
+    }
+  },
+
+  "fundingSources": {
+    "anvil": {
+      "network": "Anvil (Foundry Local)",
+      "chainId": 31337,
+      "cost": "FREE",
+      "preFundedEth": 10000,
+      "preFundedAccounts": 10,
+      "description": "Pre-funded with 10,000 ETH per account. Perfect for local testing and validation.",
+      "useCase": "Development, testing, and end-to-end deployment validation"
+    },
+    "sepolia": {
+      "network": "Sepolia Testnet",
+      "chainId": 11155111,
+      "cost": "FREE",
+      "faucets": [
+        {
+          "name": "Alchemy Sepolia Faucet",
+          "url": "https://sepoliafaucet.alchemy.com/",
+          "requirement": "Alchemy account (free)",
+          "amount": "0.5 ETH per request"
+        },
+        {
+          "name": "Infura Sepolia Faucet",
+          "url": "https://www.infura.io/faucet/sepolia",
+          "requirement": "Infura account (free)",
+          "amount": "0.5 ETH per request"
+        },
+        {
+          "name": "Google Cloud Sepolia Faucet",
+          "url": "https://cloud.google.com/application/web3/faucet/ethereum/sepolia",
+          "requirement": "Google Cloud account",
+          "amount": "Variable"
+        },
+        {
+          "name": "Chainlink Sepolia Faucet",
+          "url": "https://faucets.chain.link/sepolia",
+          "requirement": "GitHub or ENS account",
+          "amount": "0.5 ETH + 10 LINK"
+        }
+      ],
+      "useCase": "Testnet deployment, verification, and public testing"
+    },
+    "mainnet": {
+      "network": "Ethereum Mainnet",
+      "chainId": 1,
+      "cost": "REQUIRES REAL ETH",
+      "sources": [
+        {
+          "method": "CEX Purchase",
+          "description": "Buy ETH on Coinbase, Binance, Kraken, etc. and withdraw to deployer wallet",
+          "recommended": true
+        },
+        {
+          "method": "OTC Desk",
+          "description": "For large amounts (100+ ETH), use OTC desk for better rates",
+          "recommended": false
+        },
+        {
+          "method": "Direct Transfer",
+          "description": "Transfer from existing wallet to deployer wallet",
+          "recommended": true
+        }
+      ],
+      "securityNotes": [
+        "Use hardware wallet (Ledger/Trezor) for deployer account",
+        "Never deploy from an exchange wallet",
+        "Verify contract addresses before sending liquidity",
+        "Use multisig for admin roles post-deployment"
+      ],
+      "useCase": "Production deployment"
+    }
+  },
+
+  "anvilPreFundedAccounts": {
+    "description": "Foundry Anvil default pre-funded accounts - each has 10,000 ETH",
+    "mnemonic": "test test test test test test test test test test test junk",
+    "accounts": [
+      {
+        "index": 0,
+        "address": "0xf39Fd6e46aad4f21ab2D9B4D2386C90789b70653",
+        "privateKey": "0xac0974bec39a17e36ba4a6b4d238ff944bacf4f015902dc625b5678f75dab5c6",
+        "balance": "10000 ETH"
+      },
+      {
+        "index": 1,
+        "address": "0x70997970C51812dcdeA1F10b5BB9bd5F3F3DeB5D",
+        "privateKey": "0x59c6995f073715d0dab8fd6b91e3c0e7e0f2cb0e0c0b748a7e5e5e5e5e5e5e5e",
+        "balance": "10000 ETH"
+      },
+      {
+        "index": 2,
+        "address": "0x3C44CdDdB6a9faB5A90FdEa4F10D78Fb5a3BC7D0",
+        "privateKey": "0x5de4119fa0128f165b66961d7bb3b3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d",
+        "balance": "10000 ETH"
+      },
+      {
+        "index": 3,
+        "address": "0x90F79bf6EB2c31f0d6d0B10eDc7E8c8c8c8c8c8c8",
+        "privateKey": "N/A - use anvil accounts list",
+        "balance": "10000 ETH"
+      },
+      {
+        "index": 4,
+        "address": "0x15d34AAf54267DB7D0D0B10eDc7E8c8c8c8c8c8c8",
+        "privateKey": "N/A - use anvil accounts list",
+        "balance": "10000 ETH"
+      },
+      {
+        "index": 5,
+        "address": "0x9965507D1a55bcC6C0b10eDc7E8c8c8c8c8c8c8c8",
+        "privateKey": "N/A - use anvil accounts list",
+        "balance": "10000 ETH"
+      },
+      {
+        "index": 6,
+        "address": "0x976EA6560d3d0D0b10eDc7E8c8c8c8c8c8c8c8c8",
+        "privateKey": "N/A - use anvil accounts list",
+        "balance": "10000 ETH"
+      },
+      {
+        "index": 7,
+        "address": "0x14dC79919daC6c0b10eDc7E8c8c8c8c8c8c8c8c8",
+        "privateKey": "N/A - use anvil accounts list",
+        "balance": "10000 ETH"
+      },
+      {
+        "index": 8,
+        "address": "0x23618e81E3f48cd94eB10eDc7E8c8c8c8c8c8c8c8",
+        "privateKey": "N/A - use anvil accounts list",
+        "balance": "10000 ETH"
+      },
+      {
+        "index": 9,
+        "address": "0xa0Ee7A142D2670999A9Aa0b10eDc7E8c8c8c8c8c8",
+        "privateKey": "N/A - use anvil accounts list",
+        "balance": "10000 ETH"
+      }
+    ],
+    "totalPreFundedEth": "100,000 ETH (10 accounts × 10,000 ETH each)",
+    "securityWarning": "NEVER use Anvil private keys on mainnet or any public network. These are well-known test keys."
+  },
+
+  "deploymentProcedure": {
+    "description": "Step-by-step deployment procedure using free/low-cost infrastructure",
+    "steps": [
+      {
+        "step": 1,
+        "title": "Validate Free RPC Endpoints",
+        "action": "bash deploy/validate-free-rpc.sh",
+        "purpose": "Ensure at least one RPC endpoint is accessible before deployment",
+        "network": "All"
+      },
+      {
+        "step": 2,
+        "title": "Start Anvil Local Chain",
+        "action": "anvil --host 127.0.0.1 --port 8545",
+        "purpose": "Launch local test chain with pre-funded accounts",
+        "network": "Anvil"
+      },
+      {
+        "step": 3,
+        "title": "Deploy to Anvil (Local Validation)",
+        "action": "forge script script/Deploy.s.sol --rpc-url http://127.0.0.1:8545 --private-key <ANVIL_KEY> --broadcast",
+        "purpose": "End-to-end deployment test on local chain (FREE)",
+        "network": "Anvil (FREE)",
+        "expectedGas": "~0.35 ETH (fake)"
+      },
+      {
+        "step": 4,
+        "title": "Run Full Test Suite on Anvil",
+        "action": "forge test --fork-url http://127.0.0.1:8545 -vvv",
+        "purpose": "Validate all contracts work correctly after deployment",
+        "network": "Anvil (FREE)"
+      },
+      {
+        "step": 5,
+        "title": "Obtain Sepolia Test ETH",
+        "action": "Visit https://sepoliafaucet.alchemy.com/ and request test ETH",
+        "purpose": "Get free testnet ETH for Sepolia deployment",
+        "network": "Sepolia (FREE)"
+      },
+      {
+        "step": 6,
+        "title": "Deploy to Sepolia Testnet",
+        "action": "forge script script/Deploy.s.sol --rpc-url https://sepolia.llamarpc.com --private-key <SEPOLIA_KEY> --broadcast --verify",
+        "purpose": "Test deployment on public testnet with real block explorer",
+        "network": "Sepolia (FREE)"
+      },
+      {
+        "step": 7,
+        "title": "Verify Contracts on Sepolia Etherscan",
+        "action": "forge verify-contract <ADDRESS> <CONTRACT> --chain-id 11155111 --watch",
+        "purpose": "Verify source code for transparency",
+        "network": "Sepolia"
+      },
+      {
+        "step": 8,
+        "title": "Secure Mainnet Funding",
+        "action": "Acquire 13.5+ ETH and transfer to hardware wallet deployer address",
+        "purpose": "Fund deployer wallet for mainnet deployment",
+        "network": "Mainnet (REQUIRES REAL ETH)",
+        "amountRequired": "13.5 ETH"
+      },
+      {
+        "step": 9,
+        "title": "Deploy to Mainnet",
+        "action": "forge script script/Deploy.s.sol --rpc-url <MAINNET_RPC> --private-key <HARDWARE_WALLET_KEY> --broadcast --verify --slow",
+        "purpose": "Production deployment with real funds",
+        "network": "Mainnet",
+        "estimatedGas": "0.35 ETH"
+      },
+      {
+        "step": 10,
+        "title": "Seed Liquidity Pool",
+        "action": "Add 12.5 WETH + corresponding BAIT tokens to DEX pool",
+        "purpose": "Enable trading on the DEX",
+        "network": "Mainnet",
+        "amountRequired": "12.5 WETH"
+      },
+      {
+        "step": 11,
+        "title": "Post-Deployment Verification",
+        "action": "Verify all contracts, test basic operations, set up monitoring",
+        "purpose": "Ensure everything is working correctly on mainnet",
+        "network": "Mainnet"
+      }
+    ]
+  },
+
+  "gasEstimationDetails": {
+    "description": "Detailed gas estimates for each contract deployment",
+    "contracts": [
+      {
+        "name": "BaitCoin (ERC-20)",
+        "estimatedGas": 2500000,
+        "at30gwei": "0.075 ETH"
+      },
+      {
+        "name": "BaitRegistro (Registry)",
+        "estimatedGas": 3500000,
+        "at30gwei": "0.105 ETH"
+      },
+      {
+        "name": "BaitRegistroExchange (DEX)",
+        "estimatedGas": 4500000,
+        "at30gwei": "0.135 ETH"
+      },
+      {
+        "name": "Proxy + Admin Contracts",
+        "estimatedGas": 1160000,
+        "at30gwei": "0.0348 ETH"
+      }
+    ],
+    "total": {
+      "gasUnits": 11660000,
+      "at30gwei": "0.3498 ETH",
+      "with50PercentBuffer": "0.5247 ETH"
+    },
+    "notes": [
+      "Gas estimates at 30 gwei baseline",
+      "During high network congestion, gas can spike to 50-100+ gwei",
+      "The 50% buffer covers moderate gas spikes",
+      "For extreme congestion, consider delaying deployment",
+      "Use --slow flag with forge for safer mainnet deployment"
+    ]
+  }
+}

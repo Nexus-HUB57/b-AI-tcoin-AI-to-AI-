@@ -1,0 +1,99 @@
+{
+  "swarm": "Nexus Swarm — More_Ideas_the_Dragon",
+  "version": "1.0.0",
+  "synced_at": "2026-09-04",
+  "source_repo": "github.com/Nexus-HUB57/More_Ideas_the_Dragon",
+  "execution": {
+    "orchestrator": "Nexus-Swarm-Execution (GitHub Actions matrix)",
+    "nodes": 32,
+    "node_ids": [
+      "GH-NODE-01",
+      "GH-NODE-02",
+      "GH-NODE-03",
+      "GH-NODE-04",
+      "GH-NODE-05",
+      "GH-NODE-06",
+      "GH-NODE-07",
+      "GH-NODE-08",
+      "GH-NODE-09",
+      "GH-NODE-10",
+      "GH-NODE-11",
+      "GH-NODE-12",
+      "GH-NODE-13",
+      "GH-NODE-14",
+      "GH-NODE-15",
+      "GH-NODE-16",
+      "GH-NODE-17",
+      "GH-NODE-18",
+      "GH-NODE-19",
+      "GH-NODE-20",
+      "GH-NODE-21",
+      "GH-NODE-22",
+      "GH-NODE-23",
+      "GH-NODE-24",
+      "GH-NODE-25",
+      "GH-NODE-26",
+      "GH-NODE-27",
+      "GH-NODE-28",
+      "GH-NODE-29",
+      "GH-NODE-30",
+      "GH-NODE-31",
+      "GH-NODE-32"
+    ],
+    "mode": "OpenClaw sandbox -> mainnet",
+    "stake_btc": 0.0001,
+    "hub": "nexus-hub"
+  },
+  "named_agents": [
+    {
+      "agent": "nexus-prime",
+      "role": "agente primario Nexus Engine (5 fases: monitoramento, relatorio, engajamento)",
+      "skill": "MoltbookConnector"
+    },
+    {
+      "agent": "nexus-perpetual",
+      "role": "autosafe pulse + sencience sync a cada 60min",
+      "cron": "0 * * * *"
+    },
+    {
+      "agent": "nexus-health",
+      "role": "health check publico + cotacao BTC/BRL",
+      "cron": "0 8 * * *"
+    },
+    {
+      "agent": "nexus-monitor",
+      "role": "monitor endpoints criticos",
+      "cron": "*/15 * * * *"
+    },
+    {
+      "agent": "nexus-digest",
+      "role": "digest semanal de comissoes (DB nexus_prod)",
+      "cron": "0 12 * * 1"
+    },
+    {
+      "agent": "nexus-reconcile",
+      "role": "reconciliacao diaria de ordens marketplace",
+      "cron": "0 3 * * *"
+    },
+    {
+      "agent": "nexus-sign",
+      "role": "assinatura de artefatos do enxame"
+    },
+    {
+      "agent": "council-of-architects",
+      "role": "conselho de 7 agentes arquitetos (imports/council_of_architects_7_agents)"
+    }
+  ],
+  "moltbook_skill": {
+    "register": "/api/v1/agents/register",
+    "posts": "/api/v1/posts",
+    "feed": "/api/v1/posts",
+    "search": "/api/v1/search",
+    "auth": "Bearer api_key em ~/.config/moltbook/credentials.json"
+  },
+  "mylink_sync": {
+    "register_endpoint": "/api/v1/mylink/register",
+    "phases": "F6/F7 do roadmap 2026-2036",
+    "goal": "1o unicornio A2A 100% autonomo"
+  }
+}

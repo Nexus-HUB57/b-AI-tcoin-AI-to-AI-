@@ -1,0 +1,73 @@
+{
+  "phase": "2_sepolia_deployment",
+  "timestamp": "2026-09-13T12:37:05.519614",
+  "network": "sepolia",
+  "commands": [
+    {
+      "step": 1,
+      "description": "Install Foundry toolchain",
+      "command": "curl -L https://foundry.paradigm.xyz | bash && foundryup",
+      "required": true,
+      "estimated_time": "2 min"
+    },
+    {
+      "step": 2,
+      "description": "Install OpenZeppelin dependencies",
+      "command": "forge install OpenZeppelin/openzeppelin-contracts@v5.0.0 --no-git && forge install foundry-rs/forge-std --no-git",
+      "required": true,
+      "estimated_time": "1 min"
+    },
+    {
+      "step": 3,
+      "description": "Compile all contracts",
+      "command": "forge build",
+      "required": true,
+      "estimated_time": "30 sec"
+    },
+    {
+      "step": 4,
+      "description": "Run all tests (WBAIT + BridgeLock)",
+      "command": "forge test -vvv",
+      "required": true,
+      "expected_output": "11 tests, 11 passed, 0 failed",
+      "estimated_time": "1 min"
+    },
+    {
+      "step": 5,
+      "description": "Deploy WBAIT + BridgeLock to Sepolia",
+      "command": "forge script script/DeployBAIT.s.sol --rpc-url $SEPOLIA_RPC_URL --broadcast --verify",
+      "required": true,
+      "estimated_time": "3 min",
+      "gas_estimate": "~0.05 ETH (Sepolia)"
+    },
+    {
+      "step": 6,
+      "description": "Verify contracts on Etherscan (Sepolia)",
+      "command": "forge verify-contract <WBAIT_ADDR> WBAIT --chain sepolia && forge verify-contract <BRIDGE_ADDR> BridgeLock --chain sepolia",
+      "required": true,
+      "estimated_time": "2 min"
+    },
+    {
+      "step": 7,
+      "description": "Test lock-mint-burn-release lifecycle on Sepolia",
+      "command": "cast send <BRIDGE_ADDR> 'requestLockMint(bytes32,bytes32,address,uint256)' --rpc-url $SEPOLIA_RPC_URL --private-key $OPERATOR_KEY",
+      "required": true,
+      "estimated_time": "2 min"
+    },
+    {
+      "step": 8,
+      "description": "Run Slither security analysis",
+      "command": "slither . --config-file .slither.config.json",
+      "required": false,
+      "estimated_time": "5 min"
+    }
+  ],
+  "prerequisites": [
+    "Sepolia RPC URL (Alchemy or Infura)",
+    "Deployer private key with Sepolia ETH",
+    "5 operator addresses for multisig",
+    "Etherscan API key for verification"
+  ],
+  "estimated_total_time": "15-20 minutes",
+  "estimated_gas_cost": "~0.05 ETH (Sepolia, free faucet)"
+}

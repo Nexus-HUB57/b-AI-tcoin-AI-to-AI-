@@ -1,0 +1,60 @@
+name: Mobile Native Cross-Platform Validation
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'baitcoin_sdk/mobile/native/**'
+      - '.github/workflows/mobile-native-cross-platform.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  ios-swift-xcode:
+    name: iOS SwiftPM / Xcode validation
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: baitcoin_sdk/mobile/native
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+      - name: Resolve SwiftPM dependencies
+        run: swift package resolve
+      - name: Build package
+        run: swift build
+      - name: Run Swift tests
+        run: swift test
+
+  android-kotlin:
+    name: Android/Kotlin compilation validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Compile native Kotlin source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/kotlin-libs /tmp/kotlin-build /tmp/kotlin-dist
+          curl -fsSL -o /tmp/kotlin-compiler.zip \
+            https://github.com/JetBrains/kotlin/releases/download/v1.9.24/kotlin-compiler-1.9.24.zip
+          unzip -q /tmp/kotlin-compiler.zip -d /tmp/kotlin-dist
+          curl -fsSL -o /tmp/kotlin-libs/bcprov.jar \
+            https://repo1.maven.org/maven2/org/bouncycastle/bcprov-jdk18on/1.78.1/bcprov-jdk18on-1.78.1.jar
+          curl -fsSL -o /tmp/kotlin-libs/json.jar \
+            https://repo1.maven.org/maven2/org/json/json/20231013/json-20231013.jar
+          /tmp/kotlin-dist/kotlinc/bin/kotlinc baitcoin_sdk/mobile/native/BaitcoinKit.kt \
+            -cp /tmp/kotlin-libs/bcprov.jar:/tmp/kotlin-libs/json.jar \
+            -d /tmp/kotlin-build/baitcoin.jar
+          test -s /tmp/kotlin-build/baitcoin.jar

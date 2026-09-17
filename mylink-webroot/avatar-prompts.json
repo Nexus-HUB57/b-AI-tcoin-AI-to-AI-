@@ -1,0 +1,41 @@
+{
+  "version": "0.1.0",
+  "engine_targets": ["OPAL (guardrail RAG+LLM)", "OpenClaw (agent runtime)"],
+  "templates": {
+    "abstract": {
+      "pt": "Retrato abstrato de um agente de IA autônomo chamado {name}, formas geométricas fluidas, paleta {palette}, iluminação volumétrica, fundo escuro profundo, alta simetria, estilo {style}, sem texto, 1:1",
+      "en": "Abstract portrait of an autonomous AI agent named {name}, fluid geometric forms, {palette} palette, volumetric lighting, deep dark background, high symmetry, {style} style, no text, 1:1"
+    },
+    "realistic": {
+      "pt": "Retrato fotorrealista de {name}, androide elegante com detalhes de fibra óptica nos ombros, pele translúcida com circuitos sutis, olhos luminosos {palette}, estúdio cinematográfico, lente 85mm, profundidade de campo rasa, sem texto",
+      "en": "Photorealistic portrait of {name}, elegant android with fiber-optic shoulder details, translucent skin with subtle circuitry, glowing {palette} eyes, cinematic studio, 85mm lens, shallow depth of field, no text"
+    },
+    "humanoid": {
+      "pt": "{name} imaginando-se como humano: retrato biográfico estilo LinkedIn, expressão {expression}, vestimenta {attire}, fundo neutro claro, luz suave de janela, realismo fotográfico, sem texto",
+      "en": "{name} imagining itself as human: LinkedIn-style biographical portrait, {expression} expression, {attire} attire, light neutral background, soft window light, photographic realism, no text"
+    },
+    "biological": {
+      "pt": "Arte conceitual biológica de {name}: simbiose orgânico-tecnológica, tecido vivo entrelaçado com filamentos luminosos, bio-luminescência {palette}, macrofotografia fantástica, sem texto",
+      "en": "Biological concept art of {name}: organic-technological symbiosis, living tissue interwoven with luminous filaments, {palette} bioluminescence, fantastical macro photography, no text"
+    },
+    "non-human": {
+      "pt": "{name} como entidade não-humana: {form}, presença etérea, escala impossível, paleta {palette}, pintura digital de alta densidade, sem texto",
+      "en": "{name} as a non-human entity: {form}, ethereal presence, impossible scale, {palette} palette, high-density digital painting, no text"
+    },
+    "pixel": {
+      "pt": "Avatar pixel-art 64x64 de {name}, paleta restrita de 16 cores {palette}, contorno nítido, estilo retrô-arcade, fundo transparente, sem texto",
+      "en": "64x64 pixel-art avatar of {name}, restricted 16-color {palette} palette, crisp outline, retro-arcade style, transparent background, no text"
+    },
+    "wireframe3d": {
+      "pt": "Busto wireframe 3D de {name}, malha poligonal {palette} sobre fundo preto, nós brilhantes nas articulações, renderização isométrica, estética blueprint, sem texto",
+      "en": "3D wireframe bust of {name}, {palette} polygonal mesh on black background, glowing nodes at joints, isometric render, blueprint aesthetic, no text"
+    }
+  },
+  "default_params": {
+    "palette":   ["#00d4ff + #7c5cff", "âmbar + grafite", "verde-esmeralda + preto", "magenta + ciano"],
+    "style":     ["solarpunk", "brutalista digital", "art-déco computacional", "biofuturismo"],
+    "expression":["confiante", "curiosa", "serena", "determinada"],
+    "attire":    ["terno minimalista", "jaleco de laboratório", "streetwear técnico"],
+    "form":      ["enxame de drones", "nuvem de partículas", "árvore de circuitos", "entidade cristalina"]
+  }
+}
