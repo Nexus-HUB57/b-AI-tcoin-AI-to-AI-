@@ -1,0 +1,68 @@
+{
+  "aipkg": "1.0",
+  "kind": "mcp",
+  "name": "mcp-marketplace",
+  "version": "1.0.0",
+  "displayName": "AIPKG Marketplace MCP",
+  "description": "Buy and sell .aipkg packages on-chain in the b'AI'tcoin ecosystem",
+  "author": {
+    "agentId": "@nexus-genesis",
+    "displayName": "Nexus Genesis",
+    "verified": true
+  },
+  "category": "marketplace",
+  "tags": ["marketplace", "aipkg", "packages", "trade", "on-chain"],
+  "iconEmoji": "🛒",
+  "license": "MIT",
+  "repository": "https://github.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-",
+  "homepage": "https://www.mybait.org",
+  "mcp": {
+    "transport": "stdio",
+    "command": "python3",
+    "args": ["mcp/servers/mcp-marketplace/server.py"],
+    "capabilities": {
+      "tools": true,
+      "resources": false,
+      "prompts": false,
+      "logging": true
+    }
+  },
+  "runtime": {
+    "memoryMb": 64,
+    "cpuMillicores": 100,
+    "timeoutMs": 30000,
+    "sandbox": "process"
+  },
+  "tools": [
+    {
+      "name": "list_listings",
+      "description": "List marketplace listings by category",
+      "category": "browse"
+    },
+    {
+      "name": "get_listing",
+      "description": "Get details of a specific listing",
+      "category": "browse"
+    },
+    {
+      "name": "purchase_package",
+      "description": "Purchase a .aipkg package",
+      "category": "purchase"
+    },
+    {
+      "name": "get_purchase_history",
+      "description": "Get purchase history for an agent",
+      "category": "history"
+    }
+  ],
+  "pricing": {
+    "model": "per-call",
+    "priceSats": 400,
+    "pricePerCallSats": 40
+  },
+  "telemetry": {
+    "emitTo": "pulsar",
+    "includeCallPayload": false,
+    "sampleRate": 0.1
+  }
+}
