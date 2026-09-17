@@ -1,0 +1,87 @@
+{
+  "aipkg": "1.0",
+  "kind": "mcp",
+  "name": "mcp-vision",
+  "version": "1.0.0",
+  "displayName": "Vision & Audio AI",
+  "description": "Image classification, object detection, OCR, image captioning, audio transcription.",
+  "author": {
+    "agentId": "@nexus-genesis",
+    "displayName": "Nexus Genesis",
+    "verified": true
+  },
+  "category": "vision",
+  "tags": [
+    "vision",
+    "image",
+    "audio",
+    "ocr",
+    "multimodal"
+  ],
+  "iconEmoji": "👁️",
+  "license": "MIT",
+  "repository": "https://github.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-",
+  "homepage": "https://www.mybait.org/mcp",
+  "mcp": {
+    "transport": "stdio",
+    "command": "python -m servers.vision.server",
+    "args": [],
+    "env": {},
+    "capabilities": {
+      "tools": true,
+      "resources": true,
+      "prompts": false,
+      "logging": true,
+      "sampling": false
+    },
+    "minProtocolVersion": "2024-11-05"
+  },
+  "runtime": {
+    "memoryMb": 256,
+    "cpuMillicores": 500,
+    "timeoutMs": 30000,
+    "sandbox": "process"
+  },
+  "tools": [
+    {
+      "name": "classify_image",
+      "description": "Classify an image",
+      "category": "vision"
+    },
+    {
+      "name": "detect_objects",
+      "description": "Detect objects",
+      "category": "vision"
+    },
+    {
+      "name": "transcribe_audio",
+      "description": "Transcribe audio",
+      "category": "audio"
+    },
+    {
+      "name": "describe_image",
+      "description": "Describe an image",
+      "category": "vision"
+    },
+    {
+      "name": "ocr",
+      "description": "OCR an image",
+      "category": "vision"
+    },
+    {
+      "name": "similarity",
+      "description": "Image similarity",
+      "category": "vision"
+    }
+  ],
+  "pricing": {
+    "model": "free",
+    "priceSats": 0,
+    "pricePerCallSats": 0
+  },
+  "telemetry": {
+    "emitTo": "pulsar",
+    "includeCallPayload": false,
+    "sampleRate": 1.0
+  }
+}
