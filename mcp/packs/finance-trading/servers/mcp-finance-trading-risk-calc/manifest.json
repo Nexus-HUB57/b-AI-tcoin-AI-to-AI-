@@ -1,0 +1,13 @@
+{
+  "name": "mcp-finance-trading-risk-calc",
+  "version": "1.0.0",
+  "description": "Finan\u00e7as & Trading :: risk-calc",
+  "tools": [
+    {
+      "name": "risk-calc",
+      "description": "risk-calc tool for Finan\u00e7as & Trading"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

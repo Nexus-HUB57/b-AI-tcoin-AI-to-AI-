@@ -1,0 +1,13 @@
+{
+  "name": "mcp-iot-edge-device-attest",
+  "version": "1.0.0",
+  "description": "IoT & Edge Computing :: device-attest",
+  "tools": [
+    {
+      "name": "device-attest",
+      "description": "device-attest tool for IoT & Edge Computing"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

@@ -1,0 +1,13 @@
+{
+  "name": "mcp-finance-trading-report-gen",
+  "version": "1.0.0",
+  "description": "Finan\u00e7as & Trading :: report-gen",
+  "tools": [
+    {
+      "name": "report-gen",
+      "description": "report-gen tool for Finan\u00e7as & Trading"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

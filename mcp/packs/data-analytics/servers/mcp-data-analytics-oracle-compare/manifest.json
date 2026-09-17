@@ -1,0 +1,13 @@
+{
+  "name": "mcp-data-analytics-oracle-compare",
+  "version": "1.0.0",
+  "description": "Dados & Analytics :: oracle-compare",
+  "tools": [
+    {
+      "name": "oracle-compare",
+      "description": "oracle-compare tool for Dados & Analytics"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

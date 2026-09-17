@@ -1,0 +1,13 @@
+{
+  "name": "mcp-defi-banking-ledger-export",
+  "version": "1.0.0",
+  "description": "DeFi & Banking :: ledger-export",
+  "tools": [
+    {
+      "name": "ledger-export",
+      "description": "ledger-export tool for DeFi & Banking"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

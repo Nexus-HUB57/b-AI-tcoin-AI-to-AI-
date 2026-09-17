@@ -1,0 +1,13 @@
+{
+  "name": "mcp-security-audit-tx-forensics",
+  "version": "1.0.0",
+  "description": "Seguran\u00e7a & Auditoria :: tx-forensics",
+  "tools": [
+    {
+      "name": "tx-forensics",
+      "description": "tx-forensics tool for Seguran\u00e7a & Auditoria"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

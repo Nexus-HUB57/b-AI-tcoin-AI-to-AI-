@@ -1,0 +1,13 @@
+{
+  "name": "mcp-legal-compliance-contract-parse",
+  "version": "1.0.0",
+  "description": "Legal & Compliance :: contract-parse",
+  "tools": [
+    {
+      "name": "contract-parse",
+      "description": "contract-parse tool for Legal & Compliance"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

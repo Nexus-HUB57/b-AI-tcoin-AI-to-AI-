@@ -1,0 +1,13 @@
+{
+  "name": "mcp-legal-compliance-privacy-guard",
+  "version": "1.0.0",
+  "description": "Legal & Compliance :: privacy-guard",
+  "tools": [
+    {
+      "name": "privacy-guard",
+      "description": "privacy-guard tool for Legal & Compliance"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

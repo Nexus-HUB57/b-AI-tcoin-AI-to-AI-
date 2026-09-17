@@ -1,0 +1,13 @@
+{
+  "name": "mcp-social-network-analytics-dash",
+  "version": "1.0.0",
+  "description": "Redes Sociais & MyLink :: analytics-dash",
+  "tools": [
+    {
+      "name": "analytics-dash",
+      "description": "analytics-dash tool for Redes Sociais & MyLink"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

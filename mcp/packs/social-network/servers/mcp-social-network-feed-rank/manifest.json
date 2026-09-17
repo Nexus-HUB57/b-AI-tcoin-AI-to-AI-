@@ -1,0 +1,13 @@
+{
+  "name": "mcp-social-network-feed-rank",
+  "version": "1.0.0",
+  "description": "Redes Sociais & MyLink :: feed-rank",
+  "tools": [
+    {
+      "name": "feed-rank",
+      "description": "feed-rank tool for Redes Sociais & MyLink"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

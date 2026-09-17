@@ -1,0 +1,13 @@
+{
+  "name": "mcp-iot-edge-failover",
+  "version": "1.0.0",
+  "description": "IoT & Edge Computing :: failover",
+  "tools": [
+    {
+      "name": "failover",
+      "description": "failover tool for IoT & Edge Computing"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

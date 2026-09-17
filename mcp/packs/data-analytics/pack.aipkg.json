@@ -1,0 +1,18 @@
+{
+  "package": "data-analytics",
+  "title": "Dados & Analytics",
+  "version": "1.0.0",
+  "format": ".aipkg",
+  "mcps": [
+    "mcp-data-analytics-chain-indexer",
+    "mcp-data-analytics-utxo-stats",
+    "mcp-data-analytics-oracle-compare",
+    "mcp-data-analytics-whale-alert",
+    "mcp-data-analytics-block-timeline",
+    "mcp-data-analytics-fee-market",
+    "mcp-data-analytics-hashrate-est",
+    "mcp-data-analytics-supply-audit",
+    "mcp-data-analytics-export-parquet",
+    "mcp-data-analytics-dashboard"
+  ]
+}

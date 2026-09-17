@@ -1,0 +1,13 @@
+{
+  "name": "mcp-defi-banking-stake-mgr",
+  "version": "1.0.0",
+  "description": "DeFi & Banking :: stake-mgr",
+  "tools": [
+    {
+      "name": "stake-mgr",
+      "description": "stake-mgr tool for DeFi & Banking"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

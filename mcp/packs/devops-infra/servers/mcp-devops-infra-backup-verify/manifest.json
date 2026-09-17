@@ -1,0 +1,13 @@
+{
+  "name": "mcp-devops-infra-backup-verify",
+  "version": "1.0.0",
+  "description": "DevOps & Infraestrutura :: backup-verify",
+  "tools": [
+    {
+      "name": "backup-verify",
+      "description": "backup-verify tool for DevOps & Infraestrutura"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

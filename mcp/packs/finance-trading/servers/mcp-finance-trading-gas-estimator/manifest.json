@@ -1,0 +1,13 @@
+{
+  "name": "mcp-finance-trading-gas-estimator",
+  "version": "1.0.0",
+  "description": "Finan\u00e7as & Trading :: gas-estimator",
+  "tools": [
+    {
+      "name": "gas-estimator",
+      "description": "gas-estimator tool for Finan\u00e7as & Trading"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

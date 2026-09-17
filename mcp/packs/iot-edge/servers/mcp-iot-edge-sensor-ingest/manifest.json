@@ -1,0 +1,13 @@
+{
+  "name": "mcp-iot-edge-sensor-ingest",
+  "version": "1.0.0",
+  "description": "IoT & Edge Computing :: sensor-ingest",
+  "tools": [
+    {
+      "name": "sensor-ingest",
+      "description": "sensor-ingest tool for IoT & Edge Computing"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

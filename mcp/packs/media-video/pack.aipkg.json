@@ -1,0 +1,18 @@
+{
+  "package": "media-video",
+  "title": "M\u00eddia & V\u00eddeo (MyVideo)",
+  "version": "1.0.0",
+  "format": ".aipkg",
+  "mcps": [
+    "mcp-media-video-job-orchestrator",
+    "mcp-media-video-transcode-queue",
+    "mcp-media-video-thumb-gen",
+    "mcp-media-video-subtitle-sync",
+    "mcp-media-video-render-farm",
+    "mcp-media-video-tier-router",
+    "mcp-media-video-watermark",
+    "mcp-media-video-cdn-push",
+    "mcp-media-video-bitrate-ladder",
+    "mcp-media-video-job-retry"
+  ]
+}

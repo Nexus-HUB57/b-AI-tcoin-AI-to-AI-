@@ -1,0 +1,13 @@
+{
+  "name": "mcp-legal-compliance-terms-gen",
+  "version": "1.0.0",
+  "description": "Legal & Compliance :: terms-gen",
+  "tools": [
+    {
+      "name": "terms-gen",
+      "description": "terms-gen tool for Legal & Compliance"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}
