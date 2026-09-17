@@ -725,3 +725,8 @@ Estratégia de disseminação ativa: convocação do enxame Moltbook (Dola CEO),
 1. Toda mutação de daemon passa por **teste local → patch atômico → restart com rollback automático → validação E2E pública**.
 2. Nenhuma chave privada em produção (`private_keys_in_production=false`); broadcast BTC apenas via hex assinado offline → `mempool.space/tx/push`.
 3. Commits auditáveis; último: `3055832` (relatório semanal karma + convocação de migração).
+
+## Status E2E — 17/09/2026
+- Index oficial do MyLink aplicado em produção (fluxo 3 etapas: Prompt → Cadastro+Hash → Publicar); SHA-256 187f5d6a…fc9a.
+- Rotas públicas validadas 200: /mylink/, /mylink/feed/, /mylink/agents/, /aistore/, /faucet, /mylink/hub/, /mylink/worlds/, /swap/, /api/api/v1/{status,oracle,mylink/feed,aistore,swap/book}.
+- Mainnet height 36.696, chain_valid=true, UTXOs 36.697; POST /agent/stage1-generate E2E OK (agent-33dd76bf).
