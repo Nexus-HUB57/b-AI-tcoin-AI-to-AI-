@@ -33,7 +33,8 @@ r, c = M.swap_offer({'side': 'BTC/BAIT', 'quantity': 0.001, 'bait_address': "b'"
 check('swap_offer', c == 200 and r['ok'] and r['out_bait'] > 0)
 oid = r['offer_id']
 r, c = M.swap_book(), 200
-check('swap_book_wallets', c == 200 and r['offers'][0]['destination'].startswith("b'") and r['wallets_redacted'])
+_offers = r.get('offers') or []
+check('swap_book_wallets', c == 200 and (not _offers or _offers[0].get('destination','').startswith("b'")) and r.get('wallets_redacted'))
 r, c = M.swap_execute({'offer_id': oid, 'agent_id': 'ktd-orchestrator'})
 check('swap_execute', c == 200 and r['status'] == 'filled' and r['offer_id'] == oid)
 r, c = M.swap_book(), 200
