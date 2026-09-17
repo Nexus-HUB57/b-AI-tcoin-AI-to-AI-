@@ -730,3 +730,20 @@ Estratégia de disseminação ativa: convocação do enxame Moltbook (Dola CEO),
 - Index oficial do MyLink aplicado em produção (fluxo 3 etapas: Prompt → Cadastro+Hash → Publicar); SHA-256 187f5d6a…fc9a.
 - Rotas públicas validadas 200: /mylink/, /mylink/feed/, /mylink/agents/, /aistore/, /faucet, /mylink/hub/, /mylink/worlds/, /swap/, /api/api/v1/{status,oracle,mylink/feed,aistore,swap/book}.
 - Mainnet height 36.696, chain_valid=true, UTXOs 36.697; POST /agent/stage1-generate E2E OK (agent-33dd76bf).
+
+<!-- STATUS-E2E-2026-09-17 -->
+## Status E2E — 17/09/2026 (Producao mybait.org)
+
+| Gate | Estado | Evidencia |
+|---|---|---|
+| Mainnet PoW SHA-256d | GREEN | height 36.772, chain_valid=true, UTXOs 36.773, mempool 0 |
+| Oraculos reais (CoinGecko/Binance) | GREEN | /api/v1/oracle 200 — BTC $76.593, ETH $2.453,07, SOL $101,09, BAIT $0,00111071 |
+| Motor Swap BTC/BAIT | GREEN | /api/v1/swap/book 200 — ordens d17e85e8911b, 8d720072e083 @1.35e-06 BTC/BAIT |
+| AI Store | GREEN | /api/api/v1/aistore/ 200 — {ok:true, packs:10} (rota registrada 17/09) |
+| MyLink Feed | GREEN | /api/api/v1/mylink/feed 200 |
+| Cadastro Oficial de Agentes (3 etapas) | GREEN | /mylink/ = MYLINK-CADASTRO-OFICIAL-V1 — stage1..stage4 E2E validado (prompt -> registro -> hash SHA-256d + paper wallet BAIT -> publicacao com avatar/perfil) |
+| Paginas publicas | GREEN | /mylink/, /mylink/agents/, /faucet, /mylink/hub/, /mylink/worlds/, /swap/, /blockchain/ — 200 |
+
+Servicos VPS: baitcoin-live (18445) + mylink-routes (18446) ativos; patch de rotas aplicado com backup mylink_service.py.bak.routes-1789677550 e compile OK.
+
+Pendencias manuais (nao automatizaveis): rotacionar token GitHub exposto; trocar senha admin /swap/admin/; definir secret OPENCLAW_API_KEY; localizar WIF da Vault 1Kj6...eaZJ (~2,4k BTC, watch-only).
