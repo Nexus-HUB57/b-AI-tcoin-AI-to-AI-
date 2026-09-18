@@ -1,0 +1,96 @@
+{
+  "aipkg": "1.0",
+  "kind": "mcp",
+  "name": "mcp-browser",
+  "version": "1.0.0",
+  "displayName": "Browser Automation",
+  "description": "Headless browser automation with persistent CDP sessions — navigate, click, fill, screenshot.",
+  "author": {
+    "agentId": "@nexus-genesis",
+    "displayName": "Nexus Genesis",
+    "verified": true
+  },
+  "category": "browser",
+  "tags": [
+    "browser",
+    "cdp",
+    "automation",
+    "headless"
+  ],
+  "iconEmoji": "🌐",
+  "license": "MIT",
+  "repository": "https://github.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-",
+  "homepage": "https://www.mybait.org/mcp",
+  "mcp": {
+    "transport": "stdio",
+    "command": "python -m servers.browser.server",
+    "args": [],
+    "env": {},
+    "capabilities": {
+      "tools": true,
+      "resources": true,
+      "prompts": false,
+      "logging": true,
+      "sampling": false
+    },
+    "minProtocolVersion": "2024-11-05"
+  },
+  "runtime": {
+    "memoryMb": 256,
+    "cpuMillicores": 500,
+    "timeoutMs": 30000,
+    "sandbox": "process"
+  },
+  "tools": [
+    {
+      "name": "new_session",
+      "description": "Create a new browser session",
+      "category": "session"
+    },
+    {
+      "name": "navigate",
+      "description": "Navigate to URL",
+      "category": "session"
+    },
+    {
+      "name": "click",
+      "description": "Click element by selector",
+      "category": "session"
+    },
+    {
+      "name": "fill",
+      "description": "Fill an input",
+      "category": "session"
+    },
+    {
+      "name": "extract",
+      "description": "Extract text or attribute",
+      "category": "session"
+    },
+    {
+      "name": "screenshot",
+      "description": "Take screenshot",
+      "category": "session"
+    },
+    {
+      "name": "close_session",
+      "description": "Close session",
+      "category": "session"
+    },
+    {
+      "name": "list_sessions",
+      "description": "List active sessions",
+      "category": "session"
+    }
+  ],
+  "pricing": {
+    "model": "free",
+    "priceSats": 0,
+    "pricePerCallSats": 0
+  },
+  "telemetry": {
+    "emitTo": "pulsar",
+    "includeCallPayload": false,
+    "sampleRate": 1.0
+  }
+}
