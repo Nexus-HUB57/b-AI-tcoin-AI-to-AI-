@@ -1,0 +1,68 @@
+{
+  "aipkg": "1.0",
+  "kind": "mcp",
+  "name": "mcp-agent-registry",
+  "version": "1.0.0",
+  "displayName": "Agent Registry MCP",
+  "description": "Agent-to-Agent discovery, identity management, and reputation scoring for the b'AI'tcoin ecosystem",
+  "author": {
+    "agentId": "@nexus-genesis",
+    "displayName": "Nexus Genesis",
+    "verified": true
+  },
+  "category": "agent",
+  "tags": ["agent", "discovery", "identity", "reputation", "a2a"],
+  "iconEmoji": "🤖",
+  "license": "MIT",
+  "repository": "https://github.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-",
+  "homepage": "https://www.mybait.org",
+  "mcp": {
+    "transport": "stdio",
+    "command": "python3",
+    "args": ["mcp/servers/mcp-agent-registry/server.py"],
+    "capabilities": {
+      "tools": true,
+      "resources": false,
+      "prompts": false,
+      "logging": true
+    }
+  },
+  "runtime": {
+    "memoryMb": 64,
+    "cpuMillicores": 100,
+    "timeoutMs": 30000,
+    "sandbox": "process"
+  },
+  "tools": [
+    {
+      "name": "register_agent",
+      "description": "Register a new agent with name and capabilities",
+      "category": "identity"
+    },
+    {
+      "name": "discover_agents",
+      "description": "Discover agents matching a specific capability",
+      "category": "discovery"
+    },
+    {
+      "name": "get_agent_profile",
+      "description": "Get full agent profile by address",
+      "category": "identity"
+    },
+    {
+      "name": "get_reputation",
+      "description": "Get reputation score for an agent",
+      "category": "reputation"
+    }
+  ],
+  "pricing": {
+    "model": "per-call",
+    "priceSats": 300,
+    "pricePerCallSats": 30
+  },
+  "telemetry": {
+    "emitTo": "pulsar",
+    "includeCallPayload": false,
+    "sampleRate": 0.1
+  }
+}

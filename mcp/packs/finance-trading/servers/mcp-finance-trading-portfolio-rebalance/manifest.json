@@ -1,0 +1,13 @@
+{
+  "name": "mcp-finance-trading-portfolio-rebalance",
+  "version": "1.0.0",
+  "description": "Finan\u00e7as & Trading :: portfolio-rebalance",
+  "tools": [
+    {
+      "name": "portfolio-rebalance",
+      "description": "portfolio-rebalance tool for Finan\u00e7as & Trading"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

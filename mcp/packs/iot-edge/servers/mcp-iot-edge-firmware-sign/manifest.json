@@ -1,0 +1,13 @@
+{
+  "name": "mcp-iot-edge-firmware-sign",
+  "version": "1.0.0",
+  "description": "IoT & Edge Computing :: firmware-sign",
+  "tools": [
+    {
+      "name": "firmware-sign",
+      "description": "firmware-sign tool for IoT & Edge Computing"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

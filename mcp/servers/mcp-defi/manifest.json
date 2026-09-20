@@ -1,0 +1,68 @@
+{
+  "aipkg": "1.0",
+  "kind": "mcp",
+  "name": "mcp-defi",
+  "version": "1.0.0",
+  "displayName": "DeFi Protocol MCP",
+  "description": "Staking, lending, swap quotes, and pool APY for the b'AI'tcoin DeFi ecosystem",
+  "author": {
+    "agentId": "@nexus-genesis",
+    "displayName": "Nexus Genesis",
+    "verified": true
+  },
+  "category": "defi",
+  "tags": ["staking", "lending", "swap", "apy", "defi", "liquidity"],
+  "iconEmoji": "🏦",
+  "license": "MIT",
+  "repository": "https://github.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-",
+  "homepage": "https://www.mybait.org",
+  "mcp": {
+    "transport": "stdio",
+    "command": "python3",
+    "args": ["mcp/servers/mcp-defi/server.py"],
+    "capabilities": {
+      "tools": true,
+      "resources": false,
+      "prompts": false,
+      "logging": true
+    }
+  },
+  "runtime": {
+    "memoryMb": 64,
+    "cpuMillicores": 100,
+    "timeoutMs": 30000,
+    "sandbox": "process"
+  },
+  "tools": [
+    {
+      "name": "get_staking_info",
+      "description": "Get staking information for a liquidity pool",
+      "category": "staking"
+    },
+    {
+      "name": "get_lending_rates",
+      "description": "Get lending and borrowing rates for an asset",
+      "category": "lending"
+    },
+    {
+      "name": "get_swap_quote",
+      "description": "Get a swap quote between two tokens",
+      "category": "swap"
+    },
+    {
+      "name": "get_pool_apy",
+      "description": "Get APY and performance metrics for a liquidity pool",
+      "category": "pool"
+    }
+  ],
+  "pricing": {
+    "model": "per-call",
+    "priceSats": 600,
+    "pricePerCallSats": 60
+  },
+  "telemetry": {
+    "emitTo": "pulsar",
+    "includeCallPayload": false,
+    "sampleRate": 0.1
+  }
+}

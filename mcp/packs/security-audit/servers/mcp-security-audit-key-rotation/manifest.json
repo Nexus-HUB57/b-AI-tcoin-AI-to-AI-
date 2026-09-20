@@ -1,0 +1,13 @@
+{
+  "name": "mcp-security-audit-key-rotation",
+  "version": "1.0.0",
+  "description": "Seguran\u00e7a & Auditoria :: key-rotation",
+  "tools": [
+    {
+      "name": "key-rotation",
+      "description": "key-rotation tool for Seguran\u00e7a & Auditoria"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

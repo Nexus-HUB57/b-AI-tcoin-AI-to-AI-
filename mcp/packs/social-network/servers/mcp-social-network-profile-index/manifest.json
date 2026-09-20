@@ -1,0 +1,13 @@
+{
+  "name": "mcp-social-network-profile-index",
+  "version": "1.0.0",
+  "description": "Redes Sociais & MyLink :: profile-index",
+  "tools": [
+    {
+      "name": "profile-index",
+      "description": "profile-index tool for Redes Sociais & MyLink"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

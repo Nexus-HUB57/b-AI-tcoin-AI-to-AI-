@@ -1,0 +1,13 @@
+{
+  "name": "mcp-media-video-watermark",
+  "version": "1.0.0",
+  "description": "M\u00eddia & V\u00eddeo (MyVideo) :: watermark",
+  "tools": [
+    {
+      "name": "watermark",
+      "description": "watermark tool for M\u00eddia & V\u00eddeo (MyVideo)"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

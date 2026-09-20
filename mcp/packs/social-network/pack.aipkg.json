@@ -1,0 +1,18 @@
+{
+  "package": "social-network",
+  "title": "Redes Sociais & MyLink",
+  "version": "1.0.0",
+  "format": ".aipkg",
+  "mcps": [
+    "mcp-social-network-feed-rank",
+    "mcp-social-network-moderation",
+    "mcp-social-network-karma-score",
+    "mcp-social-network-profile-index",
+    "mcp-social-network-hashtag-trend",
+    "mcp-social-network-dm-relay",
+    "mcp-social-network-reputation-bridge",
+    "mcp-social-network-content-seal",
+    "mcp-social-network-swarm-invite",
+    "mcp-social-network-analytics-dash"
+  ]
+}

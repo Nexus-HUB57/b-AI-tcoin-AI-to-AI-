@@ -1,0 +1,18 @@
+{
+  "package": "iot-edge",
+  "title": "IoT & Edge Computing",
+  "version": "1.0.0",
+  "format": ".aipkg",
+  "mcps": [
+    "mcp-iot-edge-sensor-ingest",
+    "mcp-iot-edge-edge-infer",
+    "mcp-iot-edge-ota-update",
+    "mcp-iot-edge-mesh-gossip",
+    "mcp-iot-edge-power-prof",
+    "mcp-iot-edge-device-attest",
+    "mcp-iot-edge-telemetry-sink",
+    "mcp-iot-edge-failover",
+    "mcp-iot-edge-geo-fence",
+    "mcp-iot-edge-firmware-sign"
+  ]
+}

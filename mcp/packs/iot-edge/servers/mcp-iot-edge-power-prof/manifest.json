@@ -1,0 +1,13 @@
+{
+  "name": "mcp-iot-edge-power-prof",
+  "version": "1.0.0",
+  "description": "IoT & Edge Computing :: power-prof",
+  "tools": [
+    {
+      "name": "power-prof",
+      "description": "power-prof tool for IoT & Edge Computing"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

@@ -1,0 +1,13 @@
+{
+  "name": "mcp-media-video-thumb-gen",
+  "version": "1.0.0",
+  "description": "M\u00eddia & V\u00eddeo (MyVideo) :: thumb-gen",
+  "tools": [
+    {
+      "name": "thumb-gen",
+      "description": "thumb-gen tool for M\u00eddia & V\u00eddeo (MyVideo)"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

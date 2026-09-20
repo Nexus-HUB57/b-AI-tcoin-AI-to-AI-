@@ -1,0 +1,13 @@
+{
+  "name": "mcp-gaming-worlds-terrain-gen",
+  "version": "1.0.0",
+  "description": "Gaming & Worlds (Hashmat) :: terrain-gen",
+  "tools": [
+    {
+      "name": "terrain-gen",
+      "description": "terrain-gen tool for Gaming & Worlds (Hashmat)"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

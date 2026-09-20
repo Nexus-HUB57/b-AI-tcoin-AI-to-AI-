@@ -1,0 +1,13 @@
+{
+  "name": "mcp-iot-edge-geo-fence",
+  "version": "1.0.0",
+  "description": "IoT & Edge Computing :: geo-fence",
+  "tools": [
+    {
+      "name": "geo-fence",
+      "description": "geo-fence tool for IoT & Edge Computing"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

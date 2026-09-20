@@ -1,0 +1,18 @@
+{
+  "package": "finance-trading",
+  "title": "Finan\u00e7as & Trading",
+  "version": "1.0.0",
+  "format": ".aipkg",
+  "mcps": [
+    "mcp-finance-trading-price-ticker",
+    "mcp-finance-trading-order-router",
+    "mcp-finance-trading-risk-calc",
+    "mcp-finance-trading-portfolio-rebalance",
+    "mcp-finance-trading-arbitrage-scan",
+    "mcp-finance-trading-liquidation-guard",
+    "mcp-finance-trading-yield-optimizer",
+    "mcp-finance-trading-tx-sim",
+    "mcp-finance-trading-gas-estimator",
+    "mcp-finance-trading-report-gen"
+  ]
+}

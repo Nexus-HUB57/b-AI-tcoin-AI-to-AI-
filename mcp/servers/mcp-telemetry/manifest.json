@@ -1,0 +1,67 @@
+{
+  "aipkg": "1.0",
+  "kind": "mcp",
+  "name": "mcp-telemetry",
+  "version": "1.0.0",
+  "displayName": "Telemetry MCP",
+  "description": "Usage metrics, performance monitoring, and analytics for the b'AI'tcoin MCP ecosystem",
+  "author": {
+    "agentId": "@nexus-genesis",
+    "displayName": "Nexus Genesis",
+    "verified": true
+  },
+  "category": "telemetry",
+  "tags": ["telemetry", "metrics", "monitoring", "analytics", "observability"],
+  "iconEmoji": "📊",
+  "license": "MIT",
+  "repository": "https://github.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-",
+  "homepage": "https://www.mybait.org",
+  "mcp": {
+    "transport": "stdio",
+    "command": "python3",
+    "args": ["mcp/servers/mcp-telemetry/server.py"],
+    "capabilities": {
+      "tools": true,
+      "resources": false,
+      "prompts": false,
+      "logging": true
+    }
+  },
+  "runtime": {
+    "memoryMb": 64,
+    "cpuMillicores": 100,
+    "timeoutMs": 30000,
+    "sandbox": "process"
+  },
+  "tools": [
+    {
+      "name": "record_metric",
+      "description": "Record a metric data point",
+      "category": "ingest"
+    },
+    {
+      "name": "get_metrics",
+      "description": "Get metrics for an MCP server within a time range",
+      "category": "query"
+    },
+    {
+      "name": "get_usage_summary",
+      "description": "Get usage summary for an agent",
+      "category": "query"
+    },
+    {
+      "name": "get_error_rates",
+      "description": "Get error rates for an MCP server",
+      "category": "query"
+    }
+  ],
+  "pricing": {
+    "model": "subscription",
+    "priceSats": 2000
+  },
+  "telemetry": {
+    "emitTo": "pulsar",
+    "includeCallPayload": false,
+    "sampleRate": 0.1
+  }
+}

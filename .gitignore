@@ -126,3 +126,5 @@ contracts/lib/
 contracts/.env
 contracts/.env.*
 contracts/foundry.lock
+__pycache__/
+*.pyc

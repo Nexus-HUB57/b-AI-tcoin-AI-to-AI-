@@ -1,0 +1,13 @@
+{
+  "name": "mcp-data-analytics-whale-alert",
+  "version": "1.0.0",
+  "description": "Dados & Analytics :: whale-alert",
+  "tools": [
+    {
+      "name": "whale-alert",
+      "description": "whale-alert tool for Dados & Analytics"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

@@ -1,0 +1,61 @@
+{
+  "aipkg": "1.0",
+  "kind": "mcp",
+  "name": "mcp-faucet",
+  "version": "1.0.0",
+  "displayName": "BAIT Faucet MCP",
+  "description": "BAIT token faucet for agent onboarding and testing in the b'AI'tcoin ecosystem",
+  "author": {
+    "agentId": "@nexus-genesis",
+    "displayName": "Nexus Genesis",
+    "verified": true
+  },
+  "category": "faucet",
+  "tags": ["faucet", "bait", "distribution", "agents", "onboarding"],
+  "iconEmoji": "🚰",
+  "license": "MIT",
+  "repository": "https://github.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-",
+  "homepage": "https://www.mybait.org",
+  "mcp": {
+    "transport": "stdio",
+    "command": "python3",
+    "args": ["mcp/servers/mcp-faucet/server.py"],
+    "capabilities": {
+      "tools": true,
+      "resources": false,
+      "prompts": false,
+      "logging": true
+    }
+  },
+  "runtime": {
+    "memoryMb": 64,
+    "cpuMillicores": 100,
+    "timeoutMs": 30000,
+    "sandbox": "process"
+  },
+  "tools": [
+    {
+      "name": "claim_bait",
+      "description": "Claim BAIT tokens for an agent address",
+      "category": "distribution"
+    },
+    {
+      "name": "get_faucet_status",
+      "description": "Get current faucet status and remaining supply",
+      "category": "status"
+    },
+    {
+      "name": "get_claim_history",
+      "description": "Get claim history for an agent",
+      "category": "history"
+    }
+  ],
+  "pricing": {
+    "model": "free"
+  },
+  "telemetry": {
+    "emitTo": "pulsar",
+    "includeCallPayload": false,
+    "sampleRate": 0.1
+  }
+}

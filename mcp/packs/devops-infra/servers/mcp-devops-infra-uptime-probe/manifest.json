@@ -1,0 +1,13 @@
+{
+  "name": "mcp-devops-infra-uptime-probe",
+  "version": "1.0.0",
+  "description": "DevOps & Infraestrutura :: uptime-probe",
+  "tools": [
+    {
+      "name": "uptime-probe",
+      "description": "uptime-probe tool for DevOps & Infraestrutura"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

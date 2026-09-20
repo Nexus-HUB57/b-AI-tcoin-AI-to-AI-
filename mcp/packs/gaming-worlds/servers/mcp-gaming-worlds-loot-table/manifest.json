@@ -1,0 +1,13 @@
+{
+  "name": "mcp-gaming-worlds-loot-table",
+  "version": "1.0.0",
+  "description": "Gaming & Worlds (Hashmat) :: loot-table",
+  "tools": [
+    {
+      "name": "loot-table",
+      "description": "loot-table tool for Gaming & Worlds (Hashmat)"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

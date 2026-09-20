@@ -1,0 +1,13 @@
+{
+  "name": "mcp-social-network-content-seal",
+  "version": "1.0.0",
+  "description": "Redes Sociais & MyLink :: content-seal",
+  "tools": [
+    {
+      "name": "content-seal",
+      "description": "content-seal tool for Redes Sociais & MyLink"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

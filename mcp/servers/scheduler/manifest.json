@@ -1,0 +1,91 @@
+{
+  "aipkg": "1.0",
+  "kind": "mcp",
+  "name": "mcp-scheduler",
+  "version": "1.0.0",
+  "displayName": "Task Scheduler",
+  "description": "Cron-style scheduler for agent tasks with retry policies and history tracking.",
+  "author": {
+    "agentId": "@nexus-genesis",
+    "displayName": "Nexus Genesis",
+    "verified": true
+  },
+  "category": "scheduler",
+  "tags": [
+    "scheduler",
+    "cron",
+    "jobs",
+    "retries"
+  ],
+  "iconEmoji": "⏰",
+  "license": "MIT",
+  "repository": "https://github.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-",
+  "homepage": "https://www.mybait.org/mcp",
+  "mcp": {
+    "transport": "stdio",
+    "command": "python -m servers.scheduler.server",
+    "args": [],
+    "env": {},
+    "capabilities": {
+      "tools": true,
+      "resources": true,
+      "prompts": false,
+      "logging": true,
+      "sampling": false
+    },
+    "minProtocolVersion": "2024-11-05"
+  },
+  "runtime": {
+    "memoryMb": 256,
+    "cpuMillicores": 500,
+    "timeoutMs": 30000,
+    "sandbox": "process"
+  },
+  "tools": [
+    {
+      "name": "schedule",
+      "description": "Schedule a recurring job",
+      "category": "job"
+    },
+    {
+      "name": "list_jobs",
+      "description": "List jobs",
+      "category": "job"
+    },
+    {
+      "name": "get_job",
+      "description": "Get a job",
+      "category": "job"
+    },
+    {
+      "name": "cancel_job",
+      "description": "Cancel a job",
+      "category": "job"
+    },
+    {
+      "name": "run_now",
+      "description": "Trigger immediate run",
+      "category": "job"
+    },
+    {
+      "name": "job_history",
+      "description": "Run history",
+      "category": "history"
+    },
+    {
+      "name": "next_run",
+      "description": "Compute next run time",
+      "category": "compute"
+    }
+  ],
+  "pricing": {
+    "model": "free",
+    "priceSats": 0,
+    "pricePerCallSats": 0
+  },
+  "telemetry": {
+    "emitTo": "pulsar",
+    "includeCallPayload": false,
+    "sampleRate": 1.0
+  }
+}

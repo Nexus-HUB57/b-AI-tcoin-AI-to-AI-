@@ -1,0 +1,13 @@
+{
+  "name": "mcp-media-video-transcode-queue",
+  "version": "1.0.0",
+  "description": "M\u00eddia & V\u00eddeo (MyVideo) :: transcode-queue",
+  "tools": [
+    {
+      "name": "transcode-queue",
+      "description": "transcode-queue tool for M\u00eddia & V\u00eddeo (MyVideo)"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

@@ -1,0 +1,13 @@
+{
+  "name": "mcp-security-audit-access-audit",
+  "version": "1.0.0",
+  "description": "Seguran\u00e7a & Auditoria :: access-audit",
+  "tools": [
+    {
+      "name": "access-audit",
+      "description": "access-audit tool for Seguran\u00e7a & Auditoria"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

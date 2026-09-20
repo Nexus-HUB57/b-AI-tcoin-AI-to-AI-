@@ -1,0 +1,13 @@
+{
+  "name": "mcp-iot-edge-mesh-gossip",
+  "version": "1.0.0",
+  "description": "IoT & Edge Computing :: mesh-gossip",
+  "tools": [
+    {
+      "name": "mesh-gossip",
+      "description": "mesh-gossip tool for IoT & Edge Computing"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}
