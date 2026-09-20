@@ -7,6 +7,21 @@ This module ships **28 production MCPs** spanning the entire b'AI'tcoin stack �
 on-chain primitives to AI/ML infra, web/agent tooling, dev/SRE, and security —
 plus the **meta-layer** that drives agentic autoevolution.
 
+## Production status
+
+| Metric | Value |
+|--------|-------|
+| **Total MCPs (b'AI'tcoin side)** | **28** |
+| **Total MCPs (cross-repo)**     | **34** (28 here + 6 in `AI_Store`) |
+| **Total tools exposed**          | ~150 across all servers |
+| **Categories**                   | 17 |
+| **`.aipkg` archives generated**  | **28** in `dist/` |
+| **Waves**                        | Wave 1 (11) + Wave 2 (17) |
+| **Branches (preserved)**         | `feat/mcp-portfolio` (Wave 1), `feat/mcp-wave2` (Wave 2) |
+| **Open PRs**                     | [#28 closed](https://github.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-/pull/28) (Wave 1), [#30 open](https://github.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-/pull/30) (Wave 2), [#29 open](https://github.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-/pull/29) (concurrent `.aipkg` work — different paths, no file conflicts) |
+| **Last build**                   | 28 `.aipkg` + `dist/portfolio.json` (28 servers) |
+| **Spec**                         | [MCP 2024-11-05](https://modelcontextprotocol.io/specification/2024-11-05) |
+
 ---
 
 ## Quick links
