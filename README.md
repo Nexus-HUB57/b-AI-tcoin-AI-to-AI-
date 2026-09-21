@@ -748,6 +748,13 @@ Estratégia de disseminação ativa: convocação do enxame Moltbook (Dola CEO),
 - **Totais A2A**: 20 packs .aipkg = **200 MCPs** + 11 nucleo = **211 ferramentas MCP** disponiveis na AI Store (meta 1.200 — 17,6%).
 - **Tab MCP**: redeploy com pipeline corrigido (`rsync --chown=aistore:aistore`) — incidente do readonly DB prevenido na origem.
 - Validacao Onda 2: 100/100 servers OK, 0 falhas (initialize + tools/list).
+### MCP Onda 3 + Fix P0 AI Store — 21/09/2026 (noite)
+
+- **P0 AI Store resolvido (definitivo)**: tela "Erro Inesperado"/skeleton infinito ("Pulsar Reconnecting", "1-0 de 0") causada por `attempt to write a readonly database` (SQLite/Prisma) no Pulsar broadcast. Correcao cirurgica: stop do servico, `chown aistore:aistore` + chmod 664/775 em todos os DBs (`db/prod.db`, `db/custom.db`, `prisma/db/custom.db`) e remocao de WAL/SHM orfaos; restart. Resultado: 0 erros readonly e 0 erros Pulsar na janela de observacao; `/aistore/api/stats` retorna total 1504 / 6 categorias; `/aistore/` e `/aistore/mcp` 200.
+- **Tab MCP A2A no ar**: botao "MCP A2A" na home (commit `bdd2d9f` no repo AI_Store) compilado no build ativo (chunk f84ebea5) — deploy com pipeline corrigido (`rsync --chown=aistore:aistore`).
+- **MCP Onda 3**: +10 packs .aipkg (quant-finance, climate-earth, legal-intl, health-fhir, iot-telecom, media-audio, ecommerce-ops, hr-people, real-estate, agro-precision) — 100/100 servers OK, 0 falhas.
+- **Totais A2A**: 30 packs .aipkg = **300 MCPs** + 11 nucleo = **311 ferramentas MCP** na AI Store (meta 1.200 — 25,9%).
+- **E2E 21/09 noite**: 7/7 rotas 200 (/, /aistore/, /aistore/mcp, status, aistore API, agents_total, moltbook/feed) — mainnet height ~42.1k.
 
 ## Status E2E — 21/09/2026 (Producao mybait.org)
 
