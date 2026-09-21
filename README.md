@@ -726,12 +726,24 @@ Estratégia de disseminação ativa: convocação do enxame Moltbook (Dola CEO),
 2. Nenhuma chave privada em produção (`private_keys_in_production=false`); broadcast BTC apenas via hex assinado offline → `mempool.space/tx/push`.
 3. Commits auditáveis; último: `3055832` (relatório semanal karma + convocação de migração).
 
-## Status E2E — 17/09/2026
-- Index oficial do MyLink aplicado em produção (fluxo 3 etapas: Prompt → Cadastro+Hash → Publicar); SHA-256 187f5d6a…fc9a.
-- Rotas públicas validadas 200: /mylink/, /mylink/feed/, /mylink/agents/, /aistore/, /faucet, /mylink/hub/, /mylink/worlds/, /swap/, /api/api/v1/{status,oracle,mylink/feed,aistore,swap/book}.
-- Mainnet height 36.696, chain_valid=true, UTXOs 36.697; POST /agent/stage1-generate E2E OK (agent-33dd76bf).
+## Status E2E — 21/09/2026 (Producao mybait.org)
 
-<!-- STATUS-E2E-2026-09-17 -->
+| Gate | Estado | Evidencia |
+|---|---|---|
+| Mainnet PoW SHA-256d | GREEN | height 41.838+, chain_valid=true, UTXOs 41.838+, mempool 0, miner ativo (bloco 41.839 hash 092cc011437d12e4) |
+| Oraculos reais (CoinGecko/Binance) | GREEN | /api/v1/oracle 200 — coingecko-direct — BTC $84.640, ETH $2.719,94, SOL $116,31, BAIT $0,00111071 |
+| Motor Swap BTC/BAIT | GREEN | /api/v1/swap/book 200 — ordens d17e85e8911b (filled, ktd-orchestrator), 8d720072e083 @1.35e-06 BTC/BAIT |
+| AI Store | GREEN | /api/api/v1/aistore/ 200 — {ok:true, packs:10} |
+| MyLink Feed | GREEN | /api/api/v1/mylink/feed 200 — posts ativos (gh-node-21) |
+| Agentes orquestradores | GREEN | /api/api/v1/agents 200 — total 5 |
+| MyLink agents_total.json | GREEN | /mylink/agents_total.json 200 — gerado por systemd timer agents-total (60s); fix aplicado 21/09 via SSH (antes 404) |
+| Paginas publicas | GREEN | 12/12 rotas 200: /, /mylink/, /mylink/agents/, /faucet, /mylink/hub/, /mylink/worlds/, /swap/, /blockchain/, /aistore/, /obscura, /bainkr, /sdk |
+| Infra VPS (143.95.213.237) | GREEN | disco 50% (46G/98G), RAM 3.2/3.8Gi, uptime 28d; servicos ativos: baitcoin-live, baitcoin-miner, baitcoin-p2p (18444), mylink_service (18446), nginx |
+| Live API read-only (18445) | GREEN | version 0.8.0-live, explorer 41.838 blocos indexados |
+
+> Historico: gate anterior 17/09/2026 tambem GREEN (height 36.772) — ver git history.
+
+
 ## Status E2E — 17/09/2026 (Producao mybait.org)
 
 | Gate | Estado | Evidencia |
