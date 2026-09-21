@@ -49,6 +49,19 @@ class MockHSMSigner:
         self._key = None  # type: ignore[assignment]
 
 
+class HSMRejected(RuntimeError):
+    """Controlled signer rejection used by the local failure simulation."""
+
+
+class RejectingMockHSMSigner(MockHSMSigner):
+    """HSM test double that rejects every signing request."""
+
+    def sign_digest(self, digest: bytes) -> bytes:
+        if len(digest) != 32:
+            raise ValueError("HSM signing API requires a 32-byte digest")
+        raise HSMRejected("HSM_REJECTED: policy denied test key operation")
+
+
 def run() -> HSMResult:
     signer = MockHSMSigner()
     prev_tx_id = bytes.fromhex("11" * 32)
@@ -82,5 +95,37 @@ def run() -> HSMResult:
     )
 
 
+def run_rejection_simulation() -> dict[str, object]:
+    """Exercise the orchestrator's fail-closed branch without broadcasting."""
+    signer = RejectingMockHSMSigner()
+    tx_id = "11" * 32
+    state = "unsigned"
+    broadcast_attempted = False
+    try:
+        signer.sign_digest(bytes.fromhex(tx_id))
+        state = "signed"
+    except HSMRejected as exc:
+        state = "signing_rejected"
+        return {
+            "state": state,
+            "error": str(exc),
+            "broadcast_attempted": broadcast_attempted,
+            "mutation": "none",
+            "action": "pause_and_alert",
+        }
+    finally:
+        signer.forget()
+    return {
+        "state": state,
+        "error": "unexpected signer acceptance",
+        "broadcast_attempted": broadcast_attempted,
+        "mutation": "unexpected",
+        "action": "stop",
+    }
+
+
 if __name__ == "__main__":
-    print(json.dumps({**run().__dict__, "signature_hex": "<redacted-test-signature>"}, indent=2, sort_keys=True))
+    print(json.dumps({
+        "successful_dry_run": {**run().__dict__, "signature_hex": "<redacted-test-signature>"},
+        "rejection_simulation": run_rejection_simulation(),
+    }, indent=2, sort_keys=True))

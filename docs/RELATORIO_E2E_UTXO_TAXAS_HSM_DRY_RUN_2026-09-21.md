@@ -96,3 +96,57 @@ A implementação de produção deve substituir `MockHSMSigner` por um cliente d
 A integração de produção ainda requer endpoint autenticado, TLS/mTLS, política de autorização, proteção contra replay, controle de nonce, allowlist de contrato e rede, limite de valor, dupla aprovação e uma etapa independente para broadcast. Esses componentes não foram ativados nesta execução.
 
 > **Conclusão:** o fluxo local de UTXO, taxas e assinatura simulada está validado. O resultado não representa assinatura HSM real, transmissão on-chain ou confirmação de bloco.
+
+
+## Política dinâmica de taxa sat/vB
+
+A política local usa `FeeEstimator` e `FeeMarket`:
+
+| Parâmetro | Valor | Comportamento |
+|---|---:|---|
+| `MIN_FEE_RATE` | 1 sat/vB | Piso absoluto de aceitação e estimativa |
+| `DEFAULT_FEE_RATE` | 10 sat/vB | Fallback quando não há histórico de blocos |
+| `MAX_FEE_RATE` | 1.000.000 sat/vB | Teto contra valores absurdos |
+| `BLOCK_MAX_WEIGHT` | 4.000.000 | Capacidade máxima simplificada do bloco |
+| `BASE_TX_SIZE` | 100 bytes | Base do estimador de tamanho |
+| histórico | 20 blocos | Janela mantida pelo estimador |
+
+A estimativa é dependente do alvo de confirmação. Para o próximo bloco (`target_confirmations <= 1`), o estimador usa a mediana do histórico. Para 2–3 confirmações, usa o percentil aproximado de 25%. Para alvos maiores, usa o menor valor observado. Em todos os casos, o resultado é limitado pelo piso de 1 sat/vB.
+
+O `FeeMarket` rejeita taxas abaixo de `min_fee_rate` ou acima de `MAX_FEE_RATE`, ordena o mempool por sat/vB decrescente e calcula `total_fee = fee_rate × tx_size`. A seleção para bloco respeita o peso máximo e retorna a mediana das taxas selecionadas.
+
+Na validação executada, o histórico `[2, 4, 8, 16]` produziu:
+
+```text
+1 confirmação: 8 sat/vB
+3 confirmações: 4 sat/vB
+6 confirmações: 2 sat/vB
+```
+
+Esses valores são política do código local; não representam uma recomendação atual de fee para Bitcoin Mainnet nem consultam mempool externo.
+
+## Simulação de rejeição do HSM
+
+O teste `run_rejection_simulation()` usa um signer que rejeita deliberadamente qualquer digest válido com `HSM_REJECTED`. O orquestrador simulado executa:
+
+1. Mantém a transação no estado `unsigned`.
+2. Solicita assinatura ao HSM.
+3. Recebe rejeição de política.
+4. Transiciona para `signing_rejected`.
+5. Mantém `mutation: none`.
+6. Mantém `broadcast_attempted: false`.
+7. Emite `pause_and_alert`.
+
+Resultado observado:
+
+```json
+{
+  "state": "signing_rejected",
+  "error": "HSM_REJECTED: policy denied test key operation",
+  "broadcast_attempted": false,
+  "mutation": "none",
+  "action": "pause_and_alert"
+}
+```
+
+A rejeição é tratada como falha terminal para aquela tentativa. O fluxo não deve fazer retry automático sem uma nova autorização, uma nova avaliação de nonce e uma revisão da política do HSM.
