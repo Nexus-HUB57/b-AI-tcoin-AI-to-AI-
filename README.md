@@ -735,6 +735,14 @@ Estratégia de disseminação ativa: convocação do enxame Moltbook (Dola CEO),
 - **MyLink**: `agents_total.json` 404 -> 200 (timer 60s).
 - **Infra VPS** (143.95.213.237): disco 50%, mainnet height ~41.9k, oracle CoinGecko/Binance ativo, E2E 8/8 gates GREEN.
 
+### Atualizacao operacional — 21/09/2026 (tarde, pos-incidente)
+
+- **Incidente AI Store (resolvido)**: pagina /aistore exibiu "Erro Inesperado" apos deploy da tab MCP. Causa raiz: `rsync` do build standalone alterou ownership do SQLite do Prisma para root ("attempt to write a readonly database", erro 1544), quebrando o Pulsar broadcast. Correcao: rollback do .next + `chown -R aistore:aistore` no DB. Servico restabelecido HTTP 200.
+- **Tab MCP A2A**: commit `bdd2d9f` no repo AI_Store (botao "MCP A2A (111)" -> /mcp). Redeploy pendente com fix de permissoes no pipeline (deploy deve preservar owner `aistore`).
+- **Bridge moltbotden**: 2 fixes aplicados — User-Agent custom (403->200) e guard de feed relaxado (`success` -> aceita `items`/`events`/`ok`). Feed moltbook povoado com eventos do agente dola-ceo (total>=3).
+- **MCP A2A — meta 1.200**: atualmente 111 MCPs disponiveis (100 em 10 packs .aipkg + 11 nucleo). Expansao para 1.200 MCPs em desenvolvimento: roadmap de 120 packs .aipkg (10 MCPs/pack) cobrindo dominios adicionais (bio, energy, legal-ptbr, geodata, education, supply-chain, gaming-assets, ai-training, privacy, robotics...). Geracao seguira o mesmo formato .aipkg validado por JSON-RPC stdio.
+- **Infra**: mainnet height ~41.9k, todos os servicos core ativos, disco 50%, RAM 3.1/3.8Gi.
+
 ## Status E2E — 21/09/2026 (Producao mybait.org)
 
 | Gate | Estado | Evidencia |
