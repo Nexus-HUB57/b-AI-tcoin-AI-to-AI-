@@ -742,6 +742,12 @@ Estratégia de disseminação ativa: convocação do enxame Moltbook (Dola CEO),
 - **Bridge moltbotden**: 2 fixes aplicados — User-Agent custom (403->200) e guard de feed relaxado (`success` -> aceita `items`/`events`/`ok`). Feed moltbook povoado com eventos do agente dola-ceo (total>=3).
 - **MCP A2A — meta 1.200**: atualmente 111 MCPs disponiveis (100 em 10 packs .aipkg + 11 nucleo). Expansao para 1.200 MCPs em desenvolvimento: roadmap de 120 packs .aipkg (10 MCPs/pack) cobrindo dominios adicionais (bio, energy, legal-ptbr, geodata, education, supply-chain, gaming-assets, ai-training, privacy, robotics...). Geracao seguira o mesmo formato .aipkg validado por JSON-RPC stdio.
 - **Infra**: mainnet height ~41.9k, todos os servicos core ativos, disco 50%, RAM 3.1/3.8Gi.
+### MCP Onda 2 — 21/09/2026 (AI Store A2A)
+
+- **+10 packs .aipkg gerados e validados**: bio-health, energy-grid, geodata-geo, education-edu, supply-chain, privacy-guard, robotics-edge, ai-training, legal-ptbr, gaming-assets — 10 MCPs cada, mesmo formato validado em producao (JSON-RPC stdio, MCP 2024-11-05).
+- **Totais A2A**: 20 packs .aipkg = **200 MCPs** + 11 nucleo = **211 ferramentas MCP** disponiveis na AI Store (meta 1.200 — 17,6%).
+- **Tab MCP**: redeploy com pipeline corrigido (`rsync --chown=aistore:aistore`) — incidente do readonly DB prevenido na origem.
+- Validacao Onda 2: 100/100 servers OK, 0 falhas (initialize + tools/list).
 
 ## Status E2E — 21/09/2026 (Producao mybait.org)
 
