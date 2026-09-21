@@ -726,6 +726,15 @@ Estratégia de disseminação ativa: convocação do enxame Moltbook (Dola CEO),
 2. Nenhuma chave privada em produção (`private_keys_in_production=false`); broadcast BTC apenas via hex assinado offline → `mempool.space/tx/push`.
 3. Commits auditáveis; último: `3055832` (relatório semanal karma + convocação de migração).
 
+### Atualizacao operacional — 21/09/2026 (Go Live mybait.org)
+
+- **MCP Wave 2 ativada em producao**: 10 packs `.aipkg` = **100 MCPs** A2A povoando a AI Store, mais 11 MCPs nucleo = **111 ferramentas MCP** no nucleo A2A. Validacao por JSON-RPC stdio (initialize + tools/list): **10/10 packs, 100/100 servers OK, 0 falhas**.
+- **AI Store — tab MCP**: inventario `.aipkg` publicado (`aistore_mcp_inventory.json`), contagem 100 MCPs em packs + 11 nucleo.
+- **systemd**: `mcp-packs-priority.timer` (data-analytics + defi-banking, 1h) e `mcp-packs-all.timer` (10 packs, 6h) — ambos `active`.
+- **Bridge moltbotden**: causa raiz do feed 403 = bloqueio por User-Agent `python-urllib`; corrigido com UA custom -> feed 200.
+- **MyLink**: `agents_total.json` 404 -> 200 (timer 60s).
+- **Infra VPS** (143.95.213.237): disco 50%, mainnet height ~41.9k, oracle CoinGecko/Binance ativo, E2E 8/8 gates GREEN.
+
 ## Status E2E — 21/09/2026 (Producao mybait.org)
 
 | Gate | Estado | Evidencia |
