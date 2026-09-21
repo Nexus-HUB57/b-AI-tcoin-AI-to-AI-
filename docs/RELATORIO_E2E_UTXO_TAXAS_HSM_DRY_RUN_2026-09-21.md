@@ -191,3 +191,49 @@ Resultado observado:
 ```
 
 Os testes de recuperação e assinatura passaram com `7 passed`; a regressão E2E dos componentes UTXO, taxas, swap, P2P e HEX/EVM passou com `79 passed`.
+
+
+## Análise de escala do recovery HSM
+
+A implementação atual de `RecoveryOrchestrator` não contém recursão, busca em árvore, retry automático ou fan-out interno. Cada recuperação executa um número constante de operações: validar estado, validar digest, chamar `revalidate()`, trocar o signer, solicitar uma assinatura e registrar eventos. Portanto, o custo por recuperação é **O(1)** e o custo de `n` recuperações independentes é **O(n)**.
+
+Há três limites importantes antes de uma implantação em larga escala:
+
+| Área | Observação | Risco |
+|---|---|---|
+| Eventos | `audit_events` cresce linearmente dentro de cada instância | memória cresce sem retenção ou limite |
+| Concorrência | não existe limite no próprio orchestrator | fila externa deve impor backpressure |
+| Recuperação | não há retry automático nem deduplicação global | retry deve ficar fora do signer e exigir revalidação |
+
+O desenho não apresenta potencial exponencial no estado atual. Uma explosão combinatória só surgiria se uma camada externa combinasse cada alerta com múltiplos signers, payloads, nonces ou caminhos de retry sem deduplicação. Essa camada não existe no harness atual e não foi criada no teste.
+
+## Stress test local
+
+Foi executado o comando:
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. \
+python3 tools/hsm_recovery_stress_dry_run.py \
+  --count 256 --workers 8
+```
+
+Resultado:
+
+```text
+requested:               256
+completed:               256
+failed:                    0
+workers:                   8
+elapsed_seconds:       1.104981
+recovery_rate:       231.68 / second
+broadcast_attempts:       0
+mutations:                 0
+```
+
+Cada caso usou um artefato UTXO sintético e um digest independente. O fluxo simulou rejeição inicial, pausa, revalidação do artefato, reautorização do signer e nova assinatura. O método `broadcast()` foi chamado apenas para confirmar que o bloqueio dry-run permanece ativo; nenhuma rede, RPC, HSM real ou transação HEX foi acessada.
+
+A regressão dos componentes UTXO, taxas, Swap, P2P e HEX/EVM permaneceu verde com **79 testes aprovados**. Os testes específicos de recuperação e stress passaram com **6 testes aprovados**.
+
+## Recomendações para escala real
+
+Antes de ampliar o fluxo, adicionar limite explícito de concorrência, fila bounded, chave idempotente por `(artifact_id, digest, nonce)`, TTL para eventos, métricas de fila e circuit breaker do HSM. A recuperação deve permanecer pausada quando houver divergência de digest, nonce, chain ID, contrato, UTXO ou limite. Nenhum aumento de throughput deve permitir retry automático de assinatura ou broadcast.
