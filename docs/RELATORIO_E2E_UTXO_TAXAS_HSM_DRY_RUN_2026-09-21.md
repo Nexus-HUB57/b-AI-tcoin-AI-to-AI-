@@ -150,3 +150,44 @@ Resultado observado:
 ```
 
 A rejeição é tratada como falha terminal para aquela tentativa. O fluxo não deve fazer retry automático sem uma nova autorização, uma nova avaliação de nonce e uma revisão da política do HSM.
+
+
+## Recuperação pós-alerta operacional do HSM
+
+Foi executado um fluxo de recuperação local após uma rejeição de assinatura. O agente não faz retry imediato: primeiro registra o alerta, pausa a execução e exige mitigação e revalidação independente.
+
+O fluxo validado foi:
+
+```text
+ready
+  → HSM_REJECTED
+  → alerted
+  → paused
+  → payload_revalidated
+  → signer_reauthorized
+  → signed
+  → broadcast blocked
+```
+
+A revalidação verificou digest, nonce, `chain_id` e limites. Após a mitigação, um signer de teste autorizado foi injetado e a assinatura foi aceita. Nenhuma UTXO, ordem ou ledger foi mutado e `broadcast_attempted` permaneceu `false`.
+
+Quando a revalidação foi forçada a falhar, o estado permaneceu `paused`, com `mutation: none` e sem tentativa de broadcast. Esse é o comportamento esperado para impedir que a recuperação contorne uma mudança de payload, nonce, rede ou limite.
+
+Resultado observado:
+
+```json
+{
+  "audit_events": [
+    "hsm_alert",
+    "executor_paused",
+    "payload_revalidated",
+    "signer_reauthorized",
+    "signature_accepted"
+  ],
+  "broadcast_attempted": false,
+  "final_state": "signed",
+  "mutations": []
+}
+```
+
+Os testes de recuperação e assinatura passaram com `7 passed`; a regressão E2E dos componentes UTXO, taxas, swap, P2P e HEX/EVM passou com `79 passed`.
