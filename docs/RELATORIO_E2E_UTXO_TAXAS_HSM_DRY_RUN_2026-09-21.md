@@ -237,3 +237,26 @@ A regressão dos componentes UTXO, taxas, Swap, P2P e HEX/EVM permaneceu verde c
 ## Recomendações para escala real
 
 Antes de ampliar o fluxo, adicionar limite explícito de concorrência, fila bounded, chave idempotente por `(artifact_id, digest, nonce)`, TTL para eventos, métricas de fila e circuit breaker do HSM. A recuperação deve permanecer pausada quando houver divergência de digest, nonce, chain ID, contrato, UTXO ou limite. Nenhum aumento de throughput deve permitir retry automático de assinatura ou broadcast.
+
+
+## Fila bounded e circuit breaker
+
+Foi adicionada a camada `tools/hsm_recovery_control.py`.
+
+A `BoundedRecoveryQueue` usa capacidade fixa e rejeição não bloqueante. Quando a capacidade é atingida, o produtor recebe `QueueBackpressure` imediatamente; o job não é descartado silenciosamente nem cria crescimento ilimitado de memória.
+
+O `CircuitBreaker` possui três estados:
+
+```text
+closed    → aceita jobs e processa normalmente
+open      → bloqueia novas recuperações após falhas repetidas
+half-open → permite um único probe após o timeout
+```
+
+O circuito volta a `closed` somente quando o probe é bem-sucedido. Uma falha no probe reabre o circuito. Jobs já enfileirados também permanecem pausados enquanto o circuito está `open`.
+
+A fila e o circuito foram validados com backpressure, duas falhas consecutivas, pausa de job enfileirado, passagem para `half-open` e recuperação após sucesso. Os testes específicos passaram com `5 passed`.
+
+## Integração mybait.org/HSM
+
+A configuração de conectores da sessão não contém integração habilitada para `mybait.org` ou HSM, e o repositório não possui endpoint HSM autenticado. Por isso, **não foi executada integração persistente real**, nem assinatura de produção ou broadcast. A implementação publicada permanece local e fail-closed. Para ativar uma integração real, ainda são necessários endpoint autenticado, TLS/mTLS, identificador de chave HSM, política de autorização, allowlist de rede/contrato e aprovação operacional independente.
