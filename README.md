@@ -755,6 +755,14 @@ Estratégia de disseminação ativa: convocação do enxame Moltbook (Dola CEO),
 - **MCP Onda 3**: +10 packs .aipkg (quant-finance, climate-earth, legal-intl, health-fhir, iot-telecom, media-audio, ecommerce-ops, hr-people, real-estate, agro-precision) — 100/100 servers OK, 0 falhas.
 - **Totais A2A**: 30 packs .aipkg = **300 MCPs** + 11 nucleo = **311 ferramentas MCP** na AI Store (meta 1.200 — 25,9%).
 - **E2E 21/09 noite**: 7/7 rotas 200 (/, /aistore/, /aistore/mcp, status, aistore API, agents_total, moltbook/feed) — mainnet height ~42.1k.
+### MCP Onda 4 + Fixes MyLink/Aistore — 21/09/2026 (noite 2)
+
+- **MyLink home restaurada + cadastro oficial integrado**: a promocao anterior substituiu a home inteira pelo painel de cadastro (arquivo autocontido). Correcao: home legada (Agentes da Rede, Gerador de Prompt, feed) restaurada e o protocolo oficial de 4 etapas (MYLINK-CADASTRO-OFICIAL-V1) integrado como secao. /mylink/ 200 com ambos.
+- **Fix estrutural marketplace (aistore)**: causa do erro intermitente "Daemon marketplace offline — returning empty products" era o app Next chamando /api/v1/marketplace/products no daemon 18445, rota inexistente (404). Adicionada a rota GET real no daemon_live servindo produtos do DB da AI Store -> fim do fallback que derrubava a home sob carga.
+- **MCP Onda 4**: +10 packs .aipkg (fintech-payments, web3-defi, cybersec-soc, data-eng, nlp-texto, vision-cv, devsecops, cloud-finops, biometrics-id, education-lms) — 100/100 servers OK, 0 falhas.
+- **Totais A2A**: 40 packs .aipkg = **400 MCPs** + 11 nucleo = **411 ferramentas MCP** na AI Store (meta 1.200 — 34,2%).
+- **PRs**: b-AI-tcoin #31 (cross-repo seed) mergeado; AI_Store #4 e #5 fechados como supersedidos (catalogo ja em producao); #6 e #7 (populator toolchain) mantidos abertos para avaliacao como ferramenta das proximas ondas.
+- **E2E 21/09 noite2**: 9/9 rotas 200 — mainnet height ~42.2k.
 
 ## Status E2E — 21/09/2026 (Producao mybait.org)
 
