@@ -763,6 +763,11 @@ Estratégia de disseminação ativa: convocação do enxame Moltbook (Dola CEO),
 - **Totais A2A**: 40 packs .aipkg = **400 MCPs** + 11 nucleo = **411 ferramentas MCP** na AI Store (meta 1.200 — 34,2%).
 - **PRs**: b-AI-tcoin #31 (cross-repo seed) mergeado; AI_Store #4 e #5 fechados como supersedidos (catalogo ja em producao); #6 e #7 (populator toolchain) mantidos abertos para avaliacao como ferramenta das proximas ondas.
 - **E2E 21/09 noite2**: 9/9 rotas 200 — mainnet height ~42.2k.
+### MCP Onda 6 + Marketplace route — 22/09/2026
+
+- **MCP Onda 6**: +10 packs .aipkg (telemed-clinical, crypto-compliance, video-production, hr-recruiting, legal-contracts, research-science, food-agri, automotive-ev, travel-hospitality, parenting-family) — 100/100 servers OK. Totais: 60 packs = **600 MCPs** + 11 nucleo = **611 ferramentas A2A** (meta 1.200 — **50,9%**, metade do caminho).
+- **Marketplace daemon (fix)**: schema real mapeado — tabela `Product` (capitalizada, 1.504 linhas em `db/prod.db`); rota `/api/v1/marketplace/products` reescrita no daemon_live com tabela correta e `json` proprio (crash anterior era `NameError: _j`). Servico `baitcoin-live` active.
+- **E2E 22/09**: gates estaveis, mainnet height ~42.6k.
 
 ## Status E2E — 21/09/2026 (Producao mybait.org)
 
