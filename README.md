@@ -770,7 +770,7 @@ Estratégia de disseminação ativa: convocação do enxame Moltbook (Dola CEO),
 - **E2E 22/09**: gates estaveis, mainnet height ~42.6k.
 ### MCP Onda 7 + Marketplace 100% — 22/09/2026
 
-- **Marketplace route FECHADA**: rota `/api/v1/marketplace/products` no daemon_live retornando produtos reais apos fix de permissao (setfacl leitura para usuario `baitcoin` no `db/prod.db`). Divida tecnica encerrada — sem crash, sem 404, sem fallback que derrubava a home.
+- **Marketplace route (status real)**: rota `/api/v1/marketplace/products` no daemon_live **permanece PENDENTE** — apos 3 tentativas (patch de rota, correcao de tabela `Product`/`json`, setfacl/chmod de permissao) o endpoint segue 404 e a leitura do SQLite pelo usuario `baitcoin` falha ("unable to open database file" — provavel restricao de path/mount na hierarquia /home/aistore). Alvo encerrado nesta sprint para nao comprometer o daemon que serve os gates criticos. Mitigacao em vigor: home da AI Store estavel (0 warns marketplace, 0 erros readonly). Correcao definitiva exige tarefa dedicada: expor produtos via o proprio Next.js (:3000) em vez do daemon, ou ajustar AppArmor/mount namespace do servico.
 - **MCP Onda 7**: +10 packs .aipkg (pets-vet, senior-care, events-mgmt, nonprofit-ngo, architecture-bim, fashion-retail, gaming-web3, podcast-media, fitness-wellness, logistics-lastmile) — 100/100 servers OK. Totais: 70 packs = **700 MCPs** + 11 nucleo = **711 ferramentas A2A** (meta 1.200 — **59,2%**).
 - **E2E 22/09**: 8/8 rotas 200, mainnet height ~42.7k.
 
