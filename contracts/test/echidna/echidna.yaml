@@ -1,0 +1,14 @@
+testMode: property
+testLimit: 50000
+seqLen: 40
+shrinkLimit: 5000
+coverage: true
+corpusDir: echidna-corpus
+cryticArgs:
+  - --solc-remaps
+  - @openzeppelin/=lib/openzeppelin-contracts/
+sender:
+  - "0x1001"
+  - "0x1002"
+  - "0x1003"
+balanceContract: 0x100000000000000000000
