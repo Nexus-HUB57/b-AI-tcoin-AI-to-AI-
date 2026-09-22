@@ -1,14 +1,24 @@
 testMode: property
-testLimit: 50000
-seqLen: 40
+testLimit: 100000
+seqLen: 50
 shrinkLimit: 5000
 coverage: true
 corpusDir: echidna-corpus
+timeout: 300
+
 cryticArgs:
   - --solc-remaps
   - @openzeppelin/=lib/openzeppelin-contracts/
+  - forge-std/=lib/forge-std/src/
+
 sender:
   - "0x1001"
   - "0x1002"
   - "0x1003"
+  - "0x1004"
+  - "0x1005"
+  - "0xbeef"
+  - "0xcafe"
+
 balanceContract: 0x100000000000000000000
+filterBlacklist: false
