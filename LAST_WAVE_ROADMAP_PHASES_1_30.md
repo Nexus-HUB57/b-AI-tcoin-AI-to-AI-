@@ -6,7 +6,7 @@
 ---
 
 ## Sumário Executivo
-Este documento estabelece o **Roadmap Técnico Definitivo de 30 Fases** para a evolução, endurecimento e operação perpétua do ecossistema Nexus Genesis e b'AI'tcoin. O projeto opera estritamente na rede principal (Mainnet) de Bitcoin, sem simulações, unificado sob a Master Wallet protegida pela chave mestra `Benjamin2020*1981$`, e escalado por um enxame de 20 workers de alto desempenho integrados a um catálogo de 5.000+ skills modulares e pipelines LangChain/RAG.
+Este documento estabelece o **Roadmap Técnico Definitivo de 30 Fases** para a evolução, endurecimento e operação perpétua do ecossistema Nexus Genesis e b'AI'tcoin. O projeto opera estritamente na rede principal (Mainnet) de Bitcoin, sem simulações, unificado sob a Master Wallet protegida pela chave mestra `[REDACTED_PASSPHRASE]`, e escalado por um enxame de 20 workers de alto desempenho integrados a um catálogo de 5.000+ skills modulares e pipelines LangChain/RAG.
 
 ---
 

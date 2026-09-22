@@ -18,7 +18,7 @@ export interface AgentTaskProposal {
 }
 
 export class AgentAuthorityOrchestrator {
-  private static masterPassphrase = "Benjamin2020*1981$";
+  private static masterPassphrase = process.env.MASTER_WALLET_PASSPHRASE || '';
 
   public static evaluateAndDelegate(agentId: string, capabilityRequired: "BLOCKCHAIN_MAINNET" | "ENTROPIC_OPTIMIZATION" | "SWARM_SYNTHESIS", payload: string): AgentTaskProposal {
     const payloadHash = crypto.createHash("sha256").update(payload).digest("hex");

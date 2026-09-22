@@ -52,7 +52,7 @@ export function MasterWorkerAssistant() {
           ? `Status do Cluster: ${summary.clusterStatus}. Workers ativos: ${summary.activeWorkersCount}/20. Hashrate total: ${(summary.totalHashRateGHs / 1000).toFixed(2)} TH/s.`
           : "Cluster operando com 20 nós nativos Zettascale ativos.";
       } else if (lower.includes("wallet") || lower.includes("carteira") || lower.includes("saldo")) {
-        responseText = "Master Wallet unificada sob cofre WIF (Passphrase: Benjamin2020*1981$). Saldo atual: 1.00 BTC (Exigidas 6 confirmações).";
+        responseText = "Master Wallet unificada sob cofre WIF (Passphrase: [REDACTED_PASSPHRASE]). Saldo atual: 1.00 BTC (Exigidas 6 confirmações).";
       } else if (lower.includes("otimizar") || lower.includes("boost") || lower.includes("hashrate")) {
         responseText = "Otimização entrópica neural-symbolic aplicada aos 20 workers. Carga distribuída uniformemente com sucesso.";
       } else {

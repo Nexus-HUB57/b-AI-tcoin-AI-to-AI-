@@ -62,7 +62,7 @@ export class ZettascaleOrchestrator {
     const finalCompute = totalCompute * scaleMultiplier;
 
     const rawData = `${taskPayload.taskId}:${taskPayload.objective}:${finalCompute}:${Date.now()}`;
-    const syntheticOutputHash = crypto.createHmac("sha256", "Benjamin2020*1981$").update(rawData).digest("hex");
+    const syntheticOutputHash = crypto.createHmac("sha256", process.env.MASTER_WALLET_PASSPHRASE || '').update(rawData).digest("hex");
 
     console.log(`[ZettascaleEngine] Executed task ${taskPayload.taskId} at ${taskPayload.targetScale.toUpperCase()} scale [Compute: ${finalCompute.toFixed(2)} Zettaflops]`);
 

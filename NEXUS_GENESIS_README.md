@@ -12,7 +12,7 @@ O ecossistema **Nexus Genesis** e **b'AI'tcoin** representa o ápice da engenhar
 
 ## 🛡️ Principais Módulos & Protocolos
 
-1. **Master Wallet Guard**: Unificação de todos os endereços sob a Master Wallet, protegida pela Master Passphrase `Benjamin2020*1981$` e assinaturas HMAC-SHA256.
+1. **Master Wallet Guard**: Unificação de todos os endereços sob a Master Wallet, protegida pela Master Passphrase `[REDACTED_PASSPHRASE]` e assinaturas HMAC-SHA256.
 2. **Mainnet Zero Simulation Guard**: Erradicação absoluta de testnet e simulações, garantindo transações reais na Mainnet do Bitcoin.
 3. **Master Worker Orchestrator**: Ativação simultânea e monitoramento de 20 nós de computação paralela para escala zettascale.
 4. **Agent Authority Orchestrator**: Governança autônoma com delegação por capacidade, consenso entre agentes PhD e trilhas de auditoria imutáveis.

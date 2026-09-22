@@ -121,3 +121,8 @@ contracts/lib/
 contracts/.env
 contracts/.env.*
 contracts/foundry.lock
+
+# Audit remediation — do not commit
+deploy/keystores/
+*.bak.*
+*.bak

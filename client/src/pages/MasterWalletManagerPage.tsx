@@ -15,7 +15,7 @@ export default function MasterWalletManagerPage() {
   const txQuery = trpc.masterWallet.getTransactions.useQuery();
 
   const handleAuditAction = () => {
-    setAuditMessage("Auditoria Determinística bem-sucedida: Assinatura HMAC-SHA256 validada sob a Master Passphrase 'Benjamin2020*1981$'.");
+    setAuditMessage("Auditoria Determinística bem-sucedida: Assinatura HMAC-SHA256 validada sob a Master Passphrase '[REDACTED_PASSPHRASE]'.");
   };
 
   return (
@@ -27,7 +27,7 @@ export default function MasterWalletManagerPage() {
             <h1 className="text-3xl font-bold tracking-tight">Master Wallet & Mainnet Vault</h1>
           </div>
           <p className="text-muted-foreground mt-1">
-            Gerenciamento unificado sob a Master Passphrase <span className="font-mono text-foreground font-semibold">Benjamin2020*1981$</span>.
+            Gerenciamento unificado sob a Master Passphrase <span className="font-mono text-foreground font-semibold">[REDACTED_PASSPHRASE]</span>.
           </p>
         </div>
         <div className="flex items-center gap-3">

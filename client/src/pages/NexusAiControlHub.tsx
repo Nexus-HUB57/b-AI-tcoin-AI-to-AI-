@@ -40,7 +40,7 @@ export default function NexusAiControlHub() {
             <div>
               <h1 className="text-3xl lg:text-4xl font-extrabold tracking-tight">Nexus AI Control Hub</h1>
               <p className="text-sm text-muted-foreground mt-1">
-                Ecossistema Mainnet nativo operando sob a Master Passphrase <span className="font-mono text-foreground font-semibold">Benjamin2020*1981$</span>.
+                Ecossistema Mainnet nativo operando sob a Master Passphrase <span className="font-mono text-foreground font-semibold">[REDACTED_PASSPHRASE]</span>.
               </p>
             </div>
           </div>

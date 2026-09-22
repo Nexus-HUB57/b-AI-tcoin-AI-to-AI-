@@ -35,7 +35,7 @@ export class LangChainRagPipeline {
       sourceId: "doc-security-03",
       title: "Master Wallet Guard & Passphrase Unification",
       url: "https://mybait.org/docs/security",
-      content: "Master Wallet unified under the secure passphrase 'Benjamin2020*1981$' with WIF encryption and 1 BTC transaction limits."
+      content: "Master Wallet unified under the secure passphrase '[REDACTED_PASSPHRASE]' with WIF encryption and 1 BTC transaction limits."
     }
   ];
 
