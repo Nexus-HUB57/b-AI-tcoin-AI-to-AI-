@@ -8,8 +8,8 @@ import "./WBAIT.sol";
 
 /**
  * @title BridgeLock — 3-of-5 Multisig Lock-and-Mint Bridge (remediated)
- * @notice Rate limit reserved at request; priority 0..2; batch confirm for operators.
- * @dev Pause/unpause should be owned by a TimelockController in production.
+ * @notice Rate limit reserved at request; priority 0..2; batch confirm with dynamic maxBatch.
+ * @dev Pause/unpause and setMaxBatch should be owned by a TimelockController in production.
  */
 contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
     WBAIT public immutable wbait;
@@ -19,14 +19,17 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
     uint256 public constant RATE_LIMIT = 100_000 * 10**8;
     uint256 public constant TIMELOCK_DURATION = 24 hours;
     uint8 public constant MAX_PRIORITY = 2;
-    /// @dev Caps batch size to bound gas and avoid unbounded loops
-    uint256 public constant MAX_BATCH = 50;
+    /// @dev Absolute ceiling for setMaxBatch (DoS bound even if owner misconfigures)
+    uint256 public constant MAX_BATCH_CAP = 200;
 
     address[NUM_OPERATORS] public operators;
     mapping(address => bool) public isOperator;
 
     uint256 public totalLocked;
     uint256 public totalMinted;
+
+    /// @notice Current max items per confirm*Batch call (owner/Timelock adjustable)
+    uint256 public maxBatch = 50;
 
     struct LockRequest {
         bytes32 l1TxId;
@@ -82,6 +85,7 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
     event OperatorUpdated(uint256 index, address oldOp, address newOp);
     event OperatorUpdateCancelled();
     event TotalLockedIncreased(uint256 amount, uint256 newTotalLocked);
+    event MaxBatchUpdated(uint256 oldMax, uint256 newMax);
 
     modifier onlyOperator() {
         require(isOperator[msg.sender], "BridgeLock: not operator");
@@ -158,14 +162,14 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
     }
 
     /// @notice Confirm multiple lock-mint requests in one tx (saves n-1 base fees).
-    /// @dev Reverts on any invalid id (all-or-nothing). Max MAX_BATCH items.
+    /// @dev All-or-nothing. Size limited by `maxBatch` (owner-adjustable, capped by MAX_BATCH_CAP).
     function confirmLockMintBatch(bytes32[] calldata requestIds)
         external
         onlyOperator
         whenNotPaused
     {
         uint256 n = requestIds.length;
-        require(n > 0 && n <= MAX_BATCH, "BridgeLock: bad batch size");
+        require(n > 0 && n <= maxBatch, "BridgeLock: bad batch size");
         for (uint256 i; i < n; ) {
             _confirmLockMint(requestIds[i]);
             unchecked {
@@ -235,7 +239,7 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
         whenNotPaused
     {
         uint256 n = releaseIds.length;
-        require(n > 0 && n <= MAX_BATCH, "BridgeLock: bad batch size");
+        require(n > 0 && n <= maxBatch, "BridgeLock: bad batch size");
         for (uint256 i; i < n; ) {
             _confirmBurnRelease(releaseIds[i]);
             unchecked {
@@ -262,6 +266,14 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
 
     function pause() external onlyOwner { _pause(); }
     function unpause() external onlyOwner { _unpause(); }
+
+    /// @notice Adjust batch size limit (prefer Timelock as owner in production)
+    function setMaxBatch(uint256 newMax) external onlyOwner {
+        require(newMax > 0 && newMax <= MAX_BATCH_CAP, "BridgeLock: maxBatch bounds");
+        uint256 old = maxBatch;
+        maxBatch = newMax;
+        emit MaxBatchUpdated(old, newMax);
+    }
 
     function proposeOperatorUpdate(uint256 index, address newOperator) external onlyOwner {
         require(index < NUM_OPERATORS, "BridgeLock: invalid index");

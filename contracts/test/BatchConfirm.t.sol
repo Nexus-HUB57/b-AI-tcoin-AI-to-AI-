@@ -21,6 +21,40 @@ contract BatchConfirmTest is Test {
         wbait.setBridgeLock(address(bridge));
     }
 
+    function test_DefaultMaxBatchIs50() public view {
+        assertEq(bridge.maxBatch(), 50);
+        assertEq(bridge.MAX_BATCH_CAP(), 200);
+    }
+
+    function test_SetMaxBatch() public {
+        bridge.setMaxBatch(100);
+        assertEq(bridge.maxBatch(), 100);
+    }
+
+    function test_SetMaxBatchBounds() public {
+        vm.expectRevert("BridgeLock: maxBatch bounds");
+        bridge.setMaxBatch(0);
+        vm.expectRevert("BridgeLock: maxBatch bounds");
+        bridge.setMaxBatch(201);
+    }
+
+    function test_SetMaxBatchOnlyOwner() public {
+        vm.prank(address(0x99));
+        vm.expectRevert();
+        bridge.setMaxBatch(10);
+    }
+
+    function test_BatchRespectsDynamicMax() public {
+        bridge.setMaxBatch(2);
+        bytes32[] memory ids = new bytes32[](3);
+        ids[0] = keccak256("a");
+        ids[1] = keccak256("b");
+        ids[2] = keccak256("c");
+        vm.prank(ops[0]);
+        vm.expectRevert("BridgeLock: bad batch size");
+        bridge.confirmLockMintBatch(ids);
+    }
+
     function test_BatchConfirmMintsWhenThirdOps() public {
         address r0 = address(0xB1);
         address r1 = address(0xB2);
@@ -60,6 +94,7 @@ contract BatchConfirmTest is Test {
     }
 
     function test_BatchTooLargeReverts() public {
+        // default maxBatch=50
         bytes32[] memory ids = new bytes32[](51);
         vm.prank(ops[0]);
         vm.expectRevert("BridgeLock: bad batch size");
