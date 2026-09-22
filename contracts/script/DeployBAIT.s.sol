@@ -5,11 +5,18 @@ import "forge-std/Script.sol";
 import "../src/WBAIT.sol";
 import "../src/BridgeLock.sol";
 
+/**
+ * @title DeployBAIT (remediated)
+ * @notice Correct deploy order:
+ *   1. Deploy WBAIT (no bridge address yet)
+ *   2. Deploy BridgeLock(wbait, operators)
+ *   3. wbait.setBridgeLock(bridgeLock)
+ *   4. (Optional) transfer ownership to Timelock
+ */
 contract DeployBAIT is Script {
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
 
-        // Operator keys (replace with actual operator addresses for mainnet)
         address[5] memory operators = [
             vm.envAddress("OPERATOR_1"),
             vm.envAddress("OPERATOR_2"),
@@ -20,14 +27,17 @@ contract DeployBAIT is Script {
 
         vm.startBroadcast(deployerPrivateKey);
 
-        // Step 1: Deploy WBAIT with BridgeLock address = deployer (temporary)
-        // In production, use CREATE2 to pre-compute BridgeLock address
-        WBAIT wbait = new WBAIT(msg.sender);
+        WBAIT wbait = new WBAIT();
         console.log("WBAIT deployed at:", address(wbait));
 
-        // Step 2: Deploy BridgeLock referencing WBAIT
         BridgeLock bridgeLock = new BridgeLock(address(wbait), operators);
         console.log("BridgeLock deployed at:", address(bridgeLock));
+
+        wbait.setBridgeLock(address(bridgeLock));
+        console.log("WBAIT.bridgeLock set to:", wbait.bridgeLock());
+
+        require(wbait.bridgeLock() == address(bridgeLock), "Deploy: bridge mismatch");
+        require(address(bridgeLock.wbait()) == address(wbait), "Deploy: wbait mismatch");
 
         vm.stopBroadcast();
 
@@ -39,5 +49,6 @@ contract DeployBAIT is Script {
         console.log("Operator 3:", operators[2]);
         console.log("Operator 4:", operators[3]);
         console.log("Operator 5:", operators[4]);
+        console.log("Next: run SetupTimelock.s.sol to transfer ownership");
     }
 }
