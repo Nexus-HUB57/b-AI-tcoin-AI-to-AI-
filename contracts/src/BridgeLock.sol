@@ -8,13 +8,7 @@ import "./WBAIT.sol";
 
 /**
  * @title BridgeLock — 3-of-5 Multisig Lock-and-Mint Bridge (remediated)
- * @notice Secures the BAIT L1 to wBAIT ERC-20 bridge.
- *         - Lock events on L1 trigger mint after 3-of-5 operator confirmation
- *         - Burn on Ethereum triggers release on L1 after operator confirmation
- *         - 24h timelock on operator parameter changes
- *         - Rate limit: 100,000 wBAIT/day/address
- *         - On-chain invariant: totalMinted <= totalLocked
- *         - No auto-confirmation on request
+ * @notice Rate limit reserved at request; priority 0..2 for off-chain queue only.
  * @dev Pause/unpause should be owned by a TimelockController in production.
  */
 contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
@@ -24,6 +18,7 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
     uint256 public constant NUM_OPERATORS = 5;
     uint256 public constant RATE_LIMIT = 100_000 * 10**8;
     uint256 public constant TIMELOCK_DURATION = 24 hours;
+    uint8 public constant MAX_PRIORITY = 2;
 
     address[NUM_OPERATORS] public operators;
     mapping(address => bool) public isOperator;
@@ -39,6 +34,8 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
         mapping(address => bool) confirmed;
         bool executed;
         bool exists;
+        uint8 priority;
+        uint64 createdAt;
     }
 
     mapping(bytes32 => LockRequest) public lockRequests;
@@ -67,7 +64,13 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
     }
     PendingOperatorUpdate public pendingOperatorUpdate;
 
-    event LockRequested(bytes32 indexed requestId, bytes32 l1TxId, address recipient, uint256 amount);
+    event LockRequested(
+        bytes32 indexed requestId,
+        bytes32 l1TxId,
+        address recipient,
+        uint256 amount,
+        uint8 priority
+    );
     event LockConfirmed(bytes32 indexed requestId, address operator);
     event LockExecuted(bytes32 indexed requestId, address recipient, uint256 amount);
     event BurnInitiated(bytes32 indexed releaseId, address burner, uint256 amount, string l1Address);
@@ -99,6 +102,27 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
         address recipient,
         uint256 amount
     ) external onlyOperator whenNotPaused {
+        _requestLockMint(requestId, l1TxId, recipient, amount, 0);
+    }
+
+    function requestLockMint(
+        bytes32 requestId,
+        bytes32 l1TxId,
+        address recipient,
+        uint256 amount,
+        uint8 priority
+    ) external onlyOperator whenNotPaused {
+        _requestLockMint(requestId, l1TxId, recipient, amount, priority);
+    }
+
+    function _requestLockMint(
+        bytes32 requestId,
+        bytes32 l1TxId,
+        address recipient,
+        uint256 amount,
+        uint8 priority
+    ) internal {
+        require(priority <= MAX_PRIORITY, "BridgeLock: invalid priority");
         require(!lockRequests[requestId].exists, "BridgeLock: already requested");
         require(amount > 0, "BridgeLock: zero amount");
         require(recipient != address(0), "BridgeLock: zero recipient");
@@ -109,6 +133,7 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
             lastMintDay[recipient] = currentDay;
         }
         require(dailyMinted[recipient] + amount <= RATE_LIMIT, "BridgeLock: rate limit exceeded");
+        dailyMinted[recipient] += amount;
 
         LockRequest storage req = lockRequests[requestId];
         req.l1TxId = l1TxId;
@@ -117,11 +142,13 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
         req.confirmations = 0;
         req.executed = false;
         req.exists = true;
+        req.priority = priority;
+        req.createdAt = uint64(block.timestamp);
         lockRequestIds.push(requestId);
 
         totalLocked += amount;
         emit TotalLockedIncreased(amount, totalLocked);
-        emit LockRequested(requestId, l1TxId, recipient, amount);
+        emit LockRequested(requestId, l1TxId, recipient, amount, priority);
     }
 
     function confirmLockMint(bytes32 requestId) external onlyOperator whenNotPaused {
@@ -146,7 +173,6 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
         require(totalMinted + req.amount <= totalLocked, "BridgeLock: minted exceeds locked");
 
         req.executed = true;
-        dailyMinted[req.recipient] += req.amount;
         totalMinted += req.amount;
 
         wbait.mint(req.recipient, req.amount);
@@ -158,7 +184,9 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
         require(amount > 0, "BridgeLock: no wBAIT to burn");
         require(bytes(l1ReleaseAddress).length > 0, "BridgeLock: empty L1 address");
 
-        bytes32 releaseId = keccak256(abi.encodePacked(msg.sender, amount, block.number, burnReleaseIds.length));
+        bytes32 releaseId = keccak256(abi.encodePacked(
+            msg.sender, amount, block.number, burnReleaseIds.length
+        ));
 
         BurnRelease storage rel = burnReleases[releaseId];
         rel.burner = msg.sender;
@@ -205,12 +233,20 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
             active: true
         });
 
-        emit OperatorUpdateProposed(index, operators[index], newOperator, block.timestamp + TIMELOCK_DURATION);
+        emit OperatorUpdateProposed(
+            index,
+            operators[index],
+            newOperator,
+            block.timestamp + TIMELOCK_DURATION
+        );
     }
 
     function executeOperatorUpdate() external onlyOwner {
         require(pendingOperatorUpdate.active, "BridgeLock: no pending update");
-        require(block.timestamp >= pendingOperatorUpdate.proposedAt + TIMELOCK_DURATION, "BridgeLock: timelock not expired");
+        require(
+            block.timestamp >= pendingOperatorUpdate.proposedAt + TIMELOCK_DURATION,
+            "BridgeLock: timelock not expired"
+        );
 
         uint256 idx = pendingOperatorUpdate.index;
         address oldOperator = operators[idx];
@@ -230,8 +266,40 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
         emit OperatorUpdateCancelled();
     }
 
-    function getLockRequestCount() external view returns (uint256) { return lockRequestIds.length; }
-    function getBurnReleaseCount() external view returns (uint256) { return burnReleaseIds.length; }
+    function getLockRequestCount() external view returns (uint256) {
+        return lockRequestIds.length;
+    }
+
+    function getBurnReleaseCount() external view returns (uint256) {
+        return burnReleaseIds.length;
+    }
+
+    function getLockRequestId(uint256 index) external view returns (bytes32) {
+        return lockRequestIds[index];
+    }
+
+    function getLockRequestMeta(bytes32 requestId)
+        external
+        view
+        returns (
+            address recipient,
+            uint256 amount,
+            uint256 confirmations,
+            bool executed,
+            uint8 priority,
+            uint64 createdAt
+        )
+    {
+        LockRequest storage req = lockRequests[requestId];
+        return (
+            req.recipient,
+            req.amount,
+            req.confirmations,
+            req.executed,
+            req.priority,
+            req.createdAt
+        );
+    }
 
     function conservationHolds() external view returns (bool) {
         return totalMinted <= totalLocked;
