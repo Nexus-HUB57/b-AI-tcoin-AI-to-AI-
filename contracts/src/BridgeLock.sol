@@ -8,7 +8,7 @@ import "./WBAIT.sol";
 
 /**
  * @title BridgeLock — 3-of-5 Multisig Lock-and-Mint Bridge (remediated)
- * @notice Rate limit reserved at request; priority 0..2 for off-chain queue only.
+ * @notice Rate limit reserved at request; priority 0..2; batch confirm for operators.
  * @dev Pause/unpause should be owned by a TimelockController in production.
  */
 contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
@@ -19,6 +19,8 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
     uint256 public constant RATE_LIMIT = 100_000 * 10**8;
     uint256 public constant TIMELOCK_DURATION = 24 hours;
     uint8 public constant MAX_PRIORITY = 2;
+    /// @dev Caps batch size to bound gas and avoid unbounded loops
+    uint256 public constant MAX_BATCH = 50;
 
     address[NUM_OPERATORS] public operators;
     mapping(address => bool) public isOperator;
@@ -152,6 +154,27 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
     }
 
     function confirmLockMint(bytes32 requestId) external onlyOperator whenNotPaused {
+        _confirmLockMint(requestId);
+    }
+
+    /// @notice Confirm multiple lock-mint requests in one tx (saves n-1 base fees).
+    /// @dev Reverts on any invalid id (all-or-nothing). Max MAX_BATCH items.
+    function confirmLockMintBatch(bytes32[] calldata requestIds)
+        external
+        onlyOperator
+        whenNotPaused
+    {
+        uint256 n = requestIds.length;
+        require(n > 0 && n <= MAX_BATCH, "BridgeLock: bad batch size");
+        for (uint256 i; i < n; ) {
+            _confirmLockMint(requestIds[i]);
+            unchecked {
+                ++i;
+            }
+        }
+    }
+
+    function _confirmLockMint(bytes32 requestId) internal {
         LockRequest storage req = lockRequests[requestId];
         require(req.exists, "BridgeLock: not requested");
         require(!req.executed, "BridgeLock: already executed");
@@ -203,6 +226,25 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
     }
 
     function confirmBurnRelease(bytes32 releaseId) external onlyOperator whenNotPaused {
+        _confirmBurnRelease(releaseId);
+    }
+
+    function confirmBurnReleaseBatch(bytes32[] calldata releaseIds)
+        external
+        onlyOperator
+        whenNotPaused
+    {
+        uint256 n = releaseIds.length;
+        require(n > 0 && n <= MAX_BATCH, "BridgeLock: bad batch size");
+        for (uint256 i; i < n; ) {
+            _confirmBurnRelease(releaseIds[i]);
+            unchecked {
+                ++i;
+            }
+        }
+    }
+
+    function _confirmBurnRelease(bytes32 releaseId) internal {
         BurnRelease storage rel = burnReleases[releaseId];
         require(!rel.executed, "BridgeLock: already executed");
         require(!rel.confirmed[msg.sender], "BridgeLock: already confirmed");
