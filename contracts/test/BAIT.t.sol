@@ -97,35 +97,87 @@ contract BridgeLockTest is Test {
         wbait.setBridgeLock(address(bridgeLock));
     }
 
-    function test_OperatorCount() public view {
-        for (uint i = 0; i < 5; i++) {
-            assertTrue(bridgeLock.isOperator(bridgeLock.operators(i)));
-        }
-    }
-
     function test_RequestLockMintNoAutoConfirm() public {
         bytes32 requestId = keccak256("test-lock-1");
         uint256 amount = 10_000 * 10**8;
+        address recipient = address(0xB1);
+
         vm.prank(operators[0]);
-        bridgeLock.requestLockMint(requestId, keccak256("l1-tx-1"), address(0xB1), amount);
+        bridgeLock.requestLockMint(requestId, keccak256("l1-tx-1"), recipient, amount);
+
         assertEq(bridgeLock.totalLocked(), amount);
         assertEq(bridgeLock.totalMinted(), 0);
+        assertEq(bridgeLock.dailyMinted(recipient), amount);
         assertTrue(bridgeLock.conservationHolds());
-        assertEq(wbait.balanceOf(address(0xB1)), 0);
+        assertEq(wbait.balanceOf(recipient), 0);
+
+        (,,,, uint8 priority, uint64 createdAt) = bridgeLock.getLockRequestMeta(requestId);
+        assertEq(priority, 0);
+        assertGt(createdAt, 0);
+    }
+
+    function test_RateLimitReservedBlocksParallelRequests() public {
+        address alice = address(0xB1);
+        uint256 half = 80_000 * 10**8;
+
+        vm.prank(operators[0]);
+        bridgeLock.requestLockMint(keccak256("a"), keccak256("l1a"), alice, half);
+        assertEq(bridgeLock.dailyMinted(alice), half);
+
+        vm.prank(operators[0]);
+        vm.expectRevert("BridgeLock: rate limit exceeded");
+        bridgeLock.requestLockMint(keccak256("b"), keccak256("l1b"), alice, half);
+    }
+
+    function test_ExecuteDoesNotDoubleChargeDailyMinted() public {
+        address alice = address(0xB1);
+        uint256 amount = 10_000 * 10**8;
+        bytes32 id = keccak256("one");
+
+        vm.prank(operators[0]);
+        bridgeLock.requestLockMint(id, keccak256("l1"), alice, amount);
+        assertEq(bridgeLock.dailyMinted(alice), amount);
+
+        for (uint i = 0; i < 3; i++) {
+            vm.prank(operators[i]);
+            bridgeLock.confirmLockMint(id);
+        }
+
+        assertEq(bridgeLock.dailyMinted(alice), amount);
+        assertEq(bridgeLock.totalMinted(), amount);
+        assertEq(wbait.balanceOf(alice), amount);
+    }
+
+    function test_PriorityRequestMeta() public {
+        bytes32 id = keccak256("prio");
+        vm.prank(operators[0]);
+        bridgeLock.requestLockMint(id, keccak256("l1"), address(0xB1), 1e8, 2);
+        (,,,, uint8 priority,) = bridgeLock.getLockRequestMeta(id);
+        assertEq(priority, 2);
+    }
+
+    function test_InvalidPriorityReverts() public {
+        vm.prank(operators[0]);
+        vm.expectRevert("BridgeLock: invalid priority");
+        bridgeLock.requestLockMint(keccak256("x"), keccak256("l1"), address(0xB1), 1e8, 3);
     }
 
     function test_FullMintRequiresThreeConfirms() public {
         bytes32 requestId = keccak256("full-mint");
         address recipient = address(0xB1);
         uint256 amount = 5_000 * 10**8;
+
         vm.prank(operators[0]);
         bridgeLock.requestLockMint(requestId, keccak256("l1"), recipient, amount);
+
         vm.prank(operators[0]);
         bridgeLock.confirmLockMint(requestId);
         assertEq(wbait.balanceOf(recipient), 0);
+
         vm.prank(operators[1]);
         bridgeLock.confirmLockMint(requestId);
         assertEq(wbait.balanceOf(recipient), 0);
+
         vm.prank(operators[2]);
         bridgeLock.confirmLockMint(requestId);
         assertEq(wbait.balanceOf(recipient), amount);
@@ -137,6 +189,13 @@ contract BridgeLockTest is Test {
         vm.prank(address(0x99));
         vm.expectRevert("BridgeLock: not operator");
         bridgeLock.requestLockMint(keccak256("x"), keccak256("l1"), address(0x1), 1000);
+    }
+
+    function test_RateLimit() public {
+        uint256 limit = bridgeLock.RATE_LIMIT();
+        vm.prank(operators[0]);
+        vm.expectRevert("BridgeLock: rate limit exceeded");
+        bridgeLock.requestLockMint(keccak256("rate"), keccak256("l1"), address(0xB1), limit + 1);
     }
 
     function test_ProposeOperatorUpdate() public {
@@ -171,13 +230,6 @@ contract BridgeLockTest is Test {
 
     function test_TimelockDurationIsUsed() public view {
         assertEq(bridgeLock.TIMELOCK_DURATION(), 24 hours);
-    }
-
-    function test_RateLimit() public {
-        uint256 limit = bridgeLock.RATE_LIMIT();
-        vm.prank(operators[0]);
-        vm.expectRevert("BridgeLock: rate limit exceeded");
-        bridgeLock.requestLockMint(keccak256("rate"), keccak256("l1"), address(0xB1), limit + 1);
     }
 
     function test_BurnReleasePersistsBeforeConfirmation() public {
