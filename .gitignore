@@ -126,3 +126,8 @@ contracts/foundry.lock
 deploy/keystores/
 *.bak.*
 *.bak
+
+# Python caches
+__pycache__/
+*.pyc
+*.pyo

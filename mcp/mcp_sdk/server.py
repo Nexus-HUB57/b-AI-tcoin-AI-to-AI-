@@ -94,11 +94,16 @@ class Server:
         name: str,
         version: str = "1.0.0",
         title: Optional[str] = None,
+        description: Optional[str] = None,
         instructions: Optional[str] = None,
         capabilities: Optional[ServerCapabilities] = None,
     ):
-        self.implementation = Implementation(name=name, version=version, title=title)
-        self.instructions = instructions
+        self.description = description
+        # Some MCP clients surface serverInfo.description — encode it into the
+        # title when no explicit title was provided so the info stays useful.
+        effective_title = title or (description[:48] + "..." if description and len(description) > 48 else description)
+        self.implementation = Implementation(name=name, version=version, title=effective_title)
+        self.instructions = instructions or description
         self.capabilities = capabilities or ServerCapabilities(
             tools={"listChanged": True},
             resources={"subscribe": False, "listChanged": False},

@@ -3,26 +3,40 @@
 > **Model Context Protocol servers for the b'AI'tcoin / Nexus AI-OS ecosystem.**
 > Distributed as `.aipkg` packages via the Nexus AI-OS Store.
 
-This module ships **11 production MCPs** spanning the entire b'AI'tcoin stack —
-from on-chain primitives (oracle, defi, bridge, faucet, marketplace, agent-registry)
-to the **meta-layer** that drives agentic autoevolution (telemetry, rag-upgrader,
-skill-evolver, self-heal, agentic-awareness).
+This module ships **28 production MCPs** spanning the entire b'AI'tcoin stack — from
+on-chain primitives to AI/ML infra, web/agent tooling, dev/SRE, and security —
+plus the **meta-layer** that drives agentic autoevolution.
+
+## Production status
+
+| Metric | Value |
+|--------|-------|
+| **Total MCPs (b'AI'tcoin side)** | **28** |
+| **Total MCPs (cross-repo)**     | **34** (28 here + 6 in `AI_Store`) |
+| **Total tools exposed**          | ~150 across all servers |
+| **Categories**                   | 17 |
+| **`.aipkg` archives generated**  | **28** in `dist/` |
+| **Waves**                        | Wave 1 (11) + Wave 2 (17) |
+| **Branches (preserved)**         | `feat/mcp-portfolio` (Wave 1), `feat/mcp-wave2` (Wave 2) |
+| **Open PRs**                     | [#28 closed](https://github.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-/pull/28) (Wave 1), [#30 open](https://github.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-/pull/30) (Wave 2), [#29 open](https://github.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-/pull/29) (concurrent `.aipkg` work — different paths, no file conflicts) |
+| **Last build**                   | 28 `.aipkg` + `dist/portfolio.json` (28 servers) |
+| **Spec**                         | [MCP 2024-11-05](https://modelcontextprotocol.io/specification/2024-11-05) |
 
 ---
 
-## Table of contents
+## Quick links
 
-1. [Architecture](#architecture)
-2. [SDK](#sdk)
-3. [The 11 MCPs](#the-11-mcps)
-4. [.aipkg schema](#aipkg-schema)
-5. [Build & distribute](#build--distribute)
-6. [Autoevolution loop](#autoevolution-loop)
-7. [Install on an agent host](#install-on-an-agent-host)
+- [Architecture](#architecture)
+- [SDK](#sdk)
+- [The 28 MCPs](#the-28-mcps) — [Wave 1 core](#wave-1--core-on-chain) · [Wave 1 meta](#wave-1--meta-autoevolution) · [Wave 2 data](#wave-2--data--ai) · [Wave 2 web](#wave-2--web--agents) · [Wave 2 dev](#wave-2--dev--sre) · [Wave 2 sec](#wave-2--security--identity)
+- [.aipkg schema](#aipkg-schema)
+- [Build & distribute](#build--distribute)
+- [Autoevolution loop](#autoevolution-loop)
+- [Install on an agent host](#install-on-an-agent-host)
 
 ---
 
-## 1 · Architecture
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -33,13 +47,16 @@ skill-evolver, self-heal, agentic-awareness).
          │                                              │
 ┌────────▼────────────────────────────────────────────────────┐
 │                  MCP Servers (Python)                        │
-│  ┌────────────┐ ┌────────────┐ ┌─────────────────────┐      │
-│  │ mcp-oracle │ │ mcp-defi   │ │ mcp-agent-registry  │ ...  │
-│  └────────────┘ └────────────┘ └─────────────────────┘      │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │  Meta MCPs: telemetry, rag-upgrader, skill-evolver, │   │
-│  │             self-heal, agentic-awareness            │   │
-│  └─────────────────────────────────────────────────────┘   │
+│  28 servers across 17 categories                            │
+│   • Wave 1 core: oracle, defi, bridge, faucet,              │
+│     agent-registry, marketplace                              │
+│   • Wave 1 meta: telemetry, rag-upgrader, skill-evolver,    │
+│     self-heal, agentic-awareness                            │
+│   • Wave 2 data: embeddings, synthetic-data, vision,       │
+│     rag-core, finetune                                      │
+│   • Wave 2 web:  browser, scraper, search, scheduler        │
+│   • Wave 2 dev:  git-ops, git-ci, deploy, observability     │
+│   • Wave 2 sec:  vault, attest, rate-limit, encryption      │
 └────────┬────────────────────────────────────────────────────┘
          │ tools/call events
          ▼
@@ -49,7 +66,7 @@ skill-evolver, self-heal, agentic-awareness).
 └─────────────────────────────────────────────────────────────┘
 ```
 
-## 2 · SDK (`mcp_sdk/`)
+## SDK (`mcp_sdk/`)
 
 | File | Purpose |
 |------|---------|
@@ -74,9 +91,11 @@ if __name__ == "__main__":
     server.run()
 ```
 
-## 3 · The 11 MCPs
+---
 
-### Core (on-chain)
+## The 28 MCPs
+
+### Wave 1 · Core (on-chain)
 
 | MCP | Category | Tools |
 |-----|----------|-------|
@@ -87,7 +106,7 @@ if __name__ == "__main__":
 | **mcp-agent-registry**  | agent-registry | `register_agent`, `lookup_agent`, `list_by_capability`, `update_reputation`, `agent_stats`, `discover_agents` |
 | **mcp-marketplace**     | marketplace    | `list_listings`, `create_listing`, `purchase`, `rate_listing`, `listing_stats` |
 
-### Meta (autoevolution)
+### Wave 1 · Meta (autoevolution)
 
 | MCP | Category | Tools |
 |-----|----------|-------|
@@ -97,7 +116,46 @@ if __name__ == "__main__":
 | **mcp-self-heal**        | self-heal         | `ping_mcp`, `health_check`, `drift_check`, `restart_mcp`, `heal_loop_status` |
 | **mcp-agentic-awareness**| agentic-awareness | `introspect`, `context_window`, `recommend_tools`, `capability_gaps`, `consciousness_score` |
 
-## 4 · `.aipkg` schema
+### Wave 2 · Data & AI
+
+| MCP | Category | Tools |
+|-----|----------|-------|
+| **mcp-embeddings**       | embeddings        | `embed`, `embed_query`, `upsert`, `search`, `delete`, `collection_stats`, `hybrid_search` |
+| **mcp-synthetic-data**   | synthetic-data    | `generate_tabular`, `generate_text`, `generate_timeseries`, `privacy_budget`, `differential_noise` |
+| **mcp-vision**           | vision            | `classify_image`, `detect_objects`, `transcribe_audio`, `describe_image`, `ocr`, `similarity` |
+| **mcp-rag-core**         | rag-core          | `ingest_document`, `chunk`, `retrieve`, `rerank`, `list_documents`, `document_summary` |
+| **mcp-finetune**         | finetune          | `create_job`, `job_status`, `list_jobs`, `cancel_job`, `export_adapter`, `recommend_hyperparams` |
+
+### Wave 2 · Web & Agents
+
+| MCP | Category | Tools |
+|-----|----------|-------|
+| **mcp-browser**     | browser   | `new_session`, `navigate`, `click`, `fill`, `extract`, `screenshot`, `close_session`, `list_sessions` |
+| **mcp-scraper**     | scraper   | `fetch`, `extract_structured`, `crawl`, `extract_links`, `extract_jsonld`, `extract_opengraph` |
+| **mcp-search**      | search    | `search`, `news_search`, `image_search`, `video_search`, `suggest`, `answer` |
+| **mcp-scheduler**   | scheduler | `schedule`, `list_jobs`, `get_job`, `cancel_job`, `run_now`, `job_history`, `next_run` |
+
+### Wave 2 · Dev & SRE
+
+| MCP | Category | Tools |
+|-----|----------|-------|
+| **mcp-git-ops**       | git-ops        | `status`, `log`, `diff`, `branch_list`, `create_branch`, `merge`, `stash`, `blame` |
+| **mcp-git-ci**        | git-ci         | `trigger_workflow`, `workflow_status`, `workflow_logs`, `cancel_workflow`, `list_workflows`, `artifact_download`, `list_runs` |
+| **mcp-deploy**        | deploy         | `deploy`, `list_targets`, `deploy_status`, `rollback`, `list_services`, `scale`, `env_set`, `logs` |
+| **mcp-observability** | observability  | `query_prom`, `query_loki`, `list_metrics`, `alert_state`, `create_alert`, `trace_search`, `service_health`, `otel_ingest` |
+
+### Wave 2 · Security & Identity
+
+| MCP | Category | Tools |
+|-----|----------|-------|
+| **mcp-vault**       | vault         | `get_secret`, `set_secret`, `delete_secret`, `list_keys`, `rotate_secret`, `secret_metadata`, `bulk_get` |
+| **mcp-attest**      | attest        | `issue`, `verify`, `revoke`, `list_for_agent`, `capabilities_of`, `sign_payload`, `verify_signature` |
+| **mcp-rate-limit**  | rate-limit    | `check`, `consume`, `reset`, `status`, `list_keys`, `set_policy`, `get_policy` |
+| **mcp-encryption**  | encryption  | `encrypt`, `decrypt`, `sign`, `verify`, `hash`, `hmac_sign`, `generate_keypair`, `key_fingerprint` |
+
+---
+
+## `.aipkg` schema
 
 `docs/aipkg-mcp.schema.json` — JSON Schema 7 for the canonical manifest.
 
@@ -126,9 +184,13 @@ if __name__ == "__main__":
 }
 ```
 
-## 5 · Build & distribute
+## Build & distribute
 
 ```bash
+# Generate per-server manifests
+python scripts/generate_manifests.py
+
+# Build the portfolio (.aipkg archives + portfolio.json)
 python scripts/build_all_manifests.py --out dist/
 ```
 
@@ -147,7 +209,7 @@ for f in dist/*.aipkg; do
 done
 ```
 
-## 6 · Autoevolution loop
+## Autoevolution loop
 
 ```
                   ┌─────────────────┐
@@ -181,7 +243,7 @@ done
                 └────────────────────┘
 ```
 
-## 7 · Install on an agent host
+## Install on an agent host
 
 ### Claude Desktop
 
@@ -210,6 +272,15 @@ curl -X POST http://localhost:3000/api/mcp/mcp-oracle/call \
 ```
 
 ---
+
+## Stats
+
+```
+Wave 1 (11 MCPs)  + Wave 2 (17 MCPs)  =  28 MCPs total
+                                          ~150 tools across all servers
+                                          17 categories
+                                          1 unified .aipkg distribution
+```
 
 ## License
 
