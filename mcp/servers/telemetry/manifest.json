@@ -1,7 +1,7 @@
 {
   "aipkg": "1.0",
   "kind": "mcp",
-  "name": "mcp-telemetry",
+  "name": "mcp-telemetry-legacy",
   "version": "1.0.0",
   "displayName": "MCP Telemetry Hub",
   "description": "Self-evolution hub. Reads MCP call logs, computes failure rates, feeds the RAG upgrader.",
