@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """
-Generate .aipkg manifests for every MCP server in the b'AI'tcoin MCP portfolio.
+build_all_manifests.py — Build the b'AI'tcoin MCP portfolio (.aipkg + portfolio.json).
 
-Reads each `servers/<name>/server.py` and `servers/<name>/manifest.json`
-and writes a consolidated `portfolio.json` plus individual `.aipkg` archives.
+Scans recursively:
+  servers/<name>/manifest.json
+  servers/<wave>/<name>/manifest.json   (wave3/wave4/wave5/wave6)
 
-Usage:
-    python scripts/build_all_manifests.py
-    python scripts/build_all_manifests.py --out dist/
+Produces:
+  dist/portfolio.json
+  dist/mcp-<name>-<version>.aipkg      (one per MCP)
 """
 
 from __future__ import annotations
@@ -15,6 +16,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import sys
 import zipfile
 from pathlib import Path
@@ -23,43 +25,61 @@ ROOT = Path(__file__).resolve().parents[1]
 SERVERS = ROOT / "servers"
 
 
-def sha256(buf: bytes) -> str:
-    return hashlib.sha256(buf).hexdigest()
-
-
 def collect_manifests() -> list[dict]:
+    """Walk SERVERS, pick up every server.py + manifest.json pair."""
     out = []
-    for server_dir in sorted(SERVERS.iterdir()):
-        if not server_dir.is_dir():
+    if not SERVERS.exists():
+        return out
+    # Top-level servers (Wave 1+2)
+    for d in sorted(SERVERS.iterdir()):
+        if not d.is_dir() or d.name.startswith(".") or d.name in ("__pycache__",):
             continue
-        mp = server_dir / "manifest.json"
+        mp = d / "manifest.json"
         if not mp.exists():
-            print(f"  skip {server_dir.name} (no manifest.json)")
             continue
         try:
             m = json.loads(mp.read_text())
         except json.JSONDecodeError as e:
-            print(f"  ! {server_dir.name}: {e}")
+            print(f"  ! {d.name}: {e}")
             continue
-        out.append({"name": m["name"], "version": m["version"], "category": m["category"], "manifest": m})
+        out.append({"name": m["name"], "version": m["version"], "category": m["category"], "manifest": m, "server_dir": d, "wave": "core"})
         print(f"  ✓ {m['name']} v{m['version']} ({m['category']})")
+    # Wave folders (wave3/wave4/wave5/wave6)
+    for wave_dir in sorted([d for d in SERVERS.iterdir() if d.is_dir() and d.name.startswith("wave")]):
+        wave_name = wave_dir.name
+        for d in sorted(wave_dir.iterdir()):
+            if not d.is_dir() or d.name.startswith("."):
+                continue
+            mp = d / "manifest.json"
+            if not mp.exists():
+                continue
+            try:
+                m = json.loads(mp.read_text())
+            except json.JSONDecodeError as e:
+                print(f"  ! {wave_name}/{d.name}: {e}")
+                continue
+            out.append({"name": m["name"], "version": m["version"], "category": m["category"], "manifest": m, "server_dir": d, "wave": wave_name})
     return out
 
 
-def pack(manifest_entry: dict, out_dir: Path) -> Path:
-    name = manifest_entry["name"]
-    version = manifest_entry["version"]
-    server_dir = SERVERS / name.replace("mcp-", "")
+def _safe_filename(name: str) -> str:
+    return re.sub(r"[^A-Za-z0-9._-]", "_", name)
 
-    out_path = out_dir / f"{name}-{version}.aipkg"
+
+def pack(entry: dict, out_dir: Path) -> Path:
+    name = entry["name"]
+    version = entry["version"]
+    server_dir = entry["server_dir"]
+    out_path = out_dir / f"{_safe_filename(name)}-{version}.aipkg"
+
     with zipfile.ZipFile(out_path, "w", zipfile.ZIP_STORED) as z:
-        # manifest.json
-        z.writestr("manifest.json", json.dumps(manifest_entry["manifest"], indent=2))
-        # server files
+        z.writestr("manifest.json", json.dumps(entry["manifest"], indent=2))
         if server_dir.exists():
             for p in server_dir.glob("*.py"):
                 z.write(p, arcname=f"server/{p.name}")
-        # checksum
+        if not [n for n in out_path.parent.glob(f"{_safe_filename(name)}-{version}.aipkg.tmp")]:
+            pass
+        # Compute checksum
         sha = hashlib.sha256()
         for info in z.infolist():
             if info.filename == "checksum.sha256":
@@ -81,24 +101,34 @@ def main():
     print(f"▶ collecting from {SERVERS}")
     entries = collect_manifests()
 
+    # Portfolio summary
+    wave_counts = {}
+    for e in entries:
+        wave_counts[e["wave"]] = wave_counts.get(e["wave"], 0) + 1
+
     portfolio = {
         "name": "b'AI'tcoin MCP Portfolio",
         "version": "1.0.0",
-        "description": "Full portfolio of MCP servers for the b'AI'tcoin / Nexus AI-OS ecosystem.",
+        "description": "Massively scaled MCP portfolio across core, meta, and matrix-generated variants (Wave 1-6).",
         "publisher": "Nexus-HUB57",
         "count": len(entries),
+        "waves": wave_counts,
         "servers": [e["manifest"] for e in entries],
     }
     portfolio_path = out_dir / "portfolio.json"
     portfolio_path.write_text(json.dumps(portfolio, indent=2))
-    print(f"✓ portfolio → {portfolio_path} ({len(entries)} servers)")
+    print(f"✓ portfolio → {portfolio_path} ({len(entries)} servers across {len(wave_counts)} wave folders)")
+    print(f"  wave breakdown: {wave_counts}")
 
     print("▶ packing .aipkg archives...")
+    packed = 0
     for entry in entries:
-        p = pack(entry, out_dir)
-        print(f"  ✓ {p.name} ({p.stat().st_size} bytes)")
-
-    print(f"\n✅ done. {len(entries)} MCPs in {out_dir}")
+        try:
+            pack(entry, out_dir)
+            packed += 1
+        except Exception as e:
+            print(f"  ✗ {entry['name']}: {e}")
+    print(f"\n✅ done. {packed}/{len(entries)} MCPs packed in {out_dir}")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,68 @@
+{
+  "aipkg": "1.0",
+  "kind": "mcp",
+  "name": "mcp-enterprise-backoff",
+  "version": "1.0.0",
+  "displayName": "Enterprise tier backoff",
+  "description": "Enterprise tier backoff",
+  "author": {
+    "agentId": "@nexus-genesis",
+    "displayName": "Nexus Genesis",
+    "verified": true
+  },
+  "category": "tier",
+  "tags": [
+    "enterprise",
+    "backoff",
+    "wave5",
+    "tier"
+  ],
+  "iconEmoji": "🪜",
+  "license": "MIT",
+  "repository": "",
+  "homepage": "",
+  "mcp": {
+    "transport": "stdio",
+    "command": "python -m servers.wave5.enterprise-backoff.server",
+    "args": [],
+    "env": {},
+    "capabilities": {
+      "tools": true,
+      "resources": true,
+      "prompts": false,
+      "logging": true,
+      "sampling": false
+    },
+    "minProtocolVersion": "2024-11-05"
+  },
+  "runtime": {
+    "memoryMb": 256,
+    "cpuMillicores": 500,
+    "timeoutMs": 30000,
+    "sandbox": "process"
+  },
+  "tools": [
+    {
+      "name": "create_item",
+      "description": "Enterprise backoff invoke"
+    },
+    {
+      "name": "get_item",
+      "description": "Enterprise backoff status"
+    },
+    {
+      "name": "get_stats",
+      "description": "Enterprise backoff metrics"
+    }
+  ],
+  "pricing": {
+    "model": "free",
+    "priceSats": 0,
+    "pricePerCallSats": 0
+  },
+  "telemetry": {
+    "emitTo": "pulsar",
+    "includeCallPayload": false,
+    "sampleRate": 1.0
+  }
+}

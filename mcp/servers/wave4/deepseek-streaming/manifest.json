@@ -1,0 +1,77 @@
+{
+  "aipkg": "1.0",
+  "kind": "mcp",
+  "name": "mcp-deepseek-streaming",
+  "version": "1.0.0",
+  "displayName": "DeepSeek streaming",
+  "description": "DeepSeek streaming",
+  "author": {
+    "agentId": "@nexus-genesis",
+    "displayName": "Nexus Genesis",
+    "verified": true
+  },
+  "category": "llm-provider",
+  "tags": [
+    "deepseek",
+    "streaming",
+    "wave4",
+    "provider",
+    "llm"
+  ],
+  "iconEmoji": "🤖",
+  "license": "MIT",
+  "repository": "",
+  "homepage": "",
+  "mcp": {
+    "transport": "stdio",
+    "command": "python -m servers.wave4.deepseek-streaming.server",
+    "args": [],
+    "env": {},
+    "capabilities": {
+      "tools": true,
+      "resources": true,
+      "prompts": false,
+      "logging": true,
+      "sampling": false
+    },
+    "minProtocolVersion": "2024-11-05"
+  },
+  "runtime": {
+    "memoryMb": 256,
+    "cpuMillicores": 500,
+    "timeoutMs": 30000,
+    "sandbox": "process"
+  },
+  "tools": [
+    {
+      "name": "create_item",
+      "description": "Invoke streaming on DeepSeek"
+    },
+    {
+      "name": "get_item",
+      "description": "Get a streaming result by id"
+    },
+    {
+      "name": "list_items",
+      "description": "List recent streaming calls"
+    },
+    {
+      "name": "get_stats",
+      "description": "Get streaming usage stats"
+    },
+    {
+      "name": "validate_item",
+      "description": "Validate streaming input"
+    }
+  ],
+  "pricing": {
+    "model": "free",
+    "priceSats": 0,
+    "pricePerCallSats": 0
+  },
+  "telemetry": {
+    "emitTo": "pulsar",
+    "includeCallPayload": false,
+    "sampleRate": 1.0
+  }
+}

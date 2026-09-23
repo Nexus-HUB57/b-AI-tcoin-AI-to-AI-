@@ -1,0 +1,71 @@
+{
+  "aipkg": "1.0",
+  "kind": "mcp",
+  "name": "mcp-analytics-extract",
+  "version": "1.0.0",
+  "displayName": "Analytics Extract",
+  "description": "Analytics Extract",
+  "author": {
+    "agentId": "@nexus-genesis",
+    "displayName": "Nexus Genesis",
+    "verified": true
+  },
+  "category": "analytics",
+  "tags": [
+    "analytics",
+    "wave3",
+    "domain"
+  ],
+  "iconEmoji": "📊",
+  "license": "MIT",
+  "repository": "",
+  "homepage": "",
+  "mcp": {
+    "transport": "stdio",
+    "command": "python -m servers.wave3.analytics-extract.server",
+    "args": [],
+    "env": {},
+    "capabilities": {
+      "tools": true,
+      "resources": true,
+      "prompts": false,
+      "logging": true,
+      "sampling": false
+    },
+    "minProtocolVersion": "2024-11-05"
+  },
+  "runtime": {
+    "memoryMb": 256,
+    "cpuMillicores": 500,
+    "timeoutMs": 30000,
+    "sandbox": "process"
+  },
+  "tools": [
+    {
+      "name": "list_items",
+      "description": "List analytics items"
+    },
+    {
+      "name": "get_item",
+      "description": "Get a analytics item by id"
+    },
+    {
+      "name": "search_items",
+      "description": "Search analytics items"
+    },
+    {
+      "name": "get_stats",
+      "description": "Aggregate analytics stats"
+    }
+  ],
+  "pricing": {
+    "model": "free",
+    "priceSats": 0,
+    "pricePerCallSats": 0
+  },
+  "telemetry": {
+    "emitTo": "pulsar",
+    "includeCallPayload": false,
+    "sampleRate": 1.0
+  }
+}

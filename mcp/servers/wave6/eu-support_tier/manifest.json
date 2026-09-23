@@ -1,0 +1,69 @@
+{
+  "aipkg": "1.0",
+  "kind": "mcp",
+  "name": "mcp-eu-support-tier",
+  "version": "1.0.0",
+  "displayName": "European Union support tier",
+  "description": "European Union support tier",
+  "author": {
+    "agentId": "@nexus-genesis",
+    "displayName": "Nexus Genesis",
+    "verified": true
+  },
+  "category": "region",
+  "tags": [
+    "eu",
+    "support_tier",
+    "wave6",
+    "region",
+    "compliance"
+  ],
+  "iconEmoji": "🇪🇺",
+  "license": "MIT",
+  "repository": "",
+  "homepage": "",
+  "mcp": {
+    "transport": "stdio",
+    "command": "python -m servers.wave6.eu-support_tier.server",
+    "args": [],
+    "env": {},
+    "capabilities": {
+      "tools": true,
+      "resources": true,
+      "prompts": false,
+      "logging": true,
+      "sampling": false
+    },
+    "minProtocolVersion": "2024-11-05"
+  },
+  "runtime": {
+    "memoryMb": 256,
+    "cpuMillicores": 500,
+    "timeoutMs": 30000,
+    "sandbox": "process"
+  },
+  "tools": [
+    {
+      "name": "create_item",
+      "description": "European Union support_tier invoke"
+    },
+    {
+      "name": "list_items",
+      "description": "List European Union support_tier"
+    },
+    {
+      "name": "get_stats",
+      "description": "Get European Union support_tier status"
+    }
+  ],
+  "pricing": {
+    "model": "free",
+    "priceSats": 0,
+    "pricePerCallSats": 0
+  },
+  "telemetry": {
+    "emitTo": "pulsar",
+    "includeCallPayload": false,
+    "sampleRate": 1.0
+  }
+}

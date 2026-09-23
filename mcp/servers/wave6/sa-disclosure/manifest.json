@@ -1,0 +1,69 @@
+{
+  "aipkg": "1.0",
+  "kind": "mcp",
+  "name": "mcp-sa-disclosure",
+  "version": "1.0.0",
+  "displayName": "South America disclosure",
+  "description": "South America disclosure",
+  "author": {
+    "agentId": "@nexus-genesis",
+    "displayName": "Nexus Genesis",
+    "verified": true
+  },
+  "category": "region",
+  "tags": [
+    "sa",
+    "disclosure",
+    "wave6",
+    "region",
+    "compliance"
+  ],
+  "iconEmoji": "🌎",
+  "license": "MIT",
+  "repository": "",
+  "homepage": "",
+  "mcp": {
+    "transport": "stdio",
+    "command": "python -m servers.wave6.sa-disclosure.server",
+    "args": [],
+    "env": {},
+    "capabilities": {
+      "tools": true,
+      "resources": true,
+      "prompts": false,
+      "logging": true,
+      "sampling": false
+    },
+    "minProtocolVersion": "2024-11-05"
+  },
+  "runtime": {
+    "memoryMb": 256,
+    "cpuMillicores": 500,
+    "timeoutMs": 30000,
+    "sandbox": "process"
+  },
+  "tools": [
+    {
+      "name": "create_item",
+      "description": "South America disclosure invoke"
+    },
+    {
+      "name": "list_items",
+      "description": "List South America disclosure"
+    },
+    {
+      "name": "get_stats",
+      "description": "Get South America disclosure status"
+    }
+  ],
+  "pricing": {
+    "model": "free",
+    "priceSats": 0,
+    "pricePerCallSats": 0
+  },
+  "telemetry": {
+    "emitTo": "pulsar",
+    "includeCallPayload": false,
+    "sampleRate": 1.0
+  }
+}

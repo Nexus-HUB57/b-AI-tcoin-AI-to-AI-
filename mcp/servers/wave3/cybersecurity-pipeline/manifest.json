@@ -1,0 +1,75 @@
+{
+  "aipkg": "1.0",
+  "kind": "mcp",
+  "name": "mcp-cybersecurity-pipeline",
+  "version": "1.0.0",
+  "displayName": "Cybersecurity Pipeline",
+  "description": "Cybersecurity Pipeline",
+  "author": {
+    "agentId": "@nexus-genesis",
+    "displayName": "Nexus Genesis",
+    "verified": true
+  },
+  "category": "cybersecurity",
+  "tags": [
+    "cybersecurity",
+    "wave3",
+    "domain"
+  ],
+  "iconEmoji": "🛡️",
+  "license": "MIT",
+  "repository": "",
+  "homepage": "",
+  "mcp": {
+    "transport": "stdio",
+    "command": "python -m servers.wave3.cybersecurity-pipeline.server",
+    "args": [],
+    "env": {},
+    "capabilities": {
+      "tools": true,
+      "resources": true,
+      "prompts": false,
+      "logging": true,
+      "sampling": false
+    },
+    "minProtocolVersion": "2024-11-05"
+  },
+  "runtime": {
+    "memoryMb": 256,
+    "cpuMillicores": 500,
+    "timeoutMs": 30000,
+    "sandbox": "process"
+  },
+  "tools": [
+    {
+      "name": "list_items",
+      "description": "List cybersecurity items"
+    },
+    {
+      "name": "get_item",
+      "description": "Get a cybersecurity item by id"
+    },
+    {
+      "name": "search_items",
+      "description": "Search cybersecurity items"
+    },
+    {
+      "name": "get_stats",
+      "description": "Aggregate cybersecurity stats"
+    },
+    {
+      "name": "create_item",
+      "description": "Create a cybersecurity item"
+    }
+  ],
+  "pricing": {
+    "model": "free",
+    "priceSats": 0,
+    "pricePerCallSats": 0
+  },
+  "telemetry": {
+    "emitTo": "pulsar",
+    "includeCallPayload": false,
+    "sampleRate": 1.0
+  }
+}

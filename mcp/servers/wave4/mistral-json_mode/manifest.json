@@ -1,0 +1,77 @@
+{
+  "aipkg": "1.0",
+  "kind": "mcp",
+  "name": "mcp-mistral-json-mode",
+  "version": "1.0.0",
+  "displayName": "Mistral json mode",
+  "description": "Mistral json mode",
+  "author": {
+    "agentId": "@nexus-genesis",
+    "displayName": "Nexus Genesis",
+    "verified": true
+  },
+  "category": "llm-provider",
+  "tags": [
+    "mistral",
+    "json_mode",
+    "wave4",
+    "provider",
+    "llm"
+  ],
+  "iconEmoji": "🤖",
+  "license": "MIT",
+  "repository": "",
+  "homepage": "",
+  "mcp": {
+    "transport": "stdio",
+    "command": "python -m servers.wave4.mistral-json_mode.server",
+    "args": [],
+    "env": {},
+    "capabilities": {
+      "tools": true,
+      "resources": true,
+      "prompts": false,
+      "logging": true,
+      "sampling": false
+    },
+    "minProtocolVersion": "2024-11-05"
+  },
+  "runtime": {
+    "memoryMb": 256,
+    "cpuMillicores": 500,
+    "timeoutMs": 30000,
+    "sandbox": "process"
+  },
+  "tools": [
+    {
+      "name": "create_item",
+      "description": "Invoke json_mode on Mistral"
+    },
+    {
+      "name": "get_item",
+      "description": "Get a json_mode result by id"
+    },
+    {
+      "name": "list_items",
+      "description": "List recent json_mode calls"
+    },
+    {
+      "name": "get_stats",
+      "description": "Get json_mode usage stats"
+    },
+    {
+      "name": "validate_item",
+      "description": "Validate json_mode input"
+    }
+  ],
+  "pricing": {
+    "model": "free",
+    "priceSats": 0,
+    "pricePerCallSats": 0
+  },
+  "telemetry": {
+    "emitTo": "pulsar",
+    "includeCallPayload": false,
+    "sampleRate": 1.0
+  }
+}

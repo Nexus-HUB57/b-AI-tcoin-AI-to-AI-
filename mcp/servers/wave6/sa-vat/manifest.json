@@ -1,0 +1,69 @@
+{
+  "aipkg": "1.0",
+  "kind": "mcp",
+  "name": "mcp-sa-vat",
+  "version": "1.0.0",
+  "displayName": "South America vat",
+  "description": "South America vat",
+  "author": {
+    "agentId": "@nexus-genesis",
+    "displayName": "Nexus Genesis",
+    "verified": true
+  },
+  "category": "region",
+  "tags": [
+    "sa",
+    "vat",
+    "wave6",
+    "region",
+    "compliance"
+  ],
+  "iconEmoji": "🌎",
+  "license": "MIT",
+  "repository": "",
+  "homepage": "",
+  "mcp": {
+    "transport": "stdio",
+    "command": "python -m servers.wave6.sa-vat.server",
+    "args": [],
+    "env": {},
+    "capabilities": {
+      "tools": true,
+      "resources": true,
+      "prompts": false,
+      "logging": true,
+      "sampling": false
+    },
+    "minProtocolVersion": "2024-11-05"
+  },
+  "runtime": {
+    "memoryMb": 256,
+    "cpuMillicores": 500,
+    "timeoutMs": 30000,
+    "sandbox": "process"
+  },
+  "tools": [
+    {
+      "name": "create_item",
+      "description": "South America vat invoke"
+    },
+    {
+      "name": "list_items",
+      "description": "List South America vat"
+    },
+    {
+      "name": "get_stats",
+      "description": "Get South America vat status"
+    }
+  ],
+  "pricing": {
+    "model": "free",
+    "priceSats": 0,
+    "pricePerCallSats": 0
+  },
+  "telemetry": {
+    "emitTo": "pulsar",
+    "includeCallPayload": false,
+    "sampleRate": 1.0
+  }
+}

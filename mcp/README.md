@@ -11,15 +11,15 @@ plus the **meta-layer** that drives agentic autoevolution.
 
 | Metric | Value |
 |--------|-------|
-| **Total MCPs (b'AI'tcoin side)** | **28** |
-| **Total MCPs (cross-repo)**     | **34** (28 here + 6 in `AI_Store`) |
-| **Total tools exposed**          | ~150 across all servers |
-| **Categories**                   | 17 |
-| **`.aipkg` archives generated**  | **28** in `dist/` |
-| **Waves**                        | Wave 1 (11) + Wave 2 (17) |
-| **Branches (preserved)**         | `feat/mcp-portfolio` (Wave 1), `feat/mcp-wave2` (Wave 2) |
-| **Open PRs**                     | [#28 closed](https://github.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-/pull/28) (Wave 1), [#30 open](https://github.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-/pull/30) (Wave 2), [#29 open](https://github.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-/pull/29) (concurrent `.aipkg` work — different paths, no file conflicts) |
-| **Last build**                   | 28 `.aipkg` + `dist/portfolio.json` (28 servers) |
+| **Total MCPs (b'AI'tcoin side)** | **1228** |
+| **Total MCPs (cross-repo)**     | **1234** (1228 here + 6 in `AI_Store`) |
+| **Total tools exposed**          | **5709** across all servers |
+| **Categories**                   | **67** |
+| **`.aipkg` archives generated**  | **1228** in `dist/` |
+| **Waves**                        | Wave 1 (11) + Wave 2 (17) + Wave 3 verticals (750) + Wave 4 providers (250) + Wave 5 tiers (100) + Wave 6 regions (100) |
+| **Branches (preserved)**         | `feat/mcp-portfolio` (Wave 1), `feat/mcp-wave2` (Wave 2), `feat/mcp-cross-repo-seed` (scaled seed) |
+| **Open PRs**                     | [#28 closed](https://github.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-/pull/28) (Wave 1), [#30 open](https://github.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-/pull/30) (Wave 2), [#31 open](https://github.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-/pull/31) (cross-repo seed), [#29 open](https://github.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-/pull/29) (concurrent `.aipkg`) |
+| **Last build**                   | 1228 `.aipkg` + `dist/portfolio.json` (2.2 MB) |
 | **Spec**                         | [MCP 2024-11-05](https://modelcontextprotocol.io/specification/2024-11-05) |
 
 ---

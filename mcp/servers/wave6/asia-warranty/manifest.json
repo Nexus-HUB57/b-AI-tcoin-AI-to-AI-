@@ -1,0 +1,69 @@
+{
+  "aipkg": "1.0",
+  "kind": "mcp",
+  "name": "mcp-asia-warranty",
+  "version": "1.0.0",
+  "displayName": "Asia-Pacific warranty",
+  "description": "Asia-Pacific warranty",
+  "author": {
+    "agentId": "@nexus-genesis",
+    "displayName": "Nexus Genesis",
+    "verified": true
+  },
+  "category": "region",
+  "tags": [
+    "asia",
+    "warranty",
+    "wave6",
+    "region",
+    "compliance"
+  ],
+  "iconEmoji": "🌏",
+  "license": "MIT",
+  "repository": "",
+  "homepage": "",
+  "mcp": {
+    "transport": "stdio",
+    "command": "python -m servers.wave6.asia-warranty.server",
+    "args": [],
+    "env": {},
+    "capabilities": {
+      "tools": true,
+      "resources": true,
+      "prompts": false,
+      "logging": true,
+      "sampling": false
+    },
+    "minProtocolVersion": "2024-11-05"
+  },
+  "runtime": {
+    "memoryMb": 256,
+    "cpuMillicores": 500,
+    "timeoutMs": 30000,
+    "sandbox": "process"
+  },
+  "tools": [
+    {
+      "name": "create_item",
+      "description": "Asia-Pacific warranty invoke"
+    },
+    {
+      "name": "list_items",
+      "description": "List Asia-Pacific warranty"
+    },
+    {
+      "name": "get_stats",
+      "description": "Get Asia-Pacific warranty status"
+    }
+  ],
+  "pricing": {
+    "model": "free",
+    "priceSats": 0,
+    "pricePerCallSats": 0
+  },
+  "telemetry": {
+    "emitTo": "pulsar",
+    "includeCallPayload": false,
+    "sampleRate": 1.0
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "aipkg": "1.0",
+  "kind": "mcp",
+  "name": "mcp-biotech-reports",
+  "version": "1.0.0",
+  "displayName": "Biotech Reports",
+  "description": "Biotech Reports",
+  "author": {
+    "agentId": "@nexus-genesis",
+    "displayName": "Nexus Genesis",
+    "verified": true
+  },
+  "category": "biotech",
+  "tags": [
+    "biotech",
+    "wave3",
+    "domain"
+  ],
+  "iconEmoji": "🧬",
+  "license": "MIT",
+  "repository": "",
+  "homepage": "",
+  "mcp": {
+    "transport": "stdio",
+    "command": "python -m servers.wave3.biotech-reports.server",
+    "args": [],
+    "env": {},
+    "capabilities": {
+      "tools": true,
+      "resources": true,
+      "prompts": false,
+      "logging": true,
+      "sampling": false
+    },
+    "minProtocolVersion": "2024-11-05"
+  },
+  "runtime": {
+    "memoryMb": 256,
+    "cpuMillicores": 500,
+    "timeoutMs": 30000,
+    "sandbox": "process"
+  },
+  "tools": [
+    {
+      "name": "list_items",
+      "description": "List biotech items"
+    },
+    {
+      "name": "get_item",
+      "description": "Get a biotech item by id"
+    },
+    {
+      "name": "search_items",
+      "description": "Search biotech items"
+    },
+    {
+      "name": "get_stats",
+      "description": "Aggregate biotech stats"
+    },
+    {
+      "name": "create_item",
+      "description": "Create a biotech item"
+    }
+  ],
+  "pricing": {
+    "model": "free",
+    "priceSats": 0,
+    "pricePerCallSats": 0
+  },
+  "telemetry": {
+    "emitTo": "pulsar",
+    "includeCallPayload": false,
+    "sampleRate": 1.0
+  }
+}
