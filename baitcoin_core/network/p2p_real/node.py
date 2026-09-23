@@ -1,19 +1,3 @@
-r"""
-P2P Node - Nó real da rede b'AI'tcoin.
-
-Implementa servidor e cliente TCP asyncio para:
-- Aceitar conexões entrantes
-- Conectar a peers conhecidos (bootstrap)
-- Gossip de blocos e transações
-- Sync de cadeia
-- Keepalive (ping/pong)
-
-Uso:
-    node = P2PNode(host='0.0.0.0', port=18444)
-    await node.start()
-    await node.connect_to_peer('seed.baitcoin.net', 18444)
-"""
-
 import asyncio
 import hashlib
 import json
@@ -74,6 +58,8 @@ class P2PNode:
         self._server: Optional[asyncio.Server] = None
         self._connections: Dict[str, (asyncio.StreamReader, asyncio.StreamWriter)] = {}
         self._peer_versions: Dict[str, dict] = {}
+        self._rx_buffers: Dict[str, bytes] = {}
+        self._handshake_ready: Set[str] = set()
         self._running = False
         self._tasks: List[asyncio.Task] = []
 
@@ -125,6 +111,10 @@ class P2PNode:
     def on_swap_intent_received(self, fn: Callable) -> None:
         self._on_swap_intent_received = fn
 
+    def is_peer_ready(self, peer_id: str) -> bool:
+        """True quando o peer concluiu VERSION/VERACK e está pronto para troca de dados."""
+        return peer_id in self._handshake_ready and peer_id in self._connections
+
     # --- Server lifecycle ---
     async def start(self) -> None:
         """Inicia o nó P2P (servidor + bootstrap)."""
@@ -160,6 +150,8 @@ class P2PNode:
             self._server.close()
             await self._server.wait_closed()
         self._connections.clear()
+        self._rx_buffers.clear()
+        self._handshake_ready.clear()
         self.protocol.peers.clear()
         logger.info("P2P node stopped")
 
@@ -175,6 +167,8 @@ class P2PNode:
             writer.close()
             return
         self._connections[peer_id] = (reader, writer)
+        self._rx_buffers[peer_id] = b""
+        self._handshake_ready.discard(peer_id)
         self.protocol.add_peer(peer_id, host, port, is_outbound=False)
         logger.info(f"Peer connected: {peer_id}")
         try:
@@ -199,6 +193,8 @@ class P2PNode:
                 asyncio.open_connection(host, port), timeout=10.0
             )
             self._connections[peer_id] = (reader, writer)
+            self._rx_buffers[peer_id] = b""
+            self._handshake_ready.discard(peer_id)
             self.protocol.add_peer(peer_id, host, port, is_outbound=True)
             logger.info(f"Connected to peer: {peer_id}")
 
@@ -215,21 +211,37 @@ class P2PNode:
             return False
 
     async def _read_loop(self, peer_id: str, reader: asyncio.StreamReader) -> None:
-        """Loop de leitura de mensagens de um peer."""
+        """Loop de leitura de mensagens de um peer com buffer resiliente a quadros parciais."""
+        buffer = self._rx_buffers.get(peer_id, b"")
         while self._running and peer_id in self._connections:
             try:
-                length_bytes = await asyncio.wait_for(reader.readexactly(STREAM_PREFIX), timeout=120)
-                length = int.from_bytes(length_bytes, 'big')
-                if length > 2 * 1024 * 1024:  # 2MB max
-                    logger.warning(f"Message too large from {peer_id}: {length}")
+                chunk = await asyncio.wait_for(reader.read(4096), timeout=120)
+                if not chunk:
                     break
-                data = await asyncio.wait_for(reader.readexactly(length), timeout=120)
-                msg = NetworkMessage.decode(data)
-                if msg:
-                    self.handler.handle(msg, peer_id)
-                    self.protocol.peers.get(peer_id, PeerInfo(peer_id=peer_id, host="", port=0)).last_seen = time.time()
+                buffer += chunk
+                while len(buffer) >= 5:
+                    payload_len, _ = struct.unpack(">IB", buffer[:5])
+                    if payload_len < 8:
+                        logger.warning(f"Invalid frame length from {peer_id}: {payload_len}")
+                        break
+                    total_len = 5 + payload_len
+                    if total_len > 2 * 1024 * 1024:
+                        logger.warning(f"Message too large from {peer_id}: {total_len}")
+                        break
+                    if len(buffer) < total_len:
+                        break
+                    frame = buffer[:total_len]
+                    buffer = buffer[total_len:]
+                    msg = NetworkMessage.decode(frame)
+                    if msg:
+                        self.handler.handle(msg, peer_id)
+                        self.protocol.peers.get(peer_id, PeerInfo(peer_id=peer_id, host="", port=0)).last_seen = time.time()
+                    else:
+                        logger.warning(f"Could not decode message from {peer_id}; dropping frame.")
+                self._rx_buffers[peer_id] = buffer
             except (asyncio.TimeoutError, asyncio.IncompleteReadError):
                 break
+        self._rx_buffers.pop(peer_id, None)
         self._disconnect(peer_id)
 
     async def _send_msg(self, peer_id: str, msg: NetworkMessage) -> bool:
@@ -256,6 +268,8 @@ class P2PNode:
             except Exception:
                 pass
             del self._connections[peer_id]
+        self._handshake_ready.discard(peer_id)
+        self._rx_buffers.pop(peer_id, None)
         self.protocol.remove_peer(peer_id)
         logger.info(f"Peer disconnected: {peer_id}")
 
@@ -287,10 +301,12 @@ class P2PNode:
         return count
 
     async def broadcast_swap_intent(self, intent: dict) -> int:
-        """Propaga intent somente a peers que anunciaram a capability."""
+        """Propaga intent somente a peers que anunciaram a capability e concluíram o handshake."""
         msg = self.protocol.create_swap_intent_msg(intent)
         count = 0
         for peer_id in list(self._connections.keys()):
+            if not self.is_peer_ready(peer_id):
+                continue
             caps = self._peer_versions.get(peer_id, {}).get("capabilities", [])
             if self.protocol.SWAP_INTENT_CAPABILITY not in caps:
                 continue
@@ -352,6 +368,7 @@ class P2PNode:
         peer = self.protocol.peers.get(peer_id)
         if peer:
             peer.capabilities = list(payload.get("capabilities", []))
+        self._handshake_ready.discard(peer_id)
         verack = self.protocol.create_verack_msg()
         asyncio.create_task(self._send_msg(peer_id, verack))
         if self._swap_store and self.protocol.SWAP_INTENT_CAPABILITY in payload.get("capabilities", []):
@@ -359,6 +376,7 @@ class P2PNode:
             asyncio.create_task(self._send_msg(peer_id, request))
 
     def _handle_verack(self, payload, peer_id: str) -> None:
+        self._handshake_ready.add(peer_id)
         logger.info(f"Handshake complete with {peer_id}")
 
     def _handle_ping(self, payload, peer_id: str) -> None:
@@ -481,6 +499,7 @@ class P2PNode:
             "host": self.host,
             "port": self.port,
             "connections": len(self._connections),
+            "handshake_ready": len(self._handshake_ready),
             "known_peers": len(self.protocol.peers),
             "known_blocks": len(self.protocol._known_blocks),
             "known_txs": len(self.protocol._known_txs),
@@ -488,3 +507,7 @@ class P2PNode:
             "handler_stats": self.handler.get_stats(),
             "running": self._running,
         }
+
+
+# Ensure the module keeps the missing `struct` import used by the buffered reader.
+import struct
