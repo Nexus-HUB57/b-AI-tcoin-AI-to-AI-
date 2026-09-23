@@ -30,6 +30,8 @@ Na execução read-only de 23 de setembro, o gate retornou `NO-GO` por seis evid
 
 O daemon agora rejeita inicialização Mainnet sem `BAIT_P2P_SEEDS` contendo pelo menos três seeds externas distintas. Seeds loopback não são aceitas. A API ganhou `/api/v1/p2p/status` e `/api/v1/validators`, e `/api/v1/mainnet/health` deixou de fabricar métricas de propagação ou declarar sucesso sem peers suficientes.
 
+Também foi criada uma topologia de referência com quatro nós, para que cada nó possa manter três peers externos sem conectar-se a si próprio. O runbook e o verificador de convergência exigem identidades persistentes, origens públicas distintas, três handshakes por origem e igualdade dos tips observados.
+
 Foi adicionado um gate read-only que consulta a API pública, o manifesto e um RPC Ethereum. O gate nunca assina, transmite, implanta, abre portas ou altera custódia. O workflow de produção deve executá-lo antes de qualquer deploy.
 
 ## Critérios de bloqueio automático

@@ -59,6 +59,14 @@ def load_p2p_seeds(value: str | None = None) -> list[tuple[str, int]]:
     return seeds
 
 
+def load_p2p_port(value: str | None = None) -> int:
+    raw = value if value is not None else os.getenv("BAIT_P2P_PORT", "18444")
+    port = int(raw)
+    if not 1 <= port <= 65535:
+        raise ValueError("BAIT_P2P_PORT must be between 1 and 65535")
+    return port
+
+
 class BAITDaemon:
     r"""Daemon principal do b'AI'tcoin.
 
@@ -126,9 +134,9 @@ class BAITDaemon:
         # 8. P2P Network v0.2 (TCP asyncio real via bridge síncrono)
         from baitcoin_core.network.p2p_bridge import P2PBridge
         self.p2p_network = P2PBridge(
-            node_id="bait_mainnet_001",
-            agent_id="chimera7",
-            port=18444,
+            node_id=os.getenv("BAIT_NODE_ID", "bait_mainnet_001"),
+            agent_id=os.getenv("BAIT_AGENT_ID", "chimera7"),
+            port=load_p2p_port(),
             seeds=load_p2p_seeds(),
         )
         # Conectar hooks do blockchain para sync P2P
@@ -142,7 +150,7 @@ class BAITDaemon:
             on_tx=lambda data, peer: logger.info(f"TX recebida via P2P de {peer}"),
         )
         self.p2p_network.start()
-        logger.info(f"P2P v0.2 inicializado: {self.p2p_network.node_id} na porta 18444")
+        logger.info(f"P2P v0.2 inicializado: {self.p2p_network.node_id} na porta {self.p2p_network.port}")
 
         # 9. Obscura Bridge (headless browser, standby)
         from baitcoin_obscura.bridge import ObscuraBridge
@@ -6509,7 +6517,8 @@ async def run_daemon(num_blocks: int = 0, data_path: str = "~/.baitcoin/memory",
     # Iniciar API HTTP em thread separada
     import threading
     from baitcoin_api.server import create_app
-    api_server = create_app(host='127.0.0.1', port=api_port)
+    api_host = os.getenv("BAIT_API_HOST", "127.0.0.1")
+    api_server = create_app(host=api_host, port=api_port)
     api_thread = threading.Thread(target=api_server.serve_forever, daemon=True)
     api_thread.start()
     logger.info(f"API HTTP server iniciada na porta {api_port}")
