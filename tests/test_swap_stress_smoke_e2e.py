@@ -16,6 +16,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from baitcoin_bridge.manager import BridgeManager
 from baitcoin_core.network.p2p_real.node import P2PNode
+from baitcoin_core.network.p2p_real.protocol import P2PProtocol
 from native_processing.bridge_handoff import SwapBridgeHandoff
 from native_processing.swap_engine import SwapEngine
 from native_processing.swap_executor import Deposit, OrderState, SwapExecutor
@@ -155,6 +156,18 @@ async def _run_stress(tmp_path: Path, node_count: int = 6, intents_per_node: int
             for j in range(i)
         ))
         await _wait_until(lambda: all(len(node._connections) >= node_count - 1 for node in nodes), timeout=15)
+        await _wait_until(
+            lambda: all(
+                len(node._peer_versions) >= node_count - 1
+                and all(
+                    P2PProtocol.SWAP_INTENT_CAPABILITY
+                    in version.get("capabilities", [])
+                    for version in node._peer_versions.values()
+                )
+                for node in nodes
+            ),
+            timeout=15,
+        )
 
         intents: list[tuple[int, SwapIntent]] = []
         now = time.time()
