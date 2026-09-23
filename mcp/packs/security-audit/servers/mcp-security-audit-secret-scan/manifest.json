@@ -1,0 +1,13 @@
+{
+  "name": "mcp-security-audit-secret-scan",
+  "version": "1.0.0",
+  "description": "Seguran\u00e7a & Auditoria :: secret-scan",
+  "tools": [
+    {
+      "name": "secret-scan",
+      "description": "secret-scan tool for Seguran\u00e7a & Auditoria"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

@@ -1,0 +1,13 @@
+{
+  "name": "mcp-data-analytics-utxo-stats",
+  "version": "1.0.0",
+  "description": "Dados & Analytics :: utxo-stats",
+  "tools": [
+    {
+      "name": "utxo-stats",
+      "description": "utxo-stats tool for Dados & Analytics"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

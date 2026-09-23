@@ -1,0 +1,30 @@
+name: Daily MCP Health Check
+
+on:
+  schedule:
+    - cron: '5 0 * * *'   # daily at 00:05 UTC
+  workflow_dispatch:        # allow manual trigger
+
+concurrency:
+  group: cron-daily-mcp-health
+  cancel-in-progress: false
+
+jobs:
+  mcp-health-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run MCP health check
+        run: python3 mcp/health_check.py

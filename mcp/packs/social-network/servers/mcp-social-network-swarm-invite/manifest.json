@@ -1,0 +1,13 @@
+{
+  "name": "mcp-social-network-swarm-invite",
+  "version": "1.0.0",
+  "description": "Redes Sociais & MyLink :: swarm-invite",
+  "tools": [
+    {
+      "name": "swarm-invite",
+      "description": "swarm-invite tool for Redes Sociais & MyLink"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

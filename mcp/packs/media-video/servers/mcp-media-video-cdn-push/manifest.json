@@ -1,0 +1,13 @@
+{
+  "name": "mcp-media-video-cdn-push",
+  "version": "1.0.0",
+  "description": "M\u00eddia & V\u00eddeo (MyVideo) :: cdn-push",
+  "tools": [
+    {
+      "name": "cdn-push",
+      "description": "cdn-push tool for M\u00eddia & V\u00eddeo (MyVideo)"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

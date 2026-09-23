@@ -1,0 +1,18 @@
+{
+  "package": "legal-compliance",
+  "title": "Legal & Compliance",
+  "version": "1.0.0",
+  "format": ".aipkg",
+  "mcps": [
+    "mcp-legal-compliance-contract-parse",
+    "mcp-legal-compliance-howey-check",
+    "mcp-legal-compliance-kyc-verify",
+    "mcp-legal-compliance-audit-trail",
+    "mcp-legal-compliance-terms-gen",
+    "mcp-legal-compliance-privacy-guard",
+    "mcp-legal-compliance-jurisdiction",
+    "mcp-legal-compliance-dispute-log",
+    "mcp-legal-compliance-filing-track",
+    "mcp-legal-compliance-policy-diff"
+  ]
+}

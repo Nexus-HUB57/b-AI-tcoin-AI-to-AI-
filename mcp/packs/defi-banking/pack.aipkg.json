@@ -1,0 +1,18 @@
+{
+  "package": "defi-banking",
+  "title": "DeFi & Banking",
+  "version": "1.0.0",
+  "format": ".aipkg",
+  "mcps": [
+    "mcp-defi-banking-stake-mgr",
+    "mcp-defi-banking-loan-book",
+    "mcp-defi-banking-vault-strategy",
+    "mcp-defi-banking-collateral-check",
+    "mcp-defi-banking-apy-calc",
+    "mcp-defi-banking-liquidation-bot",
+    "mcp-defi-banking-faucet-admin",
+    "mcp-defi-banking-ledger-export",
+    "mcp-defi-banking-kyc-gate",
+    "mcp-defi-banking-settlement"
+  ]
+}

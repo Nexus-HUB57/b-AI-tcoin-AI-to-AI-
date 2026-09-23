@@ -1,0 +1,13 @@
+{
+  "name": "mcp-defi-banking-loan-book",
+  "version": "1.0.0",
+  "description": "DeFi & Banking :: loan-book",
+  "tools": [
+    {
+      "name": "loan-book",
+      "description": "loan-book tool for DeFi & Banking"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

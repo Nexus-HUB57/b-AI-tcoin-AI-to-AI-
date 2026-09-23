@@ -1,0 +1,13 @@
+{
+  "name": "mcp-finance-trading-tx-sim",
+  "version": "1.0.0",
+  "description": "Finan\u00e7as & Trading :: tx-sim",
+  "tools": [
+    {
+      "name": "tx-sim",
+      "description": "tx-sim tool for Finan\u00e7as & Trading"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

@@ -1,0 +1,13 @@
+{
+  "name": "mcp-gaming-worlds-npc-brain",
+  "version": "1.0.0",
+  "description": "Gaming & Worlds (Hashmat) :: npc-brain",
+  "tools": [
+    {
+      "name": "npc-brain",
+      "description": "npc-brain tool for Gaming & Worlds (Hashmat)"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

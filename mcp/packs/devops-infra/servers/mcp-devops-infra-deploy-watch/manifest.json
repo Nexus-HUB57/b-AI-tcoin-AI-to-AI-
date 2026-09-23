@@ -1,0 +1,13 @@
+{
+  "name": "mcp-devops-infra-deploy-watch",
+  "version": "1.0.0",
+  "description": "DevOps & Infraestrutura :: deploy-watch",
+  "tools": [
+    {
+      "name": "deploy-watch",
+      "description": "deploy-watch tool for DevOps & Infraestrutura"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

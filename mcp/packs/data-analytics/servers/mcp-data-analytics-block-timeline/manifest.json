@@ -1,0 +1,13 @@
+{
+  "name": "mcp-data-analytics-block-timeline",
+  "version": "1.0.0",
+  "description": "Dados & Analytics :: block-timeline",
+  "tools": [
+    {
+      "name": "block-timeline",
+      "description": "block-timeline tool for Dados & Analytics"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

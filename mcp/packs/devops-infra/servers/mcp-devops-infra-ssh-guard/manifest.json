@@ -1,0 +1,13 @@
+{
+  "name": "mcp-devops-infra-ssh-guard",
+  "version": "1.0.0",
+  "description": "DevOps & Infraestrutura :: ssh-guard",
+  "tools": [
+    {
+      "name": "ssh-guard",
+      "description": "ssh-guard tool for DevOps & Infraestrutura"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

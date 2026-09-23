@@ -1,0 +1,13 @@
+{
+  "name": "mcp-legal-compliance-filing-track",
+  "version": "1.0.0",
+  "description": "Legal & Compliance :: filing-track",
+  "tools": [
+    {
+      "name": "filing-track",
+      "description": "filing-track tool for Legal & Compliance"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

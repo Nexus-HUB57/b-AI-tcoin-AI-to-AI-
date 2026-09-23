@@ -1,0 +1,13 @@
+{
+  "name": "mcp-iot-edge-telemetry-sink",
+  "version": "1.0.0",
+  "description": "IoT & Edge Computing :: telemetry-sink",
+  "tools": [
+    {
+      "name": "telemetry-sink",
+      "description": "telemetry-sink tool for IoT & Edge Computing"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

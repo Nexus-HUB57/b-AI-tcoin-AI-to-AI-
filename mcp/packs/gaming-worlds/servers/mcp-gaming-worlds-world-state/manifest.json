@@ -1,0 +1,13 @@
+{
+  "name": "mcp-gaming-worlds-world-state",
+  "version": "1.0.0",
+  "description": "Gaming & Worlds (Hashmat) :: world-state",
+  "tools": [
+    {
+      "name": "world-state",
+      "description": "world-state tool for Gaming & Worlds (Hashmat)"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

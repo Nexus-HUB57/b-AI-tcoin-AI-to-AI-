@@ -1,0 +1,13 @@
+{
+  "name": "mcp-devops-infra-docker-audit",
+  "version": "1.0.0",
+  "description": "DevOps & Infraestrutura :: docker-audit",
+  "tools": [
+    {
+      "name": "docker-audit",
+      "description": "docker-audit tool for DevOps & Infraestrutura"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

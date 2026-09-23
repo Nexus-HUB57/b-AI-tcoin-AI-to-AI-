@@ -1,0 +1,13 @@
+{
+  "name": "mcp-defi-banking-kyc-gate",
+  "version": "1.0.0",
+  "description": "DeFi & Banking :: kyc-gate",
+  "tools": [
+    {
+      "name": "kyc-gate",
+      "description": "kyc-gate tool for DeFi & Banking"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

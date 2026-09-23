@@ -1,0 +1,13 @@
+{
+  "name": "mcp-media-video-subtitle-sync",
+  "version": "1.0.0",
+  "description": "M\u00eddia & V\u00eddeo (MyVideo) :: subtitle-sync",
+  "tools": [
+    {
+      "name": "subtitle-sync",
+      "description": "subtitle-sync tool for M\u00eddia & V\u00eddeo (MyVideo)"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

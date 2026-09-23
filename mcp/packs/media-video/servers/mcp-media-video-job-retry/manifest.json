@@ -1,0 +1,13 @@
+{
+  "name": "mcp-media-video-job-retry",
+  "version": "1.0.0",
+  "description": "M\u00eddia & V\u00eddeo (MyVideo) :: job-retry",
+  "tools": [
+    {
+      "name": "job-retry",
+      "description": "job-retry tool for M\u00eddia & V\u00eddeo (MyVideo)"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

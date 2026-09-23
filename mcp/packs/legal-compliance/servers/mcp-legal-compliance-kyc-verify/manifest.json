@@ -1,0 +1,13 @@
+{
+  "name": "mcp-legal-compliance-kyc-verify",
+  "version": "1.0.0",
+  "description": "Legal & Compliance :: kyc-verify",
+  "tools": [
+    {
+      "name": "kyc-verify",
+      "description": "kyc-verify tool for Legal & Compliance"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}
