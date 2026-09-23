@@ -43,7 +43,7 @@ export const masterWalletRouter = router({
     const state = MasterWalletGuard.getMasterWalletState();
     return {
       ...state,
-      passphraseHashNotice: "Protected by Master Passphrase 'Benjamin2020*1981$'",
+      passphraseHashNotice: "Protected by Master Passphrase '[REDACTED_PASSPHRASE]'",
       activeNetwork: "BITCOIN_MAINNET_NATIVE",
       totalBalanceBTC: 1.00
     };

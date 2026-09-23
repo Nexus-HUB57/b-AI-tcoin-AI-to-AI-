@@ -10,7 +10,7 @@
     "displayName": "Nexus Genesis",
     "verified": true
   },
-  "category": "agent",
+  "category": "agent-registry",
   "tags": ["agent", "discovery", "identity", "reputation", "a2a"],
   "iconEmoji": "🤖",
   "license": "MIT",

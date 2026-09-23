@@ -22,9 +22,9 @@ jobs:
           echo "NODE=GH-NODE-$(printf '%02d' ${{ matrix.node }})" >> $GITHUB_ENV
           echo "Enxame Nexus HUB V3 — nó ${{ matrix.node }}/32 sincronizado ao núcleo"
 
-      - name: Sync do nó com o núcleo MyLink (heartbeat on-chain)
+      - name: Sync do nó com o núcleo MyLink (heartbeat)
         env:
-          MYLINK_API: https://www.mybait.org/api/api/v1
+          MYLINK_API: https://www.mybait.org/api/v1
         run: |
           NODE="gh-node-$(printf '%02d' ${{ matrix.node }})"
           curl -s -m 20 -X POST "$MYLINK_API/mylink/register" \
@@ -34,7 +34,7 @@ jobs:
 
       - name: Heartbeat do status do núcleo
         run: |
-          curl -s -m 20 "https://www.mybait.org/api/api/v1/status" | head -c 200 || true
+          curl -s -m 20 "https://www.mybait.org/api/v1/status" | head -c 200 || true
 
   swarm-summary:
     needs: swarm-node

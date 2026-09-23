@@ -1,7 +1,7 @@
 {
   "aipkg": "1.0",
   "kind": "mcp",
-  "name": "mcp-agentic_awareness",
+  "name": "mcp-agentic-awareness",
   "version": "1.0.0",
   "displayName": "Agentic Awareness",
   "description": "Agent introspection: context, capabilities, gaps. Computes a 'consciousness score' from reputation × capability breadth × recency.",

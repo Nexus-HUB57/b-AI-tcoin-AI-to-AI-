@@ -10,7 +10,7 @@
     "displayName": "Nexus Genesis",
     "verified": true
   },
-  "category": "rag",
+  "category": "rag-upgrader",
   "tags": ["rag", "reindex", "knowledge", "feedback", "gaps", "upgrader"],
   "iconEmoji": "🧠",
   "license": "MIT",

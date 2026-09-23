@@ -1,7 +1,7 @@
 {
   "aipkg": "1.0",
   "kind": "mcp",
-  "name": "mcp-bridge",
+  "name": "mcp-bridge-legacy",
   "version": "1.0.0",
   "displayName": "b'AI'tcoin Bridge",
   "description": "Multisig 3-of-5 lock-and-mint bridge. Collects signatures, finalizes cross-chain transfers.",

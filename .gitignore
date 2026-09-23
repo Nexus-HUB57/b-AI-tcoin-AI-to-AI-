@@ -106,11 +106,6 @@ temp/
 *.sqlite
 *.sqlite3
 
-# Python cache
-__pycache__/
-*.pyc
-*.pyo
-
 # Webdev artifacts (checkpoint zips, migrations, etc.)
 .webdev/
 .project-config.json
@@ -126,5 +121,13 @@ contracts/lib/
 contracts/.env
 contracts/.env.*
 contracts/foundry.lock
+
+# Audit remediation — do not commit
+deploy/keystores/
+*.bak.*
+*.bak
+
+# Python caches
 __pycache__/
 *.pyc
+*.pyo

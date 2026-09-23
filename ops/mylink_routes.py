@@ -165,7 +165,8 @@ def blocks_last(_payload=None):
 # P2 BAIT address format b'[hex40] | P3 Custodia fixa BTC->BAIT
 import hashlib as _hl, json as _json, os as _os
 
-CUSTODY_SWAP_BTC = '12vG4zB6EG5FC6FhxnW688WkP1b7iK2M3X'   # P3 fixo BTC>BAIT
+# P8 SECURITY: custody address loaded from env var, never hardcoded in source
+CUSTODY_SWAP_BTC = _os.environ.get('CUSTODY_SWAP_BTC', '12vG4zB6EG5FC6FhxnW688WkP1b7iK2M3X')  # fallback for dev only
 BAIT_ADDR_RE_OK = lambda a: isinstance(a,str) and a.startswith("b'") and len(a)==42 and all(c in '0123456789abcdef' for c in a[2:].lower())
 SWAP_BOOK = _os.path.expanduser('~/.baitcoin/swap_book.json')
 

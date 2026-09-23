@@ -35,7 +35,7 @@ export class RustConsensusTelemetry {
       rejectedBlocksCount: this.rejectedCount,
       consensusHealth: "OPTIMAL",
       masterVaultSecured: true,
-      signatureAlgorithm: "HMAC-SHA256 (Master Passphrase: Benjamin2020*1981$)",
+      signatureAlgorithm: "HMAC-SHA256 (Master Passphrase: [REDACTED_PASSPHRASE])",
       timestamp: Date.now()
     };
   }
@@ -46,7 +46,7 @@ export class RustConsensusTelemetry {
       this.rejectedCount++;
     }
     const auditRaw = `${merkleRoot}:${isValid}:${Date.now()}`;
-    const auditHash = crypto.createHmac("sha256", "Benjamin2020*1981$").update(auditRaw).digest("hex");
+    const auditHash = crypto.createHmac("sha256", process.env.MASTER_WALLET_PASSPHRASE || '').update(auditRaw).digest("hex");
     return {
       valid: isValid,
       auditHash

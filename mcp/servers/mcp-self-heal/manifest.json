@@ -10,7 +10,7 @@
     "displayName": "Nexus Genesis",
     "verified": true
   },
-  "category": "ops",
+  "category": "self-heal",
   "tags": ["health", "self-heal", "restart", "drift", "observability", "ops"],
   "iconEmoji": "🩺",
   "license": "MIT",

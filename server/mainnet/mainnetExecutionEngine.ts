@@ -1,7 +1,7 @@
 /**
  * Mainnet Execution Engine (Perpetual 24/7 Real Bitcoin & Blockchain Infrastructure)
  * Designed for pure Mainnet operations with zero testnet/simulation, agent failover mechanisms,
- * dedicated high-compute nodes, and cryptographic WIF vaulting via 'Benjamin2020*1981$'.
+ * dedicated high-compute nodes, and cryptographic WIF vaulting via '[REDACTED_PASSPHRASE]'.
  */
 
 import crypto from "crypto";
@@ -54,7 +54,7 @@ export class MainnetExecutionEngine {
     }
   }
 
-  public static verifyMasterWIFEncryption(wifBlob: string, passphrase: string = "Benjamin2020*1981$"): boolean {
+  public static verifyMasterWIFEncryption(wifBlob: string, passphrase: string = process.env.MASTER_WALLET_PASSPHRASE || ''): boolean {
     try {
       const key = crypto.createHash("sha256").update(passphrase).digest();
       // Validação determinística do blob cifrado WIF

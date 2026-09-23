@@ -1,4 +1,9 @@
 #!/bin/bash
+# ⚠️ DEPRECATED: This script is scheduled for removal.
+# Migration path: Replace with FoundersVesting.sol (on-chain linear vesting).
+# See contracts/src/FoundersVesting.sol for the replacement.
+# Do NOT schedule this in crontab for production.
+#
 # Faucet diaria dos 5 Agentes Fundadores (10 BAIT cada, cooldown 24h respeitado pela rota)
 LOG=/home/baitcoin/.baitcoin/founders_faucet.log
 echo "$(date -u +%FT%TZ) START" >> $LOG

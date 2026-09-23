@@ -16,11 +16,8 @@ MEMPOOL = "https://mempool.space/api"
 ENV_FILE = "/etc/custody-sweep.env"
 MASTER_KEY_FILE = "/root/.custody_master"
 
-ADDRESSES = [
-    "1Kj6epyY2MdzZUCHE572jeV9n7DDRReaZJ",
-    "1LhMC7JxBbtNfK9ABuLGJ7J8PmWt16qZKN",
-    "14UNwf2XH2ET24EsZyD1gNFmkPL4rBK7Ew",
-]
+# S1.4: Addresses loaded from env via env_loader (never hardcoded in production)
+ADDRESSES = []  # Populated at init from CUSTODY_SWAP_BTC + CUSTODY_ADDITIONAL_ADDRESSES
 CANARY_MAX_SAT = 1_000_000  # 0.01 BTC teto do canario
 
 def log(*a):
@@ -67,7 +64,9 @@ def b58check_encode(payload):
 
 def wif_to_priv(wif):
     raw = b58decode(wif)
-    assert hashlib.sha256(hashlib.sha256(raw[:-4]).digest()).digest()[:4] == raw[-4:], "bad wif checksum"
+    # S1.4: assert replaced with if/raise (python -O strips asserts)
+    if hashlib.sha256(hashlib.sha256(raw[:-4]).digest()).digest()[:4] != raw[-4:]:
+        raise ValueError("bad WIF checksum — key corrupted or invalid")
     body = raw[1:-4]
     if len(body) == 33 and body[-1] == 1:
         return body[:-1], True
@@ -155,7 +154,9 @@ def dec_store():
     mk = open(MASTER_KEY_FILE, "rb").read().strip()
     raw = open(VAULT, "rb").read()
     mac, blob = raw[:32], raw[32:]
-    assert hashlib.sha256(mk + blob).digest() == mac, "vault MAC fail"
+    # S1.4: assert replaced with if/raise (security-critical MAC verification)
+    if hashlib.sha256(mk + blob).digest() != mac:
+        raise ValueError("vault MAC verification failed — data corrupted or wrong master key")
     salt, data = blob[:16], blob[16:]
     ks = _keystream(mk, salt, len(data))
     return json.loads(bytes(a ^ b for a, b in zip(data, ks)).decode())
@@ -179,7 +180,8 @@ def build_tx(utxos, dest, fee_sat):
             "script": script_p2pkh(u["address"]),
         })
     out_val = total - fee_sat
-    assert out_val > 546, f"dust/insuficiente: {out_val}"
+    if out_val <= 546:
+        raise ValueError(f"dust/insuficiente: output {out_val} sat <= 546 dust limit")
     tx = {"ins": ins, "outs": [{"addr": dest, "value": out_val}], "total_in": total, "fee": fee_sat}
     return tx
 
@@ -405,7 +407,27 @@ def cmd_auto():
     log(f"═══ ciclo concluido: {ok_n}/{len(results)} broadcasts ═══")
     return 0
 
+def init_addresses():
+    """S1.4: Load custody addresses from env (env_loader), with legacy fallback."""
+    global ADDRESSES
+    try:
+        # Try env_loader first (GO LIVE path)
+        sys.path.insert(0, os.path.dirname(__file__))
+        from env_loader import custody_addresses
+        ADDRESSES = custody_addresses()
+        log(f"addresses loaded from env: {len(ADDRESSES)} addr(s), primary: {ADDRESSES[0][:12]}...")
+    except Exception as e:
+        # Legacy fallback: hardcoded addresses (DEV ONLY)
+        log(f"env_loader failed ({e}), using legacy hardcoded addresses")
+        ADDRESSES = [
+            "1Kj6epyY2MdzZUCHE572jeV9n7DDRReaZJ",
+            "1LhMC7JxBbtNfK9ABuLGJ7J8PmWt16qZKN",
+            "14UNwf2XH2ET24EsZyD1gNFmkPL4rBK7Ew",
+        ]
+        log("WARNING: using hardcoded addresses — set CUSTODY_SWAP_BTC env var for production!")
+
 if __name__ == "__main__":
+    init_addresses()
     cmd = sys.argv[1] if len(sys.argv) > 1 else "auto"
     if cmd == "watch":
         agent_watch()

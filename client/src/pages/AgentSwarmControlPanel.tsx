@@ -76,7 +76,7 @@ export default function AgentSwarmControlPanel() {
               <Zap className="w-4 h-4 text-yellow-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold font-mono text-white">{rustMetrics?.tps.toLocaleString()} TPS</div>
+              <div className="text-2xl font-bold font-mono text-white">{(rustMetrics?.tps ?? 0).toLocaleString()} TPS</div>
               <p className="text-xs text-cyan-400 mt-1">Escala Zettascale Ativa</p>
             </CardContent>
           </Card>
@@ -87,7 +87,7 @@ export default function AgentSwarmControlPanel() {
               <Layers className="w-4 h-4 text-blue-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold font-mono text-white">#{rustMetrics?.blockHeight}</div>
+              <div className="text-2xl font-bold font-mono text-white">#{rustMetrics?.blockHeight ?? 0}</div>
               <p className="text-xs text-emerald-400 mt-1 flex items-center">
                 <CheckCircle2 className="w-3 h-3 mr-1" /> Sincronizado
               </p>
@@ -100,7 +100,7 @@ export default function AgentSwarmControlPanel() {
               <Clock className="w-4 h-4 text-indigo-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold font-mono text-white">{rustMetrics?.averageLatencyMs} ms</div>
+              <div className="text-2xl font-bold font-mono text-white">{rustMetrics?.averageLatencyMs ?? 0} ms</div>
               <p className="text-xs text-indigo-400 mt-1">Validação determinística</p>
             </CardContent>
           </Card>
@@ -111,8 +111,8 @@ export default function AgentSwarmControlPanel() {
               <Activity className="w-4 h-4 text-emerald-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold font-mono text-white">{rustMetrics?.validationQueueSize} txs</div>
-              <p className="text-xs text-emerald-300 mt-1">Rejeições: {rustMetrics?.rejectedBlocksCount}</p>
+              <div className="text-2xl font-bold font-mono text-white">{rustMetrics?.validationQueueSize ?? 0} txs</div>
+              <p className="text-xs text-emerald-300 mt-1">Rejeições: {rustMetrics?.rejectedBlocksCount ?? 0}</p>
             </CardContent>
           </Card>
         </div>

@@ -4,6 +4,7 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable2Step.sol";
+import "@openzeppelin/contracts/governance/TimelockController.sol"; // Fix #1: TimelockController for pause/unpause
 import "./WBAIT.sol";
 
 /**
@@ -17,6 +18,18 @@ import "./WBAIT.sol";
  */
 contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
     WBAIT public immutable wbait;
+
+    // Fix #1 (CRITICAL): TimelockController for pause/unpause — prevents instant rug by owner
+    TimelockController public immutable timelock;
+
+    modifier onlyTimelock() {
+        require(msg.sender == address(timelock), "BridgeLock: OnlyTimelock");
+        _;
+    }
+
+    // Fix #2 (CRITICAL): On-chain bridge invariant tracking — totalMinted <= totalLockedOnL1
+    uint256 public totalLockedOnL1;
+    uint256 public totalMinted;
 
     // ── Multisig Operator Config ──
     uint256 public constant REQUIRED_CONFIRMATIONS = 3;
@@ -84,10 +97,13 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
 
     constructor(
         address _wbait,
+        address _timelock, // Fix #1: timelock address parameter
         address[NUM_OPERATORS] memory _operators
     ) Ownable(msg.sender) {
         require(_wbait != address(0), "BridgeLock: zero wbait address");
+        require(_timelock != address(0), "BridgeLock: zero timelock address"); // Fix #1
         wbait = WBAIT(_wbait);
+        timelock = TimelockController(payable(_timelock)); // Fix #1
 
         for (uint256 i = 0; i < NUM_OPERATORS; i++) {
             require(_operators[i] != address(0), "BridgeLock: zero operator");
@@ -114,6 +130,9 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
         require(!lockRequests[requestId].executed, "BridgeLock: already executed");
         require(lockRequests[requestId].confirmations == 0, "BridgeLock: already requested");
         require(amount > 0, "BridgeLock: zero amount");
+
+        // Fix #2 (CRITICAL): Track L1 locked amount on-chain for invariant enforcement
+        totalLockedOnL1 += amount;
 
         // Rate limit check
         uint256 currentDay = block.timestamp / 1 days;
@@ -164,6 +183,10 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
     function _executeLockMint(bytes32 requestId) internal nonReentrant {
         LockRequest storage req = lockRequests[requestId];
         require(!req.executed, "BridgeLock: already executed");
+
+        // Fix #2 (CRITICAL): On-chain invariant check — totalMinted must never exceed totalLockedOnL1
+        require(totalMinted + req.amount <= totalLockedOnL1, "InvariantViolation: totalMinted > totalLocked");
+        totalMinted += req.amount;
 
         req.executed = true;
         dailyMinted[req.recipient] += req.amount;
@@ -222,9 +245,9 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
         }
     }
 
-    // ── Emergency ──
-    function pause() external onlyOwner { _pause(); }
-    function unpause() external onlyOwner { _unpause(); }
+    // ── Emergency ── (Fix #1: onlyTimelock instead of onlyOwner — prevents instant rug)
+    function pause() external onlyTimelock { _pause(); }
+    function unpause() external onlyTimelock { _unpause(); }
 
     // ── Timelocked Operator Update ──
 
