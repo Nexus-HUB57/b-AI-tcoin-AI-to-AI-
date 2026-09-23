@@ -219,18 +219,18 @@ class P2PNode:
                 if not chunk:
                     break
                 buffer += chunk
-                while len(buffer) >= 5:
-                    payload_len, _ = struct.unpack(">IB", buffer[:5])
-                    if payload_len < 8:
-                        logger.warning(f"Invalid frame length from {peer_id}: {payload_len}")
+                while len(buffer) >= STREAM_PREFIX:
+                    frame_len = int.from_bytes(buffer[:STREAM_PREFIX], "big")
+                    if frame_len < 13:
+                        logger.warning(f"Invalid frame length from {peer_id}: {frame_len}")
                         break
-                    total_len = 5 + payload_len
-                    if total_len > 2 * 1024 * 1024:
-                        logger.warning(f"Message too large from {peer_id}: {total_len}")
+                    total_len = STREAM_PREFIX + frame_len
+                    if frame_len > 2 * 1024 * 1024:
+                        logger.warning(f"Message too large from {peer_id}: {frame_len}")
                         break
                     if len(buffer) < total_len:
                         break
-                    frame = buffer[:total_len]
+                    frame = buffer[STREAM_PREFIX:total_len]
                     buffer = buffer[total_len:]
                     msg = NetworkMessage.decode(frame)
                     if msg:
@@ -507,7 +507,3 @@ class P2PNode:
             "handler_stats": self.handler.get_stats(),
             "running": self._running,
         }
-
-
-# Ensure the module keeps the missing `struct` import used by the buffered reader.
-import struct
