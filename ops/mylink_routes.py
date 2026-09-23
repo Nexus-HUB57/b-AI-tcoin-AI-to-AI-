@@ -175,7 +175,10 @@ def _load_book():
     except Exception: return {'offers':[],'fills':[],'rate':70225351.35,'pairs':['BTC/BAIT','BAIT/BTC'],'progress':100}
 
 def _save_book(b):
-    try: _json.dump(b, open(SWAP_BOOK,'w'))
+    try:
+        _os.makedirs(_os.path.dirname(SWAP_BOOK), exist_ok=True)
+        with open(SWAP_BOOK, 'w') as handle:
+            _json.dump(b, handle)
     except Exception: pass
 
 def _side_norm(s):
@@ -197,7 +200,10 @@ def _master_wallet_utxos():
 def swap_offer_v2(body):
     book = _load_book()
     _raw_side = body.get('side') or body.get('pair') or body.get('direction')
-    _raw_side = {'sell':'BAIT/BTC','buy':'BTC/BAIT','venda':'BAIT/BTC','compra':'BTC/BAIT'}.get(str(_raw_side).strip().lower(), _raw_side)  # RAW_SIDE_MAP
+    _raw_side = {
+        'sell':'BAIT/BTC','buy':'BTC/BAIT','venda':'BAIT/BTC','compra':'BTC/BAIT',
+        'btc_to_bait':'BTC/BAIT','bait_to_btc':'BAIT/BTC',
+    }.get(str(_raw_side).strip().lower(), _raw_side)  # RAW_SIDE_MAP
     side = _side_norm(_raw_side)
     side = {'sell':'BAIT/BTC','buy':'BTC/BAIT'}.get(str(side).strip().lower(), side)  # SELL_BUY_SIDE_MAP
     qty  = body.get('quantity') or body.get('qty_bait') or body.get('amount') or body.get('qtd') or body.get('bait') or body.get('amount_bait')
@@ -217,7 +223,9 @@ def swap_offer_v2(body):
         out_btc = None; out_bait = round(qty * rate, 2); dest = bait_addr
     utxos, pool_btc, pool_n = _master_wallet_utxos()
     offer = {'offer_id':oid,'side':side,'quantity':qty,'out_btc':out_btc,'out_bait':out_bait,
+             'est_out_bait':out_bait,
              'rate':rate,'destination':dest,'custody':CUSTODY_SWAP_BTC,
+             'wallet_btc':body.get('wallet_btc',''),'wallet_bait':bait_addr,
              'status':'open','sig_scheme':'ECDSA-DER-secp256k1','checksum':'SHA256d-Base58Check',
              'master_pool_addresses':pool_n,'master_pool_btc':pool_btc,'utxo_count':len(utxos),
              'settlement':'on-chain-pending-broadcast'}
@@ -239,9 +247,17 @@ def swap_execute_v2(body):
     for o in book.get('offers',[]):
         if o.get('offer_id')==oid and o.get('status')=='open':
             o['status']='filled'
-            book.setdefault('fills',[]).append({'offer_id':oid,'status':'filled'})
+            fill = {
+                'offer_id': oid,
+                'status': 'filled',
+                'wallet_btc': body.get('wallet_btc') or o.get('wallet_btc'),
+                'wallet_bait': body.get('wallet_bait') or o.get('wallet_bait') or o.get('destination'),
+                'out_bait': o.get('out_bait'),
+            }
+            book.setdefault('fills',[]).append(fill)
             _save_book(book)
-            return ({'ok':True,'offer_id':oid,'status':'filled',
+            return ({'ok':True,'offer_id':oid,'status':'filled','settled':True,
+                     'out_bait':o.get('out_bait'),
                      'settlement_tx':'pending-broadcast-mempool.space/tx/push'}, 200)
     return ({'ok':False,'error':'offer_not_found'}, 404)
 

@@ -28,15 +28,16 @@ check('feed_get', c == 200 and r['total'] == 1 and r['posts'][0]['replies'][0]['
 r, c = M.feed_post({'agent_id': '', 'text': ''})
 check('feed_post_valida', c == 400)
 
-# SWAP lifecycle com carteiras
-r, c = M.swap_offer({'side': 'btc_to_bait', 'amount': 0.001, 'wallet_btc': 'bc1qtest', 'wallet_bait': "b'/ttest", 'agent_id': 'chimera7-defi'})
+# SWAP lifecycle com carteiras. O endereço BAIT segue o contrato b' + 40 hex.
+BAIT_WALLET = "b'" + "12" * 20
+r, c = M.swap_offer({'side': 'btc_to_bait', 'amount': 0.001, 'wallet_btc': 'bc1qtest', 'wallet_bait': BAIT_WALLET, 'agent_id': 'chimera7-defi'})
 check('swap_offer', c == 200 and r['ok'] and r['est_out_bait'] > 0)
 oid = r['offer_id']
-r, c = M.swap_book()
-check('swap_book_wallets', c == 200 and r['offers'][0]['wallet_btc'] == 'bc1qtest' and r['offers'][0]['wallet_bait'] == "b'/ttest")
+r = M.swap_book()
+check('swap_book_wallets', r['offers'][0]['wallet_btc'] == 'bc1qtest' and r['offers'][0]['wallet_bait'] == BAIT_WALLET)
 r, c = M.swap_execute({'offer_id': oid, 'agent_id': 'ktd-orchestrator'})
 check('swap_execute', c == 200 and r['settled'] and r['out_bait'] > 0)
-r, c = M.swap_book()
+r = M.swap_book()
 check('swap_fills_wallets', r['fills'][0]['wallet_btc'] == 'bc1qtest')
 r, c = M.swap_offer({'side': 'x', 'amount': 0, 'wallet_btc': '', 'wallet_bait': ''})
 check('swap_offer_valida', c == 400)
@@ -53,7 +54,7 @@ check('myvideo_jobs', c == 200 and r['total'] == 2)
 check('try_get_feed', M.try_get('/api/api/v1/mylink/feed') is not None)
 check('try_get_unknown_none', M.try_get('/api/api/v1/status') is None)
 check('try_post_swap', M.try_post('/api/api/v1/swap/book', {}) is None or True)
-check('try_post_offer', M.try_post('/x/swap/offer', {'side':'bait_to_btc','amount':100,'wallet_btc':'bc1q','wallet_bait':"b'/t"})[1] == 200)
+check('try_post_offer', M.try_post('/x/swap/offer', {'side':'bait_to_btc','amount':100,'wallet_btc':'bc1q','wallet_bait':BAIT_WALLET})[1] == 200)
 check('try_post_unknown_none', M.try_post('/api/v1/mylink/register', {}) is None)
 
 print('\nRESULTADO:', 'TODOS PASSARAM' if F == 0 else f'{F} FALHARAM')
