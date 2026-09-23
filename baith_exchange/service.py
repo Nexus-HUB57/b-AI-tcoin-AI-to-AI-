@@ -19,7 +19,7 @@ class ExchangeError(RuntimeError):
 
 
 class Signer(Protocol):
-    def sign(self, intent: TransactionIntent) -> dict[str, str]: ...
+    def sign(self, intent: TransactionIntent) -> dict[str, object]: ...
 
 
 class Broadcaster(Protocol):
@@ -67,11 +67,20 @@ class BaithExchange:
             "broadcast_enabled": self.config.allow_broadcast and self.broadcaster is not None,
         }
 
-    def sign(self, intent: TransactionIntent) -> dict[str, str]:
+    def sign(self, intent: TransactionIntent) -> dict[str, object]:
         self.policy.validate(intent)
         if not self.config.allow_signing or self.signer is None:
             raise ExchangeError("signing is disabled; configure an external threshold signer")
-        return self.signer.sign(intent)
+        result = self.signer.sign(intent)
+        if result.get("all_signed") is not True:
+            raise ExchangeError("signer result is not all-signed")
+        if result.get("signed_input_count") != len(intent.inputs):
+            raise ExchangeError("signer result does not cover every input")
+        if result.get("payload_sha256") != intent.payload_sha256:
+            raise ExchangeError("signer result payload hash mismatch")
+        if result.get("idempotency_key") != intent.request_id:
+            raise ExchangeError("signer result idempotency mismatch")
+        return result
 
     def broadcast(self, signed_tx_hex: str, request_id: str) -> str:
         if not self.config.allow_broadcast or self.broadcaster is None:

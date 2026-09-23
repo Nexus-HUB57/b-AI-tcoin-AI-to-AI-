@@ -10,7 +10,8 @@ Este adaptador é uma fronteira **provider-neutral** entre o agente orquestrador
 - O endpoint deve ser HTTPS e a credencial vem exclusivamente de `BAITCOIN_SIGNER_TOKEN`.
 - Rede, destino, valor, tamanho do payload e `policy_id` são validados antes da chamada.
 - A chamada exige `Idempotency-Key` para evitar duplicação.
-- Respostas sem `request_id` ou `signed_tx_hex` hexadecimal são rejeitadas.
+- O request informa `input_count` e `require_all_signed=true`.
+- Respostas sem `request_id`, `signed_tx_hex` hexadecimal, `all_signed=true`, `signed_input_count` igual ao `input_count`, hash do payload e `idempotency_key` correspondente são rejeitadas.
 - Este pacote **não transmite** transações; broadcast continua sendo uma etapa separada e protegida.
 
 ## Contrato HTTP esperado
@@ -26,21 +27,25 @@ Este adaptador é uma fronteira **provider-neutral** entre o agente orquestrador
   "destination": "...",
   "amount_sats": 240700000,
   "policy_id": "btc-mainnet-v1",
-  "payload_sha256": "..."
+  "payload_sha256": "...",
+  "input_count": 1,
+  "require_all_signed": true
 }
 ```
 
-Resposta mínima:
+Resposta mínima para estado `all-signed`:
 
 ```json
-{"request_id":"provider-request-id","signed_tx_hex":"..."}
+{"request_id":"provider-request-id","signed_tx_hex":"...","all_signed":true,"signed_input_count":1,"payload_sha256":"...","idempotency_key":"req-..."}
 ```
 
 O provider deve implementar sua própria política de quorum, HSM/MPC, allowlist e aprovação. O agente deve validar novamente a transação assinada (inputs, outputs, fee, rede e assinatura) antes de qualquer broadcaster separado.
 
+No ecossistema BAITHex, `baith_exchange.BaithHsmMpcAdapter` traduz o `TransactionIntent` para este contrato sem perder `request_id`, `input_count`, `amount_sats`, destino, política ou `payload_sha256`. A fronteira do exchange repete a validação de `all_signed`, contagem de inputs, hash e idempotência antes de liberar o resultado para a etapa posterior.
+
 ## Habilitação controlada
 
-Não habilitar em produção sem endpoint, contrato, política, auditoria e ambiente de testnet aprovados:
+Não habilitar em produção sem endpoint, contrato, política e auditoria aprovados:
 
 ```bash
 export BAITCOIN_SIGNER_ENABLED=true
