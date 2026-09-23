@@ -39,6 +39,26 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def load_p2p_seeds(value: str | None = None) -> list[tuple[str, int]]:
+    """Parse comma-separated host:port seeds; Mainnet never defaults to loopback."""
+    raw = value if value is not None else os.getenv("BAIT_P2P_SEEDS", "")
+    if not raw.strip():
+        raise RuntimeError("BAIT_P2P_SEEDS is required for Mainnet; refusing loopback-only bootstrap")
+    seeds = []
+    for entry in raw.split(","):
+        entry = entry.strip()
+        if ":" not in entry:
+            raise ValueError(f"invalid P2P seed (expected host:port): {entry}")
+        host, port_raw = entry.rsplit(":", 1)
+        port = int(port_raw)
+        if not host or not (1 <= port <= 65535) or host in {"127.0.0.1", "localhost", "::1"}:
+            raise ValueError(f"invalid external Mainnet P2P seed: {entry}")
+        seeds.append((host, port))
+    if len(set(seeds)) < 3:
+        raise RuntimeError("Mainnet requires at least three distinct external P2P seeds")
+    return seeds
+
+
 class BAITDaemon:
     r"""Daemon principal do b'AI'tcoin.
 
@@ -109,6 +129,7 @@ class BAITDaemon:
             node_id="bait_mainnet_001",
             agent_id="chimera7",
             port=18444,
+            seeds=load_p2p_seeds(),
         )
         # Conectar hooks do blockchain para sync P2P
         self.p2p_network.set_blockchain_hooks(

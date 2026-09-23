@@ -106,11 +106,31 @@ jobs:
           python3 -c "from native_processing.swap_executor import SwapExecutor; print('swap_executor OK')"
           python3 -c "from ops.epoch_reward_cron import init_staking; print('epoch_reward_cron OK')"
 
+  readiness-gate:
+    name: "Read-only Mainnet readiness gate"
+    runs-on: ubuntu-latest
+    needs: e2e-tests
+    if: github.ref == 'refs/heads/production' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Require explicit public endpoints
+        env:
+          MAINNET_API_BASE_URL: ${{ vars.MAINNET_API_BASE_URL }}
+          ETH_RPC_URL: ${{ vars.ETH_RPC_URL }}
+        run: |
+          set -euo pipefail
+          test -n "$MAINNET_API_BASE_URL"
+          test -n "$ETH_RPC_URL"
+          python3 scripts/mainnet_readiness_gate.py --base-url "$MAINNET_API_BASE_URL" --eth-rpc "$ETH_RPC_URL" --min-peers 3
+
   # ── Job 3: Deploy to VPS ──
   deploy-vps:
     name: "Deploy → VPS"
     runs-on: ubuntu-latest
-    needs: [validate-secrets, e2e-tests]
+    needs: [validate-secrets, e2e-tests, readiness-gate]
     if: github.ref == 'refs/heads/production' || github.event_name == 'workflow_dispatch'
     environment: production
     steps:
@@ -129,7 +149,7 @@ jobs:
           STAKING_APY_RATE=0.07
           FAUCET_CLAIM_SATS=1000000000
           FAUCET_COOLDOWN_SECONDS=86400
-          CUSTODY_ARMED=true
+          CUSTODY_ARMED=false
           ENVEOF
           chmod 600 .env.production
 
@@ -153,7 +173,7 @@ jobs:
           DAEMON_API_URL=http://127.0.0.1:18445
           BAITCOIN_DATA=/home/baitcoin/.baitcoin
           STAKING_APY_RATE=0.07
-          CUSTODY_ARMED=true
+          CUSTODY_ARMED=false
           ENVEOF
           chmod 600 /home/baitcoin/.baitcoin/.env.production
 
