@@ -46,7 +46,6 @@ export default function MasterWalletManagerPage() {
             <CardTitle className="text-sm font-medium">Endereço Master Unificado</CardTitle>
             <Key className="w-4 h-4 text-muted-foreground" />
           </CardHeader>
-          CardContent
           <CardContent>
             <div className="text-sm font-mono bg-muted p-3 rounded-md break-all border border-border">
               {walletState.data?.masterAddress || "Carregando..."}

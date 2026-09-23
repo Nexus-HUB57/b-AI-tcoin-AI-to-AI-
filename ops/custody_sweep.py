@@ -64,7 +64,9 @@ def b58check_encode(payload):
 
 def wif_to_priv(wif):
     raw = b58decode(wif)
-    assert hashlib.sha256(hashlib.sha256(raw[:-4]).digest()).digest()[:4] == raw[-4:], "bad wif checksum"
+    # S1.4: assert replaced with if/raise (python -O strips asserts)
+    if hashlib.sha256(hashlib.sha256(raw[:-4]).digest()).digest()[:4] != raw[-4:]:
+        raise ValueError("bad WIF checksum — key corrupted or invalid")
     body = raw[1:-4]
     if len(body) == 33 and body[-1] == 1:
         return body[:-1], True
@@ -152,7 +154,9 @@ def dec_store():
     mk = open(MASTER_KEY_FILE, "rb").read().strip()
     raw = open(VAULT, "rb").read()
     mac, blob = raw[:32], raw[32:]
-    assert hashlib.sha256(mk + blob).digest() == mac, "vault MAC fail"
+    # S1.4: assert replaced with if/raise (security-critical MAC verification)
+    if hashlib.sha256(mk + blob).digest() != mac:
+        raise ValueError("vault MAC verification failed — data corrupted or wrong master key")
     salt, data = blob[:16], blob[16:]
     ks = _keystream(mk, salt, len(data))
     return json.loads(bytes(a ^ b for a, b in zip(data, ks)).decode())
@@ -176,7 +180,8 @@ def build_tx(utxos, dest, fee_sat):
             "script": script_p2pkh(u["address"]),
         })
     out_val = total - fee_sat
-    assert out_val > 546, f"dust/insuficiente: {out_val}"
+    if out_val <= 546:
+        raise ValueError(f"dust/insuficiente: output {out_val} sat <= 546 dust limit")
     tx = {"ins": ins, "outs": [{"addr": dest, "value": out_val}], "total_in": total, "fee": fee_sat}
     return tx
 

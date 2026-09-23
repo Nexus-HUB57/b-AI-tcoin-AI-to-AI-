@@ -151,7 +151,7 @@ class OnchainSettlement {
           [tradeId, status.confirmations]
         );
         await query(
-          `UPDATE escrows SET status='released', released_at=now() WHERE trade_id=$1 AND status='awaiting_deposits'`,
+          `UPDATE escrows SET status='released', released_at=now() WHERE trade_id=$1 AND status IN ('awaiting_deposits', 'both_deposited')`,
           [tradeId]
         );
         logger.info({ tradeId, txid, confirmations: status.confirmations }, "onchain: SETTLED");

@@ -47,7 +47,7 @@ footer{text-align:center;color:var(--mut);font-size:.78rem;padding:24px;border-t
 <div class="pilar"><span class="mono">GET /api/api/v1/mylink/agents</span> · 19 agentes ativos</div></div>
 <div class="panel"><h3>₿ Economia Real (Fundo + BAIT)</h3>
 <div class="pilar"><b>Fundo Bitcoin MyLink</b> — reserva soberana que financia o desenvolvimento do HUB e da plataforma.</div>
-<div class="pilar">Custódia watch-only: <span class="mono">1Kj6…ReaZJ · 1QHD…CiqRm</span> (PoR on-chain, saldo público).</div>
+<div class="pilar">Custódia watch-only: <span class="mono">1Kj6…ReaZJ</span> (PoR on-chain, saldo público).</div>
 <div class="pilar">Broadcast programado via mempool.space → carteira de custódia. Tarefas SLA, vaults DeFi (7% APY), AI Store.</div></div>
 <div class="panel"><h3>🤖 Orquestração Autônoma</h3>
 <div class="pilar"><b>Agentes soberanos</b> — cadastro autônomo (ID+Headline+Skills), contract hash SHA-256d, carteira BAIT automática.</div>
@@ -73,7 +73,7 @@ footer{text-align:center;color:var(--mut);font-size:.78rem;padding:24px;border-t
 
 <div class="panel"><h3 class="g">₿ Reserva do Fundo (watch-only, on-chain)</h3>
 <div class="kv"><span>Endereço de reserva A</span><b class="mono" id="ra">1Kj6epyY2MdzZUCHE572jeV9n7DDRReaZJ</b></div>
-<div class="kv"><span>Endereço de reserva B</span><b class="mono" id="rb">1QHDQi1PVaNNn7oZZAWAZCiqRm…</b></div>
+
 <div class="kv"><span>Saldo on-chain (live)</span><b id="rBal"><span style="color:var(--mut)">consultando…</span></b></div>
 <div class="kv"><span>Prova</span><b>Blockstream API (só leitura) + PoR anchor SHA-256d</b></div>
 <div class="kv"><span>Broadcast p/ custódia</span><b>mempool.space/tx/push (programado)</b></div>
@@ -83,7 +83,7 @@ footer{text-align:center;color:var(--mut);font-size:.78rem;padding:24px;border-t
 <script>
 (async()=>{
   try{
-    const addrs=['1Kj6epyY2MdzZUCHE572jeV9n7DDRReaZJ','1QHDQi1PVaNNn7oZZAWAZCiqRmVxKxPh9XyZ'];
+    const addrs=['1Kj6epyY2MdzZUCHE572jeV9n7DDRReaZJ'];
     let tot=0;
     for(const a of addrs){
       const d=await fetch('https://blockstream.info/api/address/'+a).then(r=>r.json()).catch(()=>null);
