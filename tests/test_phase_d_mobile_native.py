@@ -117,9 +117,9 @@ class TestSwiftSDKExists(unittest.TestCase):
         self.assertIn("case testnet", self.src)
 
     def test_swift_has_CryptoProvider(self):
-        """Swift file must have a CryptoProvider protocol for pluggable crypto."""
+        """Swift file must expose the production P256K provider boundary."""
         self.assertIn("public protocol CryptoProvider", self.src)
-        self.assertIn("PlaceholderCryptoProvider", self.src)
+        self.assertIn("P256KCryptoProvider", self.src)
         self.assertIn("func schnorrSign", self.src)
         self.assertIn("func schnorrVerify", self.src)
         self.assertIn("func generateKeyPair", self.src)
@@ -235,9 +235,9 @@ class TestKotlinSDKExists(unittest.TestCase):
         self.assertIn("TESTNET", self.src)
 
     def test_kotlin_has_CryptoProvider(self):
-        """Kotlin file must have a CryptoProvider interface for pluggable crypto."""
+        """Kotlin file must expose the production BouncyCastle provider boundary."""
         self.assertIn("interface CryptoProvider", self.src)
-        self.assertIn("class PlaceholderCryptoProvider", self.src)
+        self.assertIn("class BouncyCastleCryptoProvider", self.src)
         self.assertIn("fun schnorrSign", self.src)
         self.assertIn("fun schnorrVerify", self.src)
         self.assertIn("fun generateKeyPair", self.src)
@@ -281,13 +281,15 @@ class TestSDKConsistency(unittest.TestCase):
         """Both SDKs must use 32-byte (64-char hex) x-only public keys."""
         # Swift: 32 bytes for private and public keys
         self.assertIn("32 bytes x-only", self.swift)
-        self.assertIn("Data(count: 32)", self.swift)  # Key generation uses 32 bytes
+        self.assertIn("privateKey.count == 32", self.swift)
+        self.assertIn("publicKey.count == 32", self.swift)
         # Swift: hex validation checks for 64 chars
         self.assertIn("cleanHex.count == 64", self.swift)
 
         # Kotlin: 32 bytes for private and public keys
         self.assertIn("32 bytes x-only", self.kotlin)
-        self.assertIn("ByteArray(32)", self.kotlin)  # Key generation uses 32 bytes
+        self.assertIn("const val BYTES_32 = 32", self.kotlin)
+        self.assertIn("ByteArray(BYTES_32)", self.kotlin)
         # Kotlin: hex validation checks for 64 chars
         self.assertIn("cleanHex.length != 64", self.kotlin)
 
@@ -342,12 +344,12 @@ class TestSDKConsistency(unittest.TestCase):
         self.assertIn("ripemd160(sha256", self.swift)
         self.assertIn("ripemd160(sha256", self.kotlin)
 
-    def test_both_have_schnorr_placeholder(self):
-        """Both SDKs must note that the placeholder crypto needs replacement."""
-        self.assertIn("PlaceholderCryptoProvider", self.swift)
-        self.assertIn("PlaceholderCryptoProvider", self.kotlin)
-        self.assertIn("placeholder", self.swift.lower())
-        self.assertIn("placeholder", self.kotlin.lower())
+    def test_both_have_production_schnorr_provider(self):
+        """Both SDKs must identify their production Schnorr provider."""
+        self.assertIn("P256KCryptoProvider", self.swift)
+        self.assertIn("BouncyCastleCryptoProvider", self.kotlin)
+        self.assertIn("BIP-340", self.swift)
+        self.assertIn("BIP-340", self.kotlin)
 
 
 class TestNativeReadme(unittest.TestCase):
