@@ -16,11 +16,8 @@ MEMPOOL = "https://mempool.space/api"
 ENV_FILE = "/etc/custody-sweep.env"
 MASTER_KEY_FILE = "/root/.custody_master"
 
-ADDRESSES = [
-    "1Kj6epyY2MdzZUCHE572jeV9n7DDRReaZJ",
-    "1LhMC7JxBbtNfK9ABuLGJ7J8PmWt16qZKN",
-    "14UNwf2XH2ET24EsZyD1gNFmkPL4rBK7Ew",
-]
+# S1.4: Addresses loaded from env via env_loader (never hardcoded in production)
+ADDRESSES = []  # Populated at init from CUSTODY_SWAP_BTC + CUSTODY_ADDITIONAL_ADDRESSES
 CANARY_MAX_SAT = 1_000_000  # 0.01 BTC teto do canario
 
 def log(*a):
@@ -405,7 +402,27 @@ def cmd_auto():
     log(f"═══ ciclo concluido: {ok_n}/{len(results)} broadcasts ═══")
     return 0
 
+def init_addresses():
+    """S1.4: Load custody addresses from env (env_loader), with legacy fallback."""
+    global ADDRESSES
+    try:
+        # Try env_loader first (GO LIVE path)
+        sys.path.insert(0, os.path.dirname(__file__))
+        from env_loader import custody_addresses
+        ADDRESSES = custody_addresses()
+        log(f"addresses loaded from env: {len(ADDRESSES)} addr(s), primary: {ADDRESSES[0][:12]}...")
+    except Exception as e:
+        # Legacy fallback: hardcoded addresses (DEV ONLY)
+        log(f"env_loader failed ({e}), using legacy hardcoded addresses")
+        ADDRESSES = [
+            "1Kj6epyY2MdzZUCHE572jeV9n7DDRReaZJ",
+            "1LhMC7JxBbtNfK9ABuLGJ7J8PmWt16qZKN",
+            "14UNwf2XH2ET24EsZyD1gNFmkPL4rBK7Ew",
+        ]
+        log("WARNING: using hardcoded addresses — set CUSTODY_SWAP_BTC env var for production!")
+
 if __name__ == "__main__":
+    init_addresses()
     cmd = sys.argv[1] if len(sys.argv) > 1 else "auto"
     if cmd == "watch":
         agent_watch()

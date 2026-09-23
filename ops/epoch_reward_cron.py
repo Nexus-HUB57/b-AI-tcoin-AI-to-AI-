@@ -15,8 +15,16 @@ Environment:
 import json, os, time, math, sys
 from datetime import datetime, timezone
 
-DATA = os.environ.get('BAITCOIN_DATA', '/home/baitcoin/.baitcoin')
-APY = float(os.environ.get('STAKING_APY_RATE', '0.07'))
+# GO LIVE: Use env_loader for centralized secret/config management
+try:
+    sys.path.insert(0, os.path.dirname(__file__))
+    from env_loader import load_env, staking_apy, daemon_url, is_armed
+    load_env()
+    DATA = os.environ.get('BAITCOIN_DATA', '/home/baitcoin/.baitcoin')
+    APY = staking_apy()
+except ImportError:
+    DATA = os.environ.get('BAITCOIN_DATA', '/home/baitcoin/.baitcoin')
+    APY = float(os.environ.get('STAKING_APY_RATE', '0.07'))
 EPOCH_MINUTES = 30
 
 def _fp(name): return os.path.join(DATA, name)
@@ -115,8 +123,18 @@ def main():
     vaults = state.get('vaults', {})
     active = sum(1 for v in vaults.values() if v.get('status') == 'active')
 
-    print(f"Epoch Reward Cron - APY {APY*100:.1f}% | Epoch: {epoch_mins}min")
-    print(f"Active vaults: {active} | Total staked: {state.get('total_staked', 0):,} BAIT")
+    print(f"═══ Epoch Reward Cron v2 (GO LIVE) ═══")
+    print(f"APY: {APY*100:.1f}% | Epoch: {epoch_mins}min | Data: {DATA}")
+    print(f"Active vaults: {active} | Total staked: {state.get('total_staked', 0):,} sats")
+    
+    # Report on mempool broadcast health
+    try:
+        from mempool_broadcast import get_fee_recommendation
+        fees = get_fee_recommendation()
+        if 'halfHourFee' in fees:
+            print(f"Mempool fees: {fees['halfHourFee']} sat/vB (30min) | {fees.get('hourFee', '?')} sat/vB (1h)")
+    except Exception:
+        pass
 
     if active == 0:
         print("No active vaults. Run agent_daily_faucet.py first to populate agents.")
