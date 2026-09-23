@@ -61,6 +61,7 @@ class SigningRequest:
     amount_sats: int
     policy_id: str
     idempotency_key: str
+    input_count: int = 1
 
     def validate_shape(self) -> None:
         if not isinstance(self.unsigned_tx_hex, str) or not self.unsigned_tx_hex:
@@ -77,6 +78,8 @@ class SigningRequest:
             raise PolicyViolation("policy_id is required")
         if not re.fullmatch(r"[A-Za-z0-9._:-]{8,128}", self.idempotency_key):
             raise PolicyViolation("invalid idempotency key")
+        if type(self.input_count) is not int or self.input_count <= 0:
+            raise PolicyViolation("input_count must be a positive integer")
 
     @property
     def payload_sha256(self) -> str:
@@ -130,7 +133,7 @@ class HsmMpcSigner:
         self.policy = policy
         self.transport = transport
 
-    def sign(self, request: SigningRequest) -> dict[str, str]:
+    def sign(self, request: SigningRequest) -> dict[str, object]:
         request.validate_shape()
         self.policy.validate(request)
         response = self.transport.post(
@@ -143,6 +146,8 @@ class HsmMpcSigner:
                 "amount_sats": request.amount_sats,
                 "policy_id": request.policy_id,
                 "payload_sha256": request.payload_sha256,
+                "input_count": request.input_count,
+                "require_all_signed": True,
             },
             request.idempotency_key,
         )
@@ -152,7 +157,22 @@ class HsmMpcSigner:
             raise SignerUnavailable("signer did not return valid signed_tx_hex")
         if not isinstance(request_id, str) or not request_id:
             raise SignerUnavailable("signer did not return request_id")
-        return {"request_id": request_id, "signed_tx_hex": signed}
+        if response.get("all_signed") is not True:
+            raise SignerUnavailable("signer response is not all-signed")
+        if response.get("signed_input_count") != request.input_count:
+            raise SignerUnavailable("signer did not sign every input")
+        if response.get("payload_sha256") != request.payload_sha256:
+            raise SignerUnavailable("signer payload hash mismatch")
+        if response.get("idempotency_key") != request.idempotency_key:
+            raise SignerUnavailable("signer idempotency key mismatch")
+        return {
+            "request_id": request_id,
+            "signed_tx_hex": signed,
+            "all_signed": True,
+            "signed_input_count": request.input_count,
+            "payload_sha256": request.payload_sha256,
+            "idempotency_key": request.idempotency_key,
+        }
 
 
 def from_environment(policy: SigningPolicy) -> HsmMpcSigner:
