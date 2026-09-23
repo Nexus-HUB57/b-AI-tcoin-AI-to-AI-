@@ -1,0 +1,38 @@
+flowchart LR
+  A[Mainnet watcher / UTXO indexer] --> B[baith-exchange API]
+  B --> C[Request ID + idempotency ledger]
+  C --> D[policy-engine]
+  D --> D1{network == bitcoin-mainnet?}
+  D1 -- no --> X[REJECT + audit event]
+  D1 -- yes --> D2{destination allowlisted?}
+  D2 -- no --> X
+  D2 -- yes --> D3{amount / fee / fee-rate within limits?}
+  D3 -- no --> X
+  D3 -- yes --> D4{inputs, change, scripts and PSBT shape valid?}
+  D4 -- no --> X
+  D4 -- yes --> E[Unsigned PSBT / transaction payload]
+  E --> F[Independent decoder + policy recheck]
+  F --> G{2-of-3 threshold policy}
+  G -- insufficient --> H[WAIT / no signing]
+  G -- satisfied --> I[Signer node A]
+  G -- satisfied --> J[Signer node B]
+  G -- optional --> K[Signer node C]
+  I --> L[Signature share verification]
+  J --> L
+  K --> L
+  L --> M{quorum + payload hash match?}
+  M -- no --> X
+  M -- yes --> N[Assemble signed transaction]
+  N --> O[Final independent decode]
+  O --> P{outputs, fee, network and signature valid?}
+  P -- no --> X
+  P -- yes --> Q[Mainnet broadcaster]
+  Q --> R[txid + mempool monitor]
+  R --> S{confirmed / reorg / rejected}
+  S --> T[Audit ledger + reconciliation]
+
+  classDef btc fill:#3b2a0b,stroke:#F59E0B,color:#F8FAFC
+  classDef evm fill:#083344,stroke:#06B6D4,color:#F8FAFC
+  classDef reject fill:#3f1d1d,stroke:#ef4444,color:#F8FAFC
+  class A,B,C,D,E,F,G,I,J,K,L,M,N,O,P,Q,R,S,T btc
+  class X,H reject
