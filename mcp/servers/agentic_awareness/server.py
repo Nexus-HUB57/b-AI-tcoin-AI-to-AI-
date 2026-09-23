@@ -29,7 +29,7 @@ server = Server(name="mcp-agentic-awareness", version="1.0.0", title="Agentic Aw
 
 @server.tool(description="Introspect an agent — capabilities, reputation, last activity")
 def introspect(agent_id: str) -> dict:
-    p = registry.get(agent_id)
+    p = registry.get_agent(agent_id)
     if not p:
         return {"ok": False, "error": "not_found"}
     return {
@@ -61,7 +61,7 @@ def context_window(agent_id: str, message: str, max_tokens: int = 4096) -> dict:
 
 @server.tool(description="Recommend tools (across MCPs) for a given task description")
 def recommend_tools(agent_id: str, task_description: str) -> dict:
-    p = registry.get(agent_id)
+    p = registry.get_agent(agent_id)
     capabilities = [c.value for c in p.capabilities] if p else []
     recs = []
     if "price" in task_description.lower() or "market" in task_description.lower():
@@ -81,7 +81,7 @@ def recommend_tools(agent_id: str, task_description: str) -> dict:
 
 @server.tool(description="Identify capability gaps between current and desired capabilities")
 def capability_gaps(agent_id: str, desired_capabilities: list) -> dict:
-    p = registry.get(agent_id)
+    p = registry.get_agent(agent_id)
     if not p:
         return {"ok": False, "error": "not_found"}
     current = set(c.value for c in p.capabilities)
@@ -111,7 +111,7 @@ def _capability_to_mcp_tools(cap: AgentCapability) -> list:
 
 @server.tool(description="Compute a 'consciousness' score: reputation × capability breadth × activity recency")
 def consciousness_score(agent_id: str) -> dict:
-    p = registry.get(agent_id)
+    p = registry.get_agent(agent_id)
     if not p:
         return {"ok": False, "error": "not_found"}
     rep = p.reputation_score / 100.0

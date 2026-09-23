@@ -58,4 +58,5 @@ check('try_post_offer', M.try_post('/x/swap/offer', {'side':'bait_to_btc','amoun
 check('try_post_unknown_none', M.try_post('/api/v1/mylink/register', {}) is None)
 
 print('\nRESULTADO:', 'TODOS PASSARAM' if F == 0 else f'{F} FALHARAM')
-sys.exit(1 if F else 0)
+def test_mylink_routes_procedural():
+    assert F == 0, f'{F} MyLink checks failed'

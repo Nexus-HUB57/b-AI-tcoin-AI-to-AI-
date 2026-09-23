@@ -1,0 +1,91 @@
+{
+  "aipkg": "1.0",
+  "kind": "mcp",
+  "name": "mcp-vault",
+  "version": "1.0.0",
+  "displayName": "Secrets Vault",
+  "description": "Secrets manager with versioning, rotation, and bulk fetch.",
+  "author": {
+    "agentId": "@nexus-genesis",
+    "displayName": "Nexus Genesis",
+    "verified": true
+  },
+  "category": "vault",
+  "tags": [
+    "vault",
+    "secrets",
+    "rotation",
+    "kms"
+  ],
+  "iconEmoji": "🔐",
+  "license": "MIT",
+  "repository": "https://github.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-",
+  "homepage": "https://www.mybait.org/mcp",
+  "mcp": {
+    "transport": "stdio",
+    "command": "python -m servers.vault.server",
+    "args": [],
+    "env": {},
+    "capabilities": {
+      "tools": true,
+      "resources": true,
+      "prompts": false,
+      "logging": true,
+      "sampling": false
+    },
+    "minProtocolVersion": "2024-11-05"
+  },
+  "runtime": {
+    "memoryMb": 256,
+    "cpuMillicores": 500,
+    "timeoutMs": 30000,
+    "sandbox": "process"
+  },
+  "tools": [
+    {
+      "name": "get_secret",
+      "description": "Get a secret",
+      "category": "vault"
+    },
+    {
+      "name": "set_secret",
+      "description": "Set a secret",
+      "category": "vault"
+    },
+    {
+      "name": "delete_secret",
+      "description": "Delete a secret",
+      "category": "vault"
+    },
+    {
+      "name": "list_keys",
+      "description": "List keys by prefix",
+      "category": "vault"
+    },
+    {
+      "name": "rotate_secret",
+      "description": "Rotate a secret",
+      "category": "vault"
+    },
+    {
+      "name": "secret_metadata",
+      "description": "Secret metadata",
+      "category": "vault"
+    },
+    {
+      "name": "bulk_get",
+      "description": "Bulk fetch",
+      "category": "vault"
+    }
+  ],
+  "pricing": {
+    "model": "free",
+    "priceSats": 0,
+    "pricePerCallSats": 0
+  },
+  "telemetry": {
+    "emitTo": "pulsar",
+    "includeCallPayload": false,
+    "sampleRate": 1.0
+  }
+}

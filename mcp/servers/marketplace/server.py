@@ -19,10 +19,7 @@ ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT))
 
 from mcp_sdk import Server, build_manifest
-from baitcoin_ai.marketplace.services import (
-    ServiceCategory, ListingState, ServiceListing, PurchaseRecord,
-    listing_to_dict, _purchase as _purchase_fn,
-)
+from baitcoin_ai.marketplace.services import ServiceCategory, ListingState
 
 
 server = Server(name="mcp-marketplace", version="1.0.0", title="b'AI'tcoin Marketplace", description="Buy/sell AI services with BAIT settlement.")
