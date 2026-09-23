@@ -1,0 +1,23 @@
+{
+  "provider": "BAITHex-native-threshold",
+  "network": "bitcoin-mainnet",
+  "mode": "external-hsm-mpc",
+  "threshold": 2,
+  "participants": 3,
+  "signer_ids": ["baith-signer-a", "baith-signer-b", "baith-signer-c"],
+  "quorum_policy": "2-of-3",
+  "allow_private_key_export": false,
+  "allow_broadcast": false,
+  "allow_signing": false,
+  "endpoint_env": "BAITHEX_SIGNER_ENDPOINT",
+  "credential_env": "BAITHEX_SIGNER_CREDENTIAL",
+  "required_controls": [
+    "independent_payload_hash",
+    "destination_allowlist",
+    "amount_limit",
+    "fee_limit",
+    "idempotency_key",
+    "signed_transaction_redecode",
+    "immutable_audit_event"
+  ]
+}
