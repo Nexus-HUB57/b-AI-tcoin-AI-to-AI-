@@ -1,0 +1,13 @@
+{
+  "name": "mcp-iot-edge-edge-infer",
+  "version": "1.0.0",
+  "description": "IoT & Edge Computing :: edge-infer",
+  "tools": [
+    {
+      "name": "edge-infer",
+      "description": "edge-infer tool for IoT & Edge Computing"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

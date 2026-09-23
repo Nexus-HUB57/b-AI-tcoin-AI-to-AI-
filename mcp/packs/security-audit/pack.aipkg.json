@@ -1,0 +1,18 @@
+{
+  "package": "security-audit",
+  "title": "Seguran\u00e7a & Auditoria",
+  "version": "1.0.0",
+  "format": ".aipkg",
+  "mcps": [
+    "mcp-security-audit-secret-scan",
+    "mcp-security-audit-certik-rules",
+    "mcp-security-audit-howey-lint",
+    "mcp-security-audit-wif-verifier",
+    "mcp-security-audit-tx-forensics",
+    "mcp-security-audit-pentest-lite",
+    "mcp-security-audit-access-audit",
+    "mcp-security-audit-key-rotation",
+    "mcp-security-audit-watch-only-check",
+    "mcp-security-audit-incident-log"
+  ]
+}

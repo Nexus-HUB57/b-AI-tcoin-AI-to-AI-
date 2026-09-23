@@ -1,0 +1,13 @@
+{
+  "name": "mcp-legal-compliance-audit-trail",
+  "version": "1.0.0",
+  "description": "Legal & Compliance :: audit-trail",
+  "tools": [
+    {
+      "name": "audit-trail",
+      "description": "audit-trail tool for Legal & Compliance"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

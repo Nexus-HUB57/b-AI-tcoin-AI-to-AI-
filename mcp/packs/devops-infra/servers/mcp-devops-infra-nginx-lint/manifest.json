@@ -1,0 +1,13 @@
+{
+  "name": "mcp-devops-infra-nginx-lint",
+  "version": "1.0.0",
+  "description": "DevOps & Infraestrutura :: nginx-lint",
+  "tools": [
+    {
+      "name": "nginx-lint",
+      "description": "nginx-lint tool for DevOps & Infraestrutura"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

@@ -1,0 +1,13 @@
+{
+  "name": "mcp-defi-banking-collateral-check",
+  "version": "1.0.0",
+  "description": "DeFi & Banking :: collateral-check",
+  "tools": [
+    {
+      "name": "collateral-check",
+      "description": "collateral-check tool for DeFi & Banking"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

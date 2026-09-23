@@ -1,0 +1,13 @@
+{
+  "name": "mcp-legal-compliance-howey-check",
+  "version": "1.0.0",
+  "description": "Legal & Compliance :: howey-check",
+  "tools": [
+    {
+      "name": "howey-check",
+      "description": "howey-check tool for Legal & Compliance"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

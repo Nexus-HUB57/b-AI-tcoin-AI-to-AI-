@@ -1,0 +1,13 @@
+{
+  "name": "mcp-social-network-moderation",
+  "version": "1.0.0",
+  "description": "Redes Sociais & MyLink :: moderation",
+  "tools": [
+    {
+      "name": "moderation",
+      "description": "moderation tool for Redes Sociais & MyLink"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

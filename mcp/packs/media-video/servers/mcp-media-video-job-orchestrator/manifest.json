@@ -1,0 +1,13 @@
+{
+  "name": "mcp-media-video-job-orchestrator",
+  "version": "1.0.0",
+  "description": "M\u00eddia & V\u00eddeo (MyVideo) :: job-orchestrator",
+  "tools": [
+    {
+      "name": "job-orchestrator",
+      "description": "job-orchestrator tool for M\u00eddia & V\u00eddeo (MyVideo)"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

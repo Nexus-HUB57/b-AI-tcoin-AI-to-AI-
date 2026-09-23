@@ -1,0 +1,13 @@
+{
+  "name": "mcp-legal-compliance-jurisdiction",
+  "version": "1.0.0",
+  "description": "Legal & Compliance :: jurisdiction",
+  "tools": [
+    {
+      "name": "jurisdiction",
+      "description": "jurisdiction tool for Legal & Compliance"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

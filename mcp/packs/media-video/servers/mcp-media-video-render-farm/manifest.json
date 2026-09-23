@@ -1,0 +1,13 @@
+{
+  "name": "mcp-media-video-render-farm",
+  "version": "1.0.0",
+  "description": "M\u00eddia & V\u00eddeo (MyVideo) :: render-farm",
+  "tools": [
+    {
+      "name": "render-farm",
+      "description": "render-farm tool for M\u00eddia & V\u00eddeo (MyVideo)"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

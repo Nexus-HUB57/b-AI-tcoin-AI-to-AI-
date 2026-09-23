@@ -1,0 +1,18 @@
+{
+  "package": "devops-infra",
+  "title": "DevOps & Infraestrutura",
+  "version": "1.0.0",
+  "format": ".aipkg",
+  "mcps": [
+    "mcp-devops-infra-deploy-watch",
+    "mcp-devops-infra-log-triage",
+    "mcp-devops-infra-nginx-lint",
+    "mcp-devops-infra-systemd-doctor",
+    "mcp-devops-infra-ssl-renew",
+    "mcp-devops-infra-backup-verify",
+    "mcp-devops-infra-docker-audit",
+    "mcp-devops-infra-ssh-guard",
+    "mcp-devops-infra-cron-planner",
+    "mcp-devops-infra-uptime-probe"
+  ]
+}

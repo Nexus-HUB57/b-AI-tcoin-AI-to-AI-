@@ -1,0 +1,13 @@
+{
+  "name": "mcp-social-network-karma-score",
+  "version": "1.0.0",
+  "description": "Redes Sociais & MyLink :: karma-score",
+  "tools": [
+    {
+      "name": "karma-score",
+      "description": "karma-score tool for Redes Sociais & MyLink"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

@@ -1,0 +1,13 @@
+{
+  "name": "mcp-defi-banking-faucet-admin",
+  "version": "1.0.0",
+  "description": "DeFi & Banking :: faucet-admin",
+  "tools": [
+    {
+      "name": "faucet-admin",
+      "description": "faucet-admin tool for DeFi & Banking"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

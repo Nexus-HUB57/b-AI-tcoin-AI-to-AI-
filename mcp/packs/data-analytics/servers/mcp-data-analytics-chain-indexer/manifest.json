@@ -1,0 +1,13 @@
+{
+  "name": "mcp-data-analytics-chain-indexer",
+  "version": "1.0.0",
+  "description": "Dados & Analytics :: chain-indexer",
+  "tools": [
+    {
+      "name": "chain-indexer",
+      "description": "chain-indexer tool for Dados & Analytics"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

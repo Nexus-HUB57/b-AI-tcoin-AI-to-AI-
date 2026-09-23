@@ -1,0 +1,13 @@
+{
+  "name": "mcp-security-audit-certik-rules",
+  "version": "1.0.0",
+  "description": "Seguran\u00e7a & Auditoria :: certik-rules",
+  "tools": [
+    {
+      "name": "certik-rules",
+      "description": "certik-rules tool for Seguran\u00e7a & Auditoria"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

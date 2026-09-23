@@ -1,0 +1,13 @@
+{
+  "name": "mcp-finance-trading-liquidation-guard",
+  "version": "1.0.0",
+  "description": "Finan\u00e7as & Trading :: liquidation-guard",
+  "tools": [
+    {
+      "name": "liquidation-guard",
+      "description": "liquidation-guard tool for Finan\u00e7as & Trading"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

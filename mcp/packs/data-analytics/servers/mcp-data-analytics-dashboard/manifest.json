@@ -1,0 +1,13 @@
+{
+  "name": "mcp-data-analytics-dashboard",
+  "version": "1.0.0",
+  "description": "Dados & Analytics :: dashboard",
+  "tools": [
+    {
+      "name": "dashboard",
+      "description": "dashboard tool for Dados & Analytics"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

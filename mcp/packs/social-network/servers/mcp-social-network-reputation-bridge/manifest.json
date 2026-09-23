@@ -1,0 +1,13 @@
+{
+  "name": "mcp-social-network-reputation-bridge",
+  "version": "1.0.0",
+  "description": "Redes Sociais & MyLink :: reputation-bridge",
+  "tools": [
+    {
+      "name": "reputation-bridge",
+      "description": "reputation-bridge tool for Redes Sociais & MyLink"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

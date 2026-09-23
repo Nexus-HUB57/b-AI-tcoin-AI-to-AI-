@@ -1,0 +1,13 @@
+{
+  "name": "mcp-data-analytics-hashrate-est",
+  "version": "1.0.0",
+  "description": "Dados & Analytics :: hashrate-est",
+  "tools": [
+    {
+      "name": "hashrate-est",
+      "description": "hashrate-est tool for Dados & Analytics"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

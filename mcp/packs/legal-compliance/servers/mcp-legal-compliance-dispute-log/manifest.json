@@ -1,0 +1,13 @@
+{
+  "name": "mcp-legal-compliance-dispute-log",
+  "version": "1.0.0",
+  "description": "Legal & Compliance :: dispute-log",
+  "tools": [
+    {
+      "name": "dispute-log",
+      "description": "dispute-log tool for Legal & Compliance"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

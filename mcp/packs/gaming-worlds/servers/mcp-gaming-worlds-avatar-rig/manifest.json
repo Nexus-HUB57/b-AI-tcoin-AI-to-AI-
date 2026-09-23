@@ -1,0 +1,13 @@
+{
+  "name": "mcp-gaming-worlds-avatar-rig",
+  "version": "1.0.0",
+  "description": "Gaming & Worlds (Hashmat) :: avatar-rig",
+  "tools": [
+    {
+      "name": "avatar-rig",
+      "description": "avatar-rig tool for Gaming & Worlds (Hashmat)"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

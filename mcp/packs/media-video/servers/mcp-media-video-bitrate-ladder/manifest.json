@@ -1,0 +1,13 @@
+{
+  "name": "mcp-media-video-bitrate-ladder",
+  "version": "1.0.0",
+  "description": "M\u00eddia & V\u00eddeo (MyVideo) :: bitrate-ladder",
+  "tools": [
+    {
+      "name": "bitrate-ladder",
+      "description": "bitrate-ladder tool for M\u00eddia & V\u00eddeo (MyVideo)"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

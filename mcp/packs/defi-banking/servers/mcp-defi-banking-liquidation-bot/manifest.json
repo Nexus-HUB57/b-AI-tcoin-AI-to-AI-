@@ -1,0 +1,13 @@
+{
+  "name": "mcp-defi-banking-liquidation-bot",
+  "version": "1.0.0",
+  "description": "DeFi & Banking :: liquidation-bot",
+  "tools": [
+    {
+      "name": "liquidation-bot",
+      "description": "liquidation-bot tool for DeFi & Banking"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

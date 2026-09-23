@@ -1,0 +1,13 @@
+{
+  "name": "mcp-data-analytics-fee-market",
+  "version": "1.0.0",
+  "description": "Dados & Analytics :: fee-market",
+  "tools": [
+    {
+      "name": "fee-market",
+      "description": "fee-market tool for Dados & Analytics"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

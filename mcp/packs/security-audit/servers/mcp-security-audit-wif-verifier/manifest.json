@@ -1,0 +1,13 @@
+{
+  "name": "mcp-security-audit-wif-verifier",
+  "version": "1.0.0",
+  "description": "Seguran\u00e7a & Auditoria :: wif-verifier",
+  "tools": [
+    {
+      "name": "wif-verifier",
+      "description": "wif-verifier tool for Seguran\u00e7a & Auditoria"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

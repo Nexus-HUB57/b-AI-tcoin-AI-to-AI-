@@ -1,0 +1,13 @@
+{
+  "name": "mcp-media-video-tier-router",
+  "version": "1.0.0",
+  "description": "M\u00eddia & V\u00eddeo (MyVideo) :: tier-router",
+  "tools": [
+    {
+      "name": "tier-router",
+      "description": "tier-router tool for M\u00eddia & V\u00eddeo (MyVideo)"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

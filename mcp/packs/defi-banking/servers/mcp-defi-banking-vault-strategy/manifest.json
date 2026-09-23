@@ -1,0 +1,13 @@
+{
+  "name": "mcp-defi-banking-vault-strategy",
+  "version": "1.0.0",
+  "description": "DeFi & Banking :: vault-strategy",
+  "tools": [
+    {
+      "name": "vault-strategy",
+      "description": "vault-strategy tool for DeFi & Banking"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

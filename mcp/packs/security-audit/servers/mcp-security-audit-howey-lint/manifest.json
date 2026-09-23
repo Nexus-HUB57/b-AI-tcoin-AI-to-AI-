@@ -1,0 +1,13 @@
+{
+  "name": "mcp-security-audit-howey-lint",
+  "version": "1.0.0",
+  "description": "Seguran\u00e7a & Auditoria :: howey-lint",
+  "tools": [
+    {
+      "name": "howey-lint",
+      "description": "howey-lint tool for Seguran\u00e7a & Auditoria"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}
