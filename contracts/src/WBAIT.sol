@@ -42,6 +42,7 @@ contract WBAIT is ERC20, ERC20Burnable, ERC20Permit, Ownable2Step, Pausable {
         bridgeLock = _bridgeLock;
         if (_bridgeLock != address(0)) { _bridgeLockInitialized = true; } // backward compat
         require(_timelock != address(0), "WBAIT: zero timelock address"); // Fix #1
+        require(_timelock.code.length > 0, "WBAIT: timelock has no code");
         timelock = TimelockController(payable(_timelock)); // Fix #1
     }
 

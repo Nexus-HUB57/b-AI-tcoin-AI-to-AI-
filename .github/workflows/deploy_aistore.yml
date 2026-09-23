@@ -73,24 +73,16 @@ jobs:
 
           lftp -u "$USER","$PASS" -p "$PORT" "$HOST" <<EOF
           set ftp:ssl-force true
-          set ssl:verify-certificate no
+          set ssl:verify-certificate yes
           set net:timeout 30
           mirror --reverse --overwrite --no-perms /tmp/deploy-bait/ public_html/
           bye
           EOF
 
-          # Codebase + CGI
-          tar czf /tmp/bait-codebase.tar.gz \
-            --exclude='.git' --exclude='__pycache__' --exclude='.pytest_cache' \
-            --exclude='*.pyc' --exclude='baitcoin_data' --exclude='.venv' \
-            --exclude='baitcoin-repo' .
-
           lftp -u "$USER","$PASS" -p "$PORT" "$HOST" <<EOF
           set ftp:ssl-force true
-          set ssl:verify-certificate no
+          set ssl:verify-certificate yes
           set net:timeout 90
-          put /tmp/bait-codebase.tar.gz -o public_html/codebase.tar.gz
-          put /tmp/bait-codebase.tar.gz -o public_html/baitcoin-codebase.tar.gz
           put netlify/api.cgi -o public_html/api.cgi
           chmod 755 public_html/api.cgi
           bye
@@ -104,6 +96,13 @@ jobs:
         with:
           repository: Nexus-HUB57/AI_Store
           path: aistore
+          ref: ${{ vars.AISTORE_COMMIT_SHA }}
+
+      - name: Require immutable AI Store source pin
+        if: steps.flags.outputs.deploy_aistore == 'true'
+        run: |
+          test -n "${{ vars.AISTORE_COMMIT_SHA }}"
+          printf '%s' "${{ vars.AISTORE_COMMIT_SHA }}" | grep -Eq '^[0-9a-fA-F]{40}$'
 
       - name: Setup Node.js
         if: steps.flags.outputs.deploy_aistore == 'true'
@@ -158,7 +157,7 @@ jobs:
         run: |
           lftp -u "$USER","$PASS" -p "$PORT" "$HOST" <<EOF
           set ftp:ssl-force true
-          set ssl:verify-certificate no
+          set ssl:verify-certificate yes
           set net:timeout 180
 
           mkdir -p public_html/aistore
@@ -169,8 +168,6 @@ jobs:
           put /tmp/aistore-pkg/.htaccess -o public_html/aistore/.htaccess
           put /tmp/aistore-pkg/setup_aistore.sh -o public_html/aistore/setup_aistore.sh
           chmod 755 public_html/aistore/setup_aistore.sh
-
-          put /tmp/aistore-codebase.tar.gz -o public_html/aistore-codebase.tar.gz
 
           bye
           EOF
@@ -201,7 +198,7 @@ jobs:
 
           lftp -u "$USER","$PASS" -p "$PORT" "$HOST" <<EOF
           set ftp:ssl-force true
-          set ssl:verify-certificate no
+          set ssl:verify-certificate yes
           set net:timeout 30
           put /tmp/root_htaccess -o public_html/.htaccess
           bye

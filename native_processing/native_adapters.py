@@ -255,6 +255,14 @@ class BaitBlockchainSettlement:
             prev_txid, prev_index = input_key.rsplit(":", 1)
 
             from baitcoin_core.blockchain.block import Transaction, TransactionInput, TransactionOutput
+            parity_raw = getattr(intent, "parity_attestation_json", "")
+            parity_digest = ""
+            if parity_raw:
+                try:
+                    from .parity_gate import ParityAttestation
+                    parity_digest = ParityAttestation.from_mapping(json.loads(parity_raw)).digest()
+                except (TypeError, ValueError, json.JSONDecodeError) as exc:
+                    raise ExecutorError("invalid parity attestation") from exc
             tx = Transaction(
                 tx_type="transfer",
                 inputs=[TransactionInput(prev_tx_id=bytes.fromhex(prev_txid), prev_output_index=int(prev_index))],
@@ -269,9 +277,7 @@ class BaitBlockchainSettlement:
                     "btc_txid": deposit.txid,
                     "btc_vout": deposit.vout,
                     "network": self.network,
-                    "parity_digest": hashlib.sha256(
-                        str(getattr(intent, "parity_attestation_json", "")).encode("utf-8")
-                    ).hexdigest(),
+                    "parity_digest": parity_digest,
                 }, sort_keys=True, separators=(",", ":")).encode(),
             )
             # Keep the bridge change output deterministic and pay the fee from change.

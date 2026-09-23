@@ -246,6 +246,12 @@ def swap_execute_v2(body):
     oid = (body or {}).get('offer_id')
     for o in book.get('offers',[]):
         if o.get('offer_id')==oid and o.get('status')=='open':
+            settlement_tx = str((body or {}).get('settlement_tx') or '').strip().lower()
+            confirmations = int((body or {}).get('confirmations') or 0)
+            if len(settlement_tx) != 64 or any(ch not in '0123456789abcdef' for ch in settlement_tx) or confirmations < 1:
+                return ({'ok':False,'error':'settlement_confirmation_required',
+                         'required':['settlement_tx','confirmations'],
+                         'status':'pending_broadcast'}, 409)
             o['status']='filled'
             fill = {
                 'offer_id': oid,
@@ -253,12 +259,14 @@ def swap_execute_v2(body):
                 'wallet_btc': body.get('wallet_btc') or o.get('wallet_btc'),
                 'wallet_bait': body.get('wallet_bait') or o.get('wallet_bait') or o.get('destination'),
                 'out_bait': o.get('out_bait'),
+                'settlement_tx': settlement_tx,
+                'confirmations': confirmations,
             }
             book.setdefault('fills',[]).append(fill)
             _save_book(book)
             return ({'ok':True,'offer_id':oid,'status':'filled','settled':True,
                      'out_bait':o.get('out_bait'),
-                     'settlement_tx':'pending-broadcast-mempool.space/tx/push'}, 200)
+                     'settlement_tx':settlement_tx,'confirmations':confirmations}, 200)
     return ({'ok':False,'error':'offer_not_found'}, 404)
 
 # override dos handlers antigos

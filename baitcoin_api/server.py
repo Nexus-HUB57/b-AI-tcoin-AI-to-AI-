@@ -173,6 +173,9 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
         '/api/v1/obscura/scrape',
         '/api/v1/dev/api-keys',
         '/api/v1/bug-bounty/submit',
+        '/api/v1/marketplace/list',
+        '/api/v1/marketplace/purchase',
+        '/api/v1/marketplace/rate',
     }
 
     def log_message(self, format, *args):
@@ -1205,13 +1208,16 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
         category = cat_map.get(body.get('category'))
         if not category:
             return self._send_json({'error': 'invalid_category', 'valid': list(cat_map.keys())}, 400)
-        lid = self.marketplace.list_service(
-            provider=body.get('provider', 'anonymous'),
-            category=category,
-            name=body.get('name', ''),
-            description=body.get('description', ''),
-            price_sats=int(body.get('price_sats', 0)),
-        )
+        try:
+            lid = self.marketplace.list_service(
+                provider=body.get('provider', ''),
+                category=category,
+                name=body.get('name', ''),
+                description=body.get('description', ''),
+                price_sats=int(body.get('price_sats', 0)),
+            )
+        except (TypeError, ValueError) as exc:
+            return self._send_json({'error': 'invalid_listing', 'detail': str(exc)}, 400)
         self._send_json({'success': True, 'listing_id': lid})
 
     def _post_marketplace_purchase(self):
@@ -1225,12 +1231,15 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
             body = json.loads(self._read_body().decode())
         except Exception:
             return self._send_json({'error': 'invalid_json'}, 400)
-        pid = self.marketplace.purchase_service(
-            listing_id=body.get('listing_id', ''),
-            buyer=body.get('buyer_agent', 'anonymous'),
-        )
+        try:
+            pid = self.marketplace.purchase_service(
+                listing_id=body.get('listing_id', ''),
+                buyer=body.get('buyer_agent', ''),
+            )
+        except ValueError as exc:
+            return self._send_json({'error': 'invalid_purchase', 'detail': str(exc)}, 400)
         if pid:
-            self._send_json({'success': True, 'purchase_id': pid})
+            self._send_json({'success': True, 'purchase_id': pid, 'status': 'pending_settlement'})
         else:
             self._send_json({'error': 'listing_not_found_or_inactive'}, 404)
 
@@ -1245,10 +1254,13 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
             body = json.loads(self._read_body().decode())
         except Exception:
             return self._send_json({'error': 'invalid_json'}, 400)
-        ok = self.marketplace.rate_service(
-            purchase_id=body.get('purchase_id', ''),
-            score=float(body.get('score', 3.0)),
-        )
+        try:
+            ok = self.marketplace.rate_service(
+                purchase_id=body.get('purchase_id', ''),
+                score=float(body.get('score', 3.0)),
+            )
+        except (TypeError, ValueError):
+            return self._send_json({'error': 'invalid_rating'}, 400)
         if ok:
             self._send_json({'success': True})
         else:

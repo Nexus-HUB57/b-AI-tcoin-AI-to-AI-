@@ -367,7 +367,11 @@ def cmd_auto():
     if os.path.exists(PLAN):
         try: plan_doc = json.load(open(PLAN))
         except Exception: pass
-    done_addrs = {s.get("address") for s in (dec_store().get("sweeps", []) if os.path.exists(VAULT) else [])}
+    done_addrs = {
+        s.get("address")
+        for s in (dec_store().get("sweeps", []) if os.path.exists(VAULT) else [])
+        if s.get("ok") is True and s.get("txid")
+    }
     pending = {a: s for a, s in state.items() if s.get("balance_sat", 0) > 0 and a not in done_addrs}
     if not pending:
         log("  nada a varrer: sem saldo pendente ou sweep ja concluido")
