@@ -131,3 +131,8 @@ deploy/keystores/
 __pycache__/
 *.pyc
 *.pyo
+
+# Parity oracle secrets — never commit
+secrets/
+**/*.key
+.oracle*
