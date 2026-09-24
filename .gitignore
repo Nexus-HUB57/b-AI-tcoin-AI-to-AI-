@@ -121,3 +121,18 @@ contracts/lib/
 contracts/.env
 contracts/.env.*
 contracts/foundry.lock
+
+# ──────────────────────────────────────────────────────────────────────
+# ETH / EVM keystores & wallets (NEVER commit)
+# ──────────────────────────────────────────────────────────────────────
+*.keystore
+*_keystore.json
+*_keystore.txt
+KEYSTORE_*
+*.priv.json
+*.eth-wallet.json
+myetherwallet_*.json
+metamask-*.json
+tokenpocket_*.data
+imtoken_*.json
+trustwallet_*.data
