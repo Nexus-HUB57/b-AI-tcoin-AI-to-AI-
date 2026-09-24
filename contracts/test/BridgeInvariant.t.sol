@@ -33,9 +33,10 @@ contract BridgeInvariantTest is Test {
         wbait.initializeBridgeLock(address(bridgeLock));
     }
 
+    /// @dev Unique L1 tx id per requestId (consumedL1TxIds must not collide across tests/calls)
     function _request(bytes32 id, address recipient, uint256 amount) internal {
         vm.prank(ops[0]);
-        bridgeLock.requestLockMint(id, keccak256("l1tx"), recipient, amount);
+        bridgeLock.requestLockMint(id, keccak256(abi.encodePacked("l1tx", id)), recipient, amount);
     }
 
     function _confirm(bytes32 id, address op) internal {
@@ -166,7 +167,7 @@ contract BridgeInvariantTest is Test {
         bytes32 id = keccak256("cap");
         vm.prank(ops[0]);
         vm.expectRevert("BridgeLock: rate limit exceeded");
-        bridgeLock.requestLockMint(id, keccak256("l1"), makeAddr("whale"), 200_000 * ONE);
+        bridgeLock.requestLockMint(id, keccak256("l1-cap"), makeAddr("whale"), 200_000 * ONE);
     }
 
     function test_RateLimit_ResetsNextDay() public {
@@ -174,9 +175,10 @@ contract BridgeInvariantTest is Test {
         bytes32 id1 = keccak256("d1");
         _mintWith3(id1, recipient, 100_000 * ONE);
         bytes32 id2 = keccak256("d2");
+        // unique l1 id (not reused from id1)
         vm.prank(ops[0]);
         vm.expectRevert("BridgeLock: rate limit exceeded");
-        bridgeLock.requestLockMint(id2, keccak256("l1b"), recipient, 1);
+        bridgeLock.requestLockMint(id2, keccak256(abi.encodePacked("l1tx", id2)), recipient, 1);
         vm.warp(block.timestamp + 1 days + 1);
         _mintWith3(id2, recipient, 50_000 * ONE);
         assertEq(wbait.balanceOf(recipient), 150_000 * ONE);
