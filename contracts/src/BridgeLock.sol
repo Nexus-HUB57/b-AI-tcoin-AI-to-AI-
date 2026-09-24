@@ -42,9 +42,9 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
 
     // ── Lock-Mint State ──
     struct LockRequest {
-        bytes32 l1TxId;        // BAIT L1 transaction ID
-        address recipient;     // Ethereum recipient
-        uint256 amount;        // Amount in s'AI'toshi
+        bytes32 l1TxId;
+        address recipient;
+        uint256 amount;
         uint256 confirmations;
         mapping(address => bool) confirmed;
         bool executed;
@@ -58,7 +58,7 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
     struct BurnRelease {
         address burner;
         uint256 amount;
-        string l1ReleaseAddress; // BAIT L1 address (b'...)
+        string l1ReleaseAddress;
         uint256 confirmations;
         mapping(address => bool) confirmed;
         bool executed;
@@ -99,14 +99,14 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
 
     constructor(
         address _wbait,
-        address _timelock, // Fix #1: timelock address parameter
+        address _timelock,
         address[NUM_OPERATORS] memory _operators
     ) Ownable(msg.sender) {
         require(_wbait != address(0), "BridgeLock: zero wbait address");
-        require(_timelock != address(0), "BridgeLock: zero timelock address"); // Fix #1
+        require(_timelock != address(0), "BridgeLock: zero timelock address");
         require(_timelock.code.length > 0, "BridgeLock: timelock has no code");
         wbait = WBAIT(_wbait);
-        timelock = TimelockController(payable(_timelock)); // Fix #1
+        timelock = TimelockController(payable(_timelock));
 
         for (uint256 i = 0; i < NUM_OPERATORS; i++) {
             require(_operators[i] != address(0), "BridgeLock: zero operator");
@@ -116,15 +116,6 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
         }
     }
 
-    // ── Lock-Mint Flow ──
-
-    /**
-     * @notice Request lock-mint: operator submits L1 lock evidence
-     * @param requestId Unique request ID (hash of L1 tx data)
-     * @param l1TxId BAIT L1 transaction where tokens were locked
-     * @param recipient Ethereum address to receive wBAIT
-     * @param amount Amount in s'AI'toshi (8 decimals)
-     */
     function requestLockMint(
         bytes32 requestId,
         bytes32 l1TxId,
@@ -132,16 +123,14 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
         uint256 amount
     ) external onlyOperator whenNotPaused {
         require(!lockRequests[requestId].executed, "BridgeLock: already executed");
-        require(lockRequests[requestId].confirmations == 0, "BridgeLock: already requested");
+        require(lockRequests[requestId].amount == 0, "BridgeLock: already requested");
         require(l1TxId != bytes32(0), "BridgeLock: zero l1 tx id");
         require(!consumedL1TxIds[l1TxId], "BridgeLock: l1 tx already consumed");
         require(recipient != address(0), "BridgeLock: zero recipient");
         require(amount > 0, "BridgeLock: zero amount");
 
-        // Fix #2 (CRITICAL): Track L1 locked amount on-chain for invariant enforcement
         totalLockedOnL1 += amount;
 
-        // Rate limit check
         uint256 currentDay = block.timestamp / 1 days;
         if (lastMintDay[recipient] != currentDay) {
             dailyMinted[recipient] = 0;
@@ -157,28 +146,21 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
         req.recipient = recipient;
         req.amount = amount;
         req.executed = false;
+        // confirmations stays 0 — Fix H-02: no auto-confirm by requester
         lockRequestIds.push(requestId);
 
-        // Auto-confirm by requester
-        req.confirmed[msg.sender] = true;
-        req.confirmations = 1;
-
         emit LockRequested(requestId, l1TxId, recipient, amount);
-        emit LockConfirmed(requestId, msg.sender);
-
-        if (req.confirmations >= REQUIRED_CONFIRMATIONS) {
-            _executeLockMint(requestId);
-        }
     }
 
     /**
-     * @notice Confirm a pending lock-mint request
+     * @notice Confirm a pending lock-mint request.
+     * @dev Fix H-02: all 3 confirmations must be explicit (including the original requester).
      */
     function confirmLockMint(bytes32 requestId) external onlyOperator whenNotPaused {
         LockRequest storage req = lockRequests[requestId];
         require(!req.executed, "BridgeLock: already executed");
         require(!req.confirmed[msg.sender], "BridgeLock: already confirmed");
-        require(req.confirmations > 0, "BridgeLock: not requested");
+        require(req.amount > 0, "BridgeLock: not requested");
 
         req.confirmed[msg.sender] = true;
         req.confirmations++;
@@ -194,7 +176,6 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
         LockRequest storage req = lockRequests[requestId];
         require(!req.executed, "BridgeLock: already executed");
 
-        // Fix #2 (CRITICAL): On-chain invariant check — totalMinted must never exceed totalLockedOnL1
         require(totalMinted + req.amount <= totalLockedOnL1, "InvariantViolation: totalMinted > totalLocked");
         totalMinted += req.amount;
 
@@ -207,15 +188,19 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
         emit LockExecuted(requestId, req.recipient, req.amount);
     }
 
-    // ── Burn-Release Flow ──
-
     /**
-     * @notice Initiate burn-release: user burns wBAIT and provides L1 release address
-     * @param l1ReleaseAddress BAIT L1 Bech32 address (b'...)
+     * @notice Initiate burn-release: user burns a specified amount of wBAIT and provides L1 release address.
+     * @param amount Amount of wBAIT to burn (s'AI'toshi). Must be > 0 and <= balance.
+     * @param l1ReleaseAddress BAIT L1 address (b'...)
+     * @dev Partial burns supported. Decrements totalMinted for conservation symmetry.
      */
-    function initiateBurnRelease(string calldata l1ReleaseAddress) external whenNotPaused nonReentrant {
-        uint256 amount = wbait.balanceOf(msg.sender);
-        require(amount > 0, "BridgeLock: no wBAIT to burn");
+    function initiateBurnRelease(uint256 amount, string calldata l1ReleaseAddress)
+        external
+        whenNotPaused
+        nonReentrant
+    {
+        require(amount > 0, "BridgeLock: zero amount");
+        require(wbait.balanceOf(msg.sender) >= amount, "BridgeLock: insufficient wBAIT");
         require(bytes(l1ReleaseAddress).length > 0, "BridgeLock: empty L1 address");
 
         bytes32 releaseId = keccak256(abi.encodePacked(
@@ -229,16 +214,17 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
         rel.executed = false;
         burnReleaseIds.push(releaseId);
 
-        // Checks-effects-interactions: persist the release before calling the token.
-        // A reverted burn rolls the whole transaction back.
+        if (totalMinted >= amount) {
+            totalMinted -= amount;
+        } else {
+            totalMinted = 0;
+        }
+
         wbait.burnFrom(msg.sender, amount);
 
         emit BurnInitiated(releaseId, msg.sender, amount, l1ReleaseAddress);
     }
 
-    /**
-     * @notice Operator confirms burn-release (L1 release executed)
-     */
     function confirmBurnRelease(bytes32 releaseId) external onlyOperator whenNotPaused {
         BurnRelease storage rel = burnReleases[releaseId];
         require(!rel.executed, "BridgeLock: already executed");
@@ -256,17 +242,9 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
         }
     }
 
-    // ── Emergency ── (Fix #1: onlyTimelock instead of onlyOwner — prevents instant rug)
     function pause() external onlyTimelock { _pause(); }
     function unpause() external onlyTimelock { _unpause(); }
 
-    // ── Timelocked Operator Update ──
-
-    /**
-     * @notice Propose an operator replacement. Takes effect after TIMELOCK_DURATION (24h).
-     * @param index Operator slot index (0-4)
-     * @param newOperator New operator address (must be non-zero and not existing operator)
-     */
     function proposeOperatorUpdate(uint256 index, address newOperator) external onlyOwner {
         require(index < NUM_OPERATORS, "BridgeLock: invalid index");
         require(newOperator != address(0), "BridgeLock: zero operator");
@@ -289,9 +267,6 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
         );
     }
 
-    /**
-     * @notice Execute a pending operator update after the timelock has expired
-     */
     function executeOperatorUpdate() external onlyOwner {
         require(pendingOperatorUpdate.active, "BridgeLock: no pending update");
         require(
@@ -303,27 +278,21 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
         address oldOperator = operators[idx];
         address newOp = pendingOperatorUpdate.newOperator;
 
-        // Clear old operator
         isOperator[oldOperator] = false;
         operators[idx] = newOp;
         isOperator[newOp] = true;
 
-        // Clear pending
         delete pendingOperatorUpdate;
 
         emit OperatorUpdated(idx, oldOperator, newOp);
     }
 
-    /**
-     * @notice Cancel a pending operator update (before timelock expires)
-     */
     function cancelOperatorUpdate() external onlyOwner {
         require(pendingOperatorUpdate.active, "BridgeLock: no pending update");
         delete pendingOperatorUpdate;
         emit OperatorUpdateCancelled();
     }
 
-    // ── Views ──
     function getLockRequestCount() external view returns (uint256) { return lockRequestIds.length; }
     function getBurnReleaseCount() external view returns (uint256) { return burnReleaseIds.length; }
 }
