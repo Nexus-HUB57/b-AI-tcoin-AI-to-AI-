@@ -31,7 +31,6 @@ contract BAITPhase2Test is Test {
 
         timelock = new TimelockController(MIN_DELAY, proposers, executors, owner);
 
-        // Deploy WBAIT with placeholder bridge, then link
         wbait = new WBAIT(address(0), address(timelock));
         bridgeLock = new BridgeLock(address(wbait), address(timelock), operators);
         wbait.initializeBridgeLock(address(bridgeLock));
@@ -72,7 +71,6 @@ contract BAITPhase2Test is Test {
     }
 
     function test_OperatorsConfigured() public view {
-        // BridgeLock exposes isOperator mapping
         assertTrue(bridgeLock.isOperator(operators[0]));
         assertTrue(bridgeLock.isOperator(operators[2]));
         assertFalse(bridgeLock.isOperator(address(0xDEAD)));
