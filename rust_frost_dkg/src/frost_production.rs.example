@@ -1,0 +1,21 @@
+//! Production Pedersen DKG via frost-secp256k1 (Rust >= 1.80).
+//! Rename to frost_production.rs and add frost-secp256k1 to Cargo.toml.
+//!
+//! use frost_secp256k1 as frost;
+//! use frost::keys::dkg;
+//! use std::collections::BTreeMap;
+//!
+//! pub fn run_frost_dkg(max_signers: u16, min_signers: u16) -> Result<String, frost::Error> {
+//!     let mut rng = rand::rngs::OsRng;
+//!     let mut r1_secrets = BTreeMap::new();
+//!     let mut r1_packages = BTreeMap::new();
+//!     for i in 1..=max_signers {
+//!         let id = i.try_into().unwrap();
+//!         let (sec, pkg) = dkg::part1(id, max_signers, min_signers, &mut rng)?;
+//!         r1_secrets.insert(id, sec);
+//!         r1_packages.insert(id, pkg);
+//!     }
+//!     // ... part2 / part3 as in frost docs ...
+//!     // return group verifying key as x-only hex
+//!     Ok(hex::encode(group_vk_xonly))
+//! }
