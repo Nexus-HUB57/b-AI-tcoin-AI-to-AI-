@@ -4,6 +4,7 @@ import json
 import sqlite3
 import subprocess
 import sys
+from unittest.mock import patch
 from pathlib import Path
 
 from scripts.force_settlement_offer import preflight
@@ -130,3 +131,35 @@ def test_cli_dry_run_json_is_read_only(tmp_path: Path):
     payload = json.loads(proc.stdout)
     assert payload["decision"] == "READY_FOR_MANUAL_REVIEW"
     assert db.read_bytes() == before
+
+
+def test_public_book_inspection_filters_pending_offers():
+    from scripts import force_settlement_offer as module
+
+    class Response:
+        status = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def read(self):
+            return json.dumps(
+                {
+                    "offers": [
+                        {"offer_id": "pending-1", "status": "open", "settlement": "on-chain-pending-broadcast", "quantity": 1},
+                        {"offer_id": "closed-1", "status": "filled", "settlement": "confirmed"},
+                    ],
+                    "custody_btc": "bc1qexample",
+                    "master_pool": {"addresses": 0, "btc": 0, "utxos": 0},
+                }
+            ).encode()
+
+    with patch.object(module, "urlopen", lambda *_args, **_kwargs: Response()):
+        result = module.inspect_public_book("https://example.invalid/swap/book")
+    assert result["offer_count"] == 2
+    assert result["pending_count"] == 1
+    assert result["pending_offers"][0]["offer_id"] == "pending-1"
+    assert "broadcast" in result["actions_not_performed"]

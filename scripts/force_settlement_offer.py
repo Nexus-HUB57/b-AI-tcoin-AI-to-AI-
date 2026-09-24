@@ -19,6 +19,7 @@ import argparse
 import json
 import sqlite3
 import sys
+from urllib.request import Request, urlopen
 from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import Any
@@ -144,10 +145,62 @@ def preflight(db_path: Path, order_id: str, now: float | None = None) -> Preflig
     )
 
 
+def inspect_public_book(url: str, timeout: float = 15.0) -> dict[str, Any]:
+    """Fetch and classify the public swap book without writing anywhere."""
+    request = Request(url, headers={"Accept": "application/json", "User-Agent": "BAITHex-settlement-preflight/1.0"})
+    with urlopen(request, timeout=timeout) as response:
+        if response.status != 200:
+            raise RuntimeError(f"swap book returned HTTP {response.status}")
+        payload = json.loads(response.read().decode("utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError("swap book response is not a JSON object")
+    offers = payload.get("offers") or payload.get("orders") or []
+    if not isinstance(offers, list):
+        raise ValueError("swap book offers/orders is not a list")
+    pending = []
+    for offer in offers:
+        if not isinstance(offer, dict):
+            continue
+        settlement = str(offer.get("settlement", ""))
+        status = str(offer.get("status", ""))
+        if status in {"open", "pending", "pending_broadcast"} or "pending-broadcast" in settlement:
+            pending.append({
+                key: offer.get(key)
+                for key in (
+                    "offer_id", "order_id", "status", "settlement", "side", "quantity",
+                    "out_btc", "out_bait", "destination", "custody", "master_pool_btc",
+                    "master_pool_addresses", "utxo_count",
+                )
+                if key in offer
+            })
+    master_pool = payload.get("master_pool") if isinstance(payload.get("master_pool"), dict) else {}
+    return {
+        "source": url,
+        "mode": "public-read-only",
+        "offer_count": len(offers),
+        "pending_count": len(pending),
+        "pending_offers": pending,
+        "custody_btc": payload.get("custody_btc"),
+        "master_pool": {
+            key: master_pool.get(key)
+            for key in ("addresses", "btc", "utxos")
+            if key in master_pool
+        },
+        "actions_not_performed": [
+            "executor.process()",
+            "signing",
+            "PSBT finalization",
+            "broadcast",
+            "database mutation",
+        ],
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--db", required=True, type=Path, help="SwapExecutor SQLite database")
-    parser.add_argument("--order-id", required=True)
+    parser.add_argument("--db", type=Path, help="SwapExecutor SQLite database")
+    parser.add_argument("--order-id", help="Local SwapExecutor order id")
+    parser.add_argument("--book-url", help="Public swap-book URL for read-only pending-offer inspection")
     parser.add_argument("--dry-run", action="store_true", help="Explicitly select read-only preflight mode")
     parser.add_argument("--execute", action="store_true", help="Rejected; real settlement is not implemented here")
     parser.add_argument("--now", type=float, help="Reference Unix time for deterministic expiry checks")
@@ -159,6 +212,25 @@ def main() -> int:
         return 2
     if not args.dry_run:
         print("REFUSED: pass --dry-run; this helper never mutates or broadcasts.", file=sys.stderr)
+        return 2
+
+    if args.book_url:
+        try:
+            payload = inspect_public_book(args.book_url)
+        except Exception as exc:
+            print(f"BLOCKED: public swap-book inspection failed: {exc}", file=sys.stderr)
+            return 1
+        if args.json:
+            print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
+        else:
+            print(f"Source: {payload['source']}")
+            print(f"Offers: {payload['offer_count']}; pending: {payload['pending_count']}")
+            print(json.dumps(payload["pending_offers"], ensure_ascii=False, indent=2, sort_keys=True))
+            print("No signing, broadcast, executor.process(), or database mutation performed.")
+        return 0
+
+    if not args.db or not args.order_id:
+        print("REFUSED: provide --book-url, or both --db and --order-id.", file=sys.stderr)
         return 2
 
     try:
