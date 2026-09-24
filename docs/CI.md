@@ -6,21 +6,18 @@ Workflow: `.github/workflows/foundry-ci.yml`
 
 | Job | Required | Description |
 |---|---|---|
-| **test** | Yes | `forge build --sizes` + unit + stateful invariants |
-| **lint** | Yes | `forge lint` — fail only on errors |
-| **dry-run-fork** | After test | `DryRunLifecycle` on public fork (no broadcast) |
-| **slither** | Optional | Static analysis; continue-on-error |
+| **test** | Yes | forge build + unit + stateful invariants |
+| **lint** | Yes | forge lint — fail only on errors |
 | **ci-success** | Gate | Requires test + lint success |
 
 ## Triggers
 
-- Push to main/master/fix/**/feat/** (paths contracts/**)
-- Pull requests to main/master
+- Push/PR on contracts/** paths
 - workflow_dispatch
 
 ## Optional secret
 
-`ETH_RPC_URL` for fork dry-run (default: https://ethereum.publicnode.com)
+`ETH_RPC_URL` for fork dry-run (default public node)
 
 ## Branch protection
 
