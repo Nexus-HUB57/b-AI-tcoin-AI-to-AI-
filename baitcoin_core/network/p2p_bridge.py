@@ -179,5 +179,23 @@ class P2PBridge:
             "bridge": True,
         }
 
+    def get_public_status(self) -> dict:
+        """Return attestable transport facts; never claims consensus health."""
+        peers = self.get_peer_list()
+        inbound = sum(1 for peer in peers if not peer.get("is_outbound", True))
+        outbound = sum(1 for peer in peers if peer.get("is_outbound", True))
+        return {
+            "node_id": self._node_id,
+            "running": bool(self._running and self._node),
+            "listen_host": self.host,
+            "listen_port": self.port,
+            "configured_seeds": [{"host": host, "port": port} for host, port in self.seeds],
+            "peer_count": len(peers),
+            "inbound_count": inbound,
+            "outbound_count": outbound,
+            "handshake_peers": sum(1 for peer in peers if peer.get("handshake_ready", False)),
+            "peers": peers,
+        }
+
     def to_dict(self) -> dict:
         return self.get_stats()

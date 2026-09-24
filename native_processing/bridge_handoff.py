@@ -7,6 +7,7 @@ somente com as assinaturas fornecidas pelo executor autorizado.
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 import threading
 import time
@@ -28,6 +29,8 @@ class SwapBridgeHandoff:
         self.bridge = bridge
         if authorizer is not None and not isinstance(authorizer, RelayerAuthorization):
             raise BridgeHandoffError("authorizer must be a RelayerAuthorization")
+        if authorizer is None and os.getenv("BAIT_ALLOW_INSECURE_LOCAL") != "1":
+            raise BridgeHandoffError("RelayerAuthorization is required outside explicit local test mode")
         self.authorizer = authorizer
         self.db = sqlite3.connect(db_path, check_same_thread=False, timeout=30.0)
         self.db.execute("PRAGMA journal_mode=WAL")

@@ -33,13 +33,14 @@ Security Invariants:
 
 Usage::
 
-    manager = BridgeManager()
+    manager = BridgeManager(relayer_authorization=trusted_relayer_authorization)
     lock = manager.lock_bait("agent_1", 100 * 100_000_000, ChainConfig.ETHEREUM)
     print(lock["event_id"])  # Unique event identifier
 """
 
 import hashlib
 import json
+import os
 import time
 import uuid
 from typing import Dict, List, Optional, Any, Tuple
@@ -171,6 +172,8 @@ class BridgeManager:
         self.config = config or BridgeConfig()
         if relayer_authorization is not None and not isinstance(relayer_authorization, RelayerAuthorization):
             raise TypeError("relayer_authorization must be a RelayerAuthorization")
+        if relayer_authorization is None and os.getenv("BAIT_ALLOW_INSECURE_LOCAL") != "1":
+            raise ValueError("RelayerAuthorization is required; insecure bridge mode is test-only")
         self._relayer_authorization = relayer_authorization
         self._transfers: Dict[str, TransferRecord] = {}
         self._events: Dict[str, BridgeEvent] = {}

@@ -60,7 +60,7 @@ jobs:
 
   deploy-webhook:
     name: Deploy via webhook (HTTP pull)
-    needs: syntax-check
+    needs: [syntax-check, readiness-gate]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -83,6 +83,25 @@ jobs:
           BODY=$(echo "$RESPONSE" | sed '$d')
           echo "Response ($HTTP_CODE): $BODY"
           case "$HTTP_CODE" in 200|202) echo "webhook aceito";; *) echo "::error::webhook retornou $HTTP_CODE"; exit 1;; esac
+
+  readiness-gate:
+    name: Read-only readiness gate
+    needs: syntax-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Require public API and Ethereum RPC variables
+        env:
+          MAINNET_API_BASE_URL: ${{ vars.MAINNET_API_BASE_URL }}
+          ETH_RPC_URL: ${{ vars.ETH_RPC_URL }}
+        run: |
+          set -euo pipefail
+          test -n "$MAINNET_API_BASE_URL"
+          test -n "$ETH_RPC_URL"
+          python3 scripts/mainnet_readiness_gate.py --base-url "$MAINNET_API_BASE_URL" --eth-rpc "$ETH_RPC_URL" --min-peers 3
 
   verify:
     name: Verify public health

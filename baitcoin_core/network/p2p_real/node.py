@@ -361,6 +361,23 @@ class P2PNode:
                         asyncio.create_task(self.connect_to_peer(seed_host, seed_port))
             await asyncio.sleep(60)
 
+    def get_public_status(self) -> dict:
+        """Return transport facts for readiness checks, never a consensus claim."""
+        peers = self.protocol.get_peer_list()
+        for peer in peers:
+            peer["handshake_ready"] = peer["peer_id"] in self._handshake_ready
+        return {
+            "node_id": self.node_id,
+            "running": self._running,
+            "listen_port": self.port,
+            "peer_count": len(peers),
+            "inbound_count": sum(1 for peer in peers if not peer.get("is_outbound", True)),
+            "outbound_count": sum(1 for peer in peers if peer.get("is_outbound", True)),
+            "handshake_peers": sum(1 for peer in peers if peer.get("handshake_ready")),
+            "peers": peers,
+            "attestation": "transport-only",
+        }
+
     # --- Message handlers ---
     def _handle_version(self, payload: dict, peer_id: str) -> None:
         self._peer_versions[peer_id] = payload

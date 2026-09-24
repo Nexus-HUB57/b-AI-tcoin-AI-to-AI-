@@ -326,6 +326,7 @@ class TestPhase7Marketplace:
             price_sats=25 * 100_000_000
         )
         pid = node.purchase_service(lid, 'buyer_2')
+        assert node.settle_purchase(pid, 'a' * 64, 1) is True
         ok = node.rate_service(pid, 4.5)
         assert ok is True
 

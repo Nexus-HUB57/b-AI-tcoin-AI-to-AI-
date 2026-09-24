@@ -51,6 +51,7 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
     }
 
     mapping(bytes32 => LockRequest) public lockRequests;
+    mapping(bytes32 => bool) public consumedL1TxIds;
     bytes32[] public lockRequestIds;
 
     // ── Burn-Release State ──
@@ -68,6 +69,7 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
 
     // ── Rate Limiting ──
     mapping(address => uint256) public dailyMinted;
+    mapping(address => uint256) public dailyReserved;
     mapping(address => uint256) public lastMintDay;
 
     // ── Timelocked Operator Update ──
@@ -102,11 +104,13 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
     ) Ownable(msg.sender) {
         require(_wbait != address(0), "BridgeLock: zero wbait address");
         require(_timelock != address(0), "BridgeLock: zero timelock address"); // Fix #1
+        require(_timelock.code.length > 0, "BridgeLock: timelock has no code");
         wbait = WBAIT(_wbait);
         timelock = TimelockController(payable(_timelock)); // Fix #1
 
         for (uint256 i = 0; i < NUM_OPERATORS; i++) {
             require(_operators[i] != address(0), "BridgeLock: zero operator");
+            require(!isOperator[_operators[i]], "BridgeLock: duplicate operator");
             operators[i] = _operators[i];
             isOperator[_operators[i]] = true;
         }
@@ -129,6 +133,9 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
     ) external onlyOperator whenNotPaused {
         require(!lockRequests[requestId].executed, "BridgeLock: already executed");
         require(lockRequests[requestId].confirmations == 0, "BridgeLock: already requested");
+        require(l1TxId != bytes32(0), "BridgeLock: zero l1 tx id");
+        require(!consumedL1TxIds[l1TxId], "BridgeLock: l1 tx already consumed");
+        require(recipient != address(0), "BridgeLock: zero recipient");
         require(amount > 0, "BridgeLock: zero amount");
 
         // Fix #2 (CRITICAL): Track L1 locked amount on-chain for invariant enforcement
@@ -138,11 +145,14 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
         uint256 currentDay = block.timestamp / 1 days;
         if (lastMintDay[recipient] != currentDay) {
             dailyMinted[recipient] = 0;
+            dailyReserved[recipient] = 0;
             lastMintDay[recipient] = currentDay;
         }
-        require(dailyMinted[recipient] + amount <= RATE_LIMIT, "BridgeLock: rate limit exceeded");
+        require(dailyMinted[recipient] + dailyReserved[recipient] + amount <= RATE_LIMIT, "BridgeLock: rate limit exceeded");
 
         LockRequest storage req = lockRequests[requestId];
+        consumedL1TxIds[l1TxId] = true;
+        dailyReserved[recipient] += amount;
         req.l1TxId = l1TxId;
         req.recipient = recipient;
         req.amount = amount;
@@ -190,6 +200,7 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
 
         req.executed = true;
         dailyMinted[req.recipient] += req.amount;
+        dailyReserved[req.recipient] -= req.amount;
 
         wbait.mint(req.recipient, req.amount);
 
