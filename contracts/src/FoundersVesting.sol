@@ -4,14 +4,7 @@ pragma solidity ^0.8.20;
 /**
  * @title FoundersVesting
  * @notice On-chain linear vesting for founder allocations.
- *         Replaces the deprecated founders_faucet_cron.sh off-chain cron approach.
- * @dev Vesting is cliff-based with linear release after the cliff period.
- *      Each founder's allocation is committed at deployment and cannot be increased.
- *
- * SECURITY NOTES:
- * - No admin sweep function — vested tokens are only claimable by the beneficiary.
- * - Revocation is intentionally NOT supported (trustless commitment).
- * - Uses SafeERC20 for token transfers.
+ * @dev OZ v5 Ownable requires initialOwner in the base constructor.
  */
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -45,9 +38,11 @@ contract FoundersVesting is Ownable2Step {
         address _token,
         uint256 _vestingStart,
         uint256 _cliffDuration,
-        uint256 _vestingDuration
-    ) Ownable2Step() {
+        uint256 _vestingDuration,
+        address initialOwner
+    ) Ownable(initialOwner) {
         require(_token != address(0), "Zero token address");
+        require(initialOwner != address(0), "Zero owner");
         require(_vestingDuration > 0, "Zero vesting duration");
         require(_cliffDuration <= _vestingDuration, "Cliff exceeds duration");
 
