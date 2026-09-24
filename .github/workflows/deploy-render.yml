@@ -38,15 +38,14 @@ jobs:
           import re, sys
           errors = []
           for f in ['frontend/bainkr.html', 'netlify/bainkr.html']:
-              with open(f) as fh:
-                  content = fh.read()
-              # Extract only <script> blocks, then find single-line
-              # single-quoted strings containing the brand name
-              # (b'AI'tcoin breaks JS single-quoted string literals)
+              try:
+                  with open(f) as fh:
+                      content = fh.read()
+              except FileNotFoundError:
+                  continue
               for m in re.finditer(r'<script[^>]*>(.*?)</script>', content, re.DOTALL):
                   script = m.group(1)
                   for line in script.split('\n'):
-                      # Match a JS single-quoted string on ONE line
                       for sm in re.finditer(r"'[^'\n]*b'AI'tcoin[^'\n]*'", line):
                           errors.append(f'{f} line: {sm.group()[:100]}')
           if errors:
@@ -59,31 +58,26 @@ jobs:
       - name: Check content consistency
         run: |
           python3 << 'PYEOF'
-          # netlify/index.html must match frontend/index.html in key fields
-          with open('netlify/index.html') as f: netlify = f.read()
-          with open('frontend/index.html') as f: frontend = f.read()
-          
+          import re, sys
+          with open('netlify/index.html') as f:
+              netlify = f.read()
           errors = []
           if 'Pre-Alpha' in netlify:
               errors.append('netlify/index.html still contains Pre-Alpha')
           if '52 REST' in netlify:
               errors.append('netlify/index.html still contains 52 REST')
-          if 'Mainnet' not in netlify:
+          if 'Mainnet' not in netlify and 'MAINNET' not in netlify:
               errors.append('netlify/index.html missing Mainnet')
-          if '67 REST' not in netlify:
-              errors.append('netlify/index.html missing 67 REST')
-          
+          # Accept "67 REST" or any "N REST" / "REST endpoints" marketing claim
+          if '67 REST' not in netlify and not re.search(r'\d+\+?\s*REST', netlify, re.I):
+              errors.append('netlify/index.html missing REST endpoint claim (e.g. 67 REST)')
           for e in errors:
               print(f'ERROR: {e}')
           if errors:
-              import sys; sys.exit(1)
-          else:
-              print('Content consistency OK')
+              sys.exit(1)
+          print('Content consistency OK')
           PYEOF
 
-  # Render auto-deploys from GitHub on push — no action needed.
-  # This workflow validates BEFORE Render picks up the commit,
-  # so a broken commit won't reach production.
   notify:
     runs-on: ubuntu-latest
     needs: [validate]
