@@ -163,12 +163,28 @@ def blocks_last(_payload=None):
 # ==================== SWAP-HANDLER-V2-2026-09-15 ====================
 # P0 Handler swap corrigido | P1 Master Wallet pool (2000+ enderecos, pool logic)
 # P2 BAIT address format b'[hex40] | P3 Custodia fixa BTC->BAIT
-import hashlib as _hl, json as _json, os as _os
+import hashlib as _hl, json as _json, os as _os, functools as _functools, threading as _threading
+import fcntl as _fcntl
 
 # P8 SECURITY: custody address loaded from env var, never hardcoded in source
 CUSTODY_SWAP_BTC = _os.environ.get('CUSTODY_SWAP_BTC', '12vG4zB6EG5FC6FhxnW688WkP1b7iK2M3X')  # fallback for dev only
 BAIT_ADDR_RE_OK = lambda a: isinstance(a,str) and a.startswith("b'") and len(a)==42 and all(c in '0123456789abcdef' for c in a[2:].lower())
 SWAP_BOOK = _os.path.expanduser('~/.baitcoin/swap_book.json')
+_SWAP_BOOK_LOCK = _threading.RLock()
+
+def _with_swap_book_lock(fn):
+    """Serialize read/modify/write operations across threads and workers."""
+    @_functools.wraps(fn)
+    def _locked(*args, **kwargs):
+        lock_path = SWAP_BOOK + '.lock'
+        _os.makedirs(_os.path.dirname(SWAP_BOOK), exist_ok=True)
+        with _SWAP_BOOK_LOCK, open(lock_path, 'a+') as lock_file:
+            _fcntl.flock(lock_file.fileno(), _fcntl.LOCK_EX)
+            try:
+                return fn(*args, **kwargs)
+            finally:
+                _fcntl.flock(lock_file.fileno(), _fcntl.LOCK_UN)
+    return _locked
 
 def _load_book():
     try: return _json.load(open(SWAP_BOOK))
@@ -261,7 +277,11 @@ def swap_execute_v2(body):
                      'settlement_tx':'pending-broadcast-mempool.space/tx/push'}, 200)
     return ({'ok':False,'error':'offer_not_found'}, 404)
 
-# override dos handlers antigos
+# override dos handlers antigos; o lock cobre o ciclo completo de cada
+# operação, inclusive o read-modify-write do JSON persistente.
+swap_offer_v2 = _with_swap_book_lock(swap_offer_v2)
+swap_book_v2 = _with_swap_book_lock(swap_book_v2)
+swap_execute_v2 = _with_swap_book_lock(swap_execute_v2)
 swap_offer  = swap_offer_v2
 swap_book   = swap_book_v2
 swap_execute= swap_execute_v2
