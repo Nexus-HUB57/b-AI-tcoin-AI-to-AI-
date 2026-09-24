@@ -1,0 +1,13 @@
+{
+  "name": "mcp-devops-infra-ssl-renew",
+  "version": "1.0.0",
+  "description": "DevOps & Infraestrutura :: ssl-renew",
+  "tools": [
+    {
+      "name": "ssl-renew",
+      "description": "ssl-renew tool for DevOps & Infraestrutura"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

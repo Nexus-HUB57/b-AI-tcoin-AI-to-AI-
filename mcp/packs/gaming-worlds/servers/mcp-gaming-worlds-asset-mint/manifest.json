@@ -1,0 +1,13 @@
+{
+  "name": "mcp-gaming-worlds-asset-mint",
+  "version": "1.0.0",
+  "description": "Gaming & Worlds (Hashmat) :: asset-mint",
+  "tools": [
+    {
+      "name": "asset-mint",
+      "description": "asset-mint tool for Gaming & Worlds (Hashmat)"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

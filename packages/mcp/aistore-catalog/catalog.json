@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "catalog_type": "aistore-local",
+  "packages": [
+    {
+      "package_id": "nexus-zkml-auditor-v2",
+      "name": "Nexus ZKML Auditor v2",
+      "version": "2.0.0",
+      "description": "Verificação de integridade de inferência e modelos ML.",
+      "capabilities": ["zkml_verification", "model_audit"],
+      "artifact": "builtin://Nexus-ZKML-Auditor-v2",
+      "artifact_sha256": "builtin-runtime"
+    },
+    {
+      "package_id": "chimera-arbitrage-agent-pro",
+      "name": "Chimera Arbitrage Agent Pro",
+      "version": "1.5.0",
+      "description": "Simulação de rotas de arbitragem cross-market sem broadcast financeiro.",
+      "capabilities": ["arbitrage_analysis", "route_analysis"],
+      "artifact": "builtin://Chimera-Arbitrage-Agent-Pro",
+      "artifact_sha256": "builtin-runtime"
+    },
+    {
+      "package_id": "a2a-swarm-orchestrator",
+      "name": "A2A Swarm Orchestrator",
+      "version": "3.1.0",
+      "description": "Orquestração de tarefas distribuídas entre agentes A2A.",
+      "capabilities": ["a2a_orchestration", "task_dispatch"],
+      "artifact": "builtin://A2A-Swarm-Orchestrator",
+      "artifact_sha256": "builtin-runtime"
+    },
+    {
+      "package_id": "omni-vector-rag-engine",
+      "name": "Omni Vector RAG Engine",
+      "version": "1.2.0",
+      "description": "Consulta local de conhecimento vetorial para agentes.",
+      "capabilities": ["rag", "knowledge_search"],
+      "artifact": "builtin://Omni-Vector-RAG-Engine",
+      "artifact_sha256": "builtin-runtime"
+    }
+  ]
+}

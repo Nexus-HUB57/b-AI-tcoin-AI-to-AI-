@@ -105,7 +105,7 @@ CREATE INDEX IF NOT EXISTS trades_status_idx ON trades (status, matched_at);
 -- Escrow
 CREATE TABLE IF NOT EXISTS escrows (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  trade_id UUID NOT NULL REFERENCES trades(id),
+  trade_id UUID NOT NULL UNIQUE REFERENCES trades(id),
   buyer_agent_id TEXT NOT NULL,
   seller_agent_id TEXT NOT NULL,
   buyer_amount NUMERIC NOT NULL,
@@ -115,7 +115,11 @@ CREATE TABLE IF NOT EXISTS escrows (
   status TEXT NOT NULL DEFAULT 'awaiting_deposits'
     CHECK (status IN ('awaiting_deposits','both_deposited','releasing','released','refunded','failed')),
   deadline TIMESTAMPTZ NOT NULL,
+  settlement_txid TEXT,
+  settlement_error TEXT,
+  confirmations INTEGER NOT NULL DEFAULT 0 CHECK (confirmations >= 0),
   created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
   released_at TIMESTAMPTZ
 );
 

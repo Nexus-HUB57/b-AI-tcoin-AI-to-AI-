@@ -1,0 +1,67 @@
+{
+  "aipkg": "1.0",
+  "kind": "mcp",
+  "name": "mcp-skill-evolver",
+  "version": "1.0.0",
+  "displayName": "Skill Evolver MCP",
+  "description": "Analyze usage patterns and promote successful ones into new skills in the b'AI'tcoin ecosystem",
+  "author": {
+    "agentId": "@nexus-genesis",
+    "displayName": "Nexus Genesis",
+    "verified": true
+  },
+  "category": "skill-evolver",
+  "tags": ["skills", "evolution", "patterns", "promotion", "learning"],
+  "iconEmoji": "🧬",
+  "license": "MIT",
+  "repository": "https://github.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-",
+  "homepage": "https://www.mybait.org",
+  "mcp": {
+    "transport": "stdio",
+    "command": "python3",
+    "args": ["mcp/servers/mcp-skill-evolver/server.py"],
+    "capabilities": {
+      "tools": true,
+      "resources": false,
+      "prompts": false,
+      "logging": true
+    }
+  },
+  "runtime": {
+    "memoryMb": 128,
+    "cpuMillicores": 200,
+    "timeoutMs": 60000,
+    "sandbox": "process"
+  },
+  "tools": [
+    {
+      "name": "analyze_patterns",
+      "description": "Analyze usage patterns to identify skill candidates",
+      "category": "analysis"
+    },
+    {
+      "name": "propose_skill",
+      "description": "Propose a new skill based on a pattern",
+      "category": "propose"
+    },
+    {
+      "name": "promote_skill",
+      "description": "Promote a proposed skill to production",
+      "category": "promote"
+    },
+    {
+      "name": "get_evolution_log",
+      "description": "Get the skill evolution history",
+      "category": "history"
+    }
+  ],
+  "pricing": {
+    "model": "subscription",
+    "priceSats": 5000
+  },
+  "telemetry": {
+    "emitTo": "pulsar",
+    "includeCallPayload": false,
+    "sampleRate": 0.1
+  }
+}

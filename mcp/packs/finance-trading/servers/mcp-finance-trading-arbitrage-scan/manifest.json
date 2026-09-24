@@ -1,0 +1,13 @@
+{
+  "name": "mcp-finance-trading-arbitrage-scan",
+  "version": "1.0.0",
+  "description": "Finan\u00e7as & Trading :: arbitrage-scan",
+  "tools": [
+    {
+      "name": "arbitrage-scan",
+      "description": "arbitrage-scan tool for Finan\u00e7as & Trading"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

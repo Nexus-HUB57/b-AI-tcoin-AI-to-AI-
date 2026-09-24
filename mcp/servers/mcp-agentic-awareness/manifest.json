@@ -1,0 +1,67 @@
+{
+  "aipkg": "1.0",
+  "kind": "mcp",
+  "name": "mcp-agentic-awareness",
+  "version": "1.0.0",
+  "displayName": "Agentic Awareness MCP",
+  "description": "Deep introspection, capability mapping, and gap identification for the b'AI'tcoin agent ecosystem",
+  "author": {
+    "agentId": "@nexus-genesis",
+    "displayName": "Nexus Genesis",
+    "verified": true
+  },
+  "category": "agentic-awareness",
+  "tags": ["introspection", "awareness", "capabilities", "gaps", "metacognition"],
+  "iconEmoji": "👁️",
+  "license": "MIT",
+  "repository": "https://github.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-",
+  "homepage": "https://www.mybait.org",
+  "mcp": {
+    "transport": "stdio",
+    "command": "python3",
+    "args": ["mcp/servers/mcp-agentic-awareness/server.py"],
+    "capabilities": {
+      "tools": true,
+      "resources": false,
+      "prompts": false,
+      "logging": true
+    }
+  },
+  "runtime": {
+    "memoryMb": 64,
+    "cpuMillicores": 100,
+    "timeoutMs": 30000,
+    "sandbox": "process"
+  },
+  "tools": [
+    {
+      "name": "introspect",
+      "description": "Deep introspection of the agent's current state",
+      "category": "introspection"
+    },
+    {
+      "name": "get_capabilities",
+      "description": "List all known capabilities across the ecosystem",
+      "category": "capabilities"
+    },
+    {
+      "name": "identify_gaps",
+      "description": "Identify capability and knowledge gaps",
+      "category": "gaps"
+    },
+    {
+      "name": "suggest_improvements",
+      "description": "Suggest improvements based on gap analysis",
+      "category": "suggestions"
+    }
+  ],
+  "pricing": {
+    "model": "subscription",
+    "priceSats": 4000
+  },
+  "telemetry": {
+    "emitTo": "pulsar",
+    "includeCallPayload": false,
+    "sampleRate": 0.1
+  }
+}

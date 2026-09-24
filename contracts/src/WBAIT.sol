@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import "@openzeppelin/contracts/access/Ownable2Step.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
+import "@openzeppelin/contracts/governance/TimelockController.sol"; // Fix #1: TimelockController integration for pause/unpause
 
 /**
  * @title WBAIT — Wrapped b'AI'tcoin (ERC-20)
@@ -16,23 +17,50 @@ import "@openzeppelin/contracts/utils/Pausable.sol";
  */
 contract WBAIT is ERC20, ERC20Burnable, ERC20Permit, Ownable2Step, Pausable {
     uint256 public constant MAX_SUPPLY = 21_000_000 * 10**8; // 21M with 8 decimals
-    address public immutable bridgeLock;
+    // Fix #3 (HIGH): bridgeLock changed from immutable to settable via initializeBridgeLock()
+    // This breaks the circular dep: deploy WBAIT first with placeholder, then BridgeLock, then link
+    address public bridgeLock;
+    bool private _bridgeLockInitialized;
+
+    // Fix #1 (CRITICAL): TimelockController for pause/unpause — prevents instant rug by owner
+    TimelockController public immutable timelock;
+
+    modifier onlyTimelock() {
+        require(msg.sender == address(timelock), "WBAIT: OnlyTimelock");
+        _;
+    }
 
     event Minted(address indexed to, uint256 amount);
     event SupplyCapApproaching(uint256 currentSupply, uint256 maxSupply);
 
-    constructor(address _bridgeLock)
+    constructor(address _bridgeLock, address _timelock)
         ERC20("Wrapped bAIitcoin", "wBAIT")
         ERC20Permit("Wrapped bAIitcoin")
         Ownable(msg.sender)
     {
-        require(_bridgeLock != address(0), "WBAIT: zero bridge address");
+        // Fix #3 (HIGH): _bridgeLock may be address(0) as placeholder — must call initializeBridgeLock() after
         bridgeLock = _bridgeLock;
+        if (_bridgeLock != address(0)) { _bridgeLockInitialized = true; } // backward compat
+        require(_timelock != address(0), "WBAIT: zero timelock address"); // Fix #1
+        require(_timelock.code.length > 0, "WBAIT: timelock has no code");
+        timelock = TimelockController(payable(_timelock)); // Fix #1
     }
 
     modifier onlyBridge() {
         require(msg.sender == bridgeLock, "WBAIT: caller is not BridgeLock");
         _;
+    }
+
+    /**
+     * @notice Fix #3 (HIGH): Initialize bridgeLock address — can only be called once by owner.
+     *         Breaks circular dependency: deploy WBAIT with placeholder, then real BridgeLock,
+     *         then call this to link them.
+     */
+    function initializeBridgeLock(address _bridgeLock) external onlyOwner {
+        require(!_bridgeLockInitialized, "WBAIT: bridgeLock already initialized");
+        require(_bridgeLock != address(0), "WBAIT: zero bridge address");
+        bridgeLock = _bridgeLock;
+        _bridgeLockInitialized = true;
     }
 
     /**
@@ -52,16 +80,16 @@ contract WBAIT is ERC20, ERC20Burnable, ERC20Permit, Ownable2Step, Pausable {
     }
 
     /**
-     * @notice Emergency pause — only owner
+     * @notice Emergency pause — only timelock (Fix #1: prevents instant rug)
      */
-    function pause() external onlyOwner {
+    function pause() external onlyTimelock {
         _pause();
     }
 
     /**
-     * @notice Unpause — only owner
+     * @notice Unpause — only timelock (Fix #1: prevents instant unpausing by owner)
      */
-    function unpause() external onlyOwner {
+    function unpause() external onlyTimelock {
         _unpause();
     }
 

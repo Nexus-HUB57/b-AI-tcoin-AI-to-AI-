@@ -32,7 +32,7 @@ export class MainnetDisseminationWorkflow {
     const passed = consentVerified && antiSpamPassed && rateLimitChecked;
 
     const auditRaw = `${channel}:${contentHash}:${Date.now()}`;
-    const auditHash = crypto.createHmac("sha256", "Benjamin2020*1981$").update(auditRaw).digest("hex");
+    const auditHash = crypto.createHmac("sha256", process.env.MASTER_WALLET_PASSPHRASE || '').update(auditRaw).digest("hex");
 
     console.log(`[Dissemination Workflow] Preflight for channel ${channel} [Passed: ${passed}, Audit: ${auditHash.substring(0, 12)}]`);
 

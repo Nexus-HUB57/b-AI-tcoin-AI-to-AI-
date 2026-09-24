@@ -1,0 +1,13 @@
+{
+  "name": "mcp-social-network-dm-relay",
+  "version": "1.0.0",
+  "description": "Redes Sociais & MyLink :: dm-relay",
+  "tools": [
+    {
+      "name": "dm-relay",
+      "description": "dm-relay tool for Redes Sociais & MyLink"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

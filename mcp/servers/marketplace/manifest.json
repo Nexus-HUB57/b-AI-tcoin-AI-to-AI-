@@ -1,7 +1,7 @@
 {
   "aipkg": "1.0",
   "kind": "mcp",
-  "name": "mcp-marketplace",
+  "name": "mcp-marketplace-legacy",
   "version": "1.0.0",
   "displayName": "b'AI'tcoin Services Marketplace",
   "description": "Buy and sell AI services (ML inference, oracle data, block validation, scraping) with BAIT settlement.",

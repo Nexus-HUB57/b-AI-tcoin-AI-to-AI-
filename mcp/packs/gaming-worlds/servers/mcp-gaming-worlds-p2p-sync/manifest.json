@@ -1,0 +1,13 @@
+{
+  "name": "mcp-gaming-worlds-p2p-sync",
+  "version": "1.0.0",
+  "description": "Gaming & Worlds (Hashmat) :: p2p-sync",
+  "tools": [
+    {
+      "name": "p2p-sync",
+      "description": "p2p-sync tool for Gaming & Worlds (Hashmat)"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

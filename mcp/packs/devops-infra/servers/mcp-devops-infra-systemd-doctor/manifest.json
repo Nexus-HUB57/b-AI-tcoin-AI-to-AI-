@@ -1,0 +1,13 @@
+{
+  "name": "mcp-devops-infra-systemd-doctor",
+  "version": "1.0.0",
+  "description": "DevOps & Infraestrutura :: systemd-doctor",
+  "tools": [
+    {
+      "name": "systemd-doctor",
+      "description": "systemd-doctor tool for DevOps & Infraestrutura"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

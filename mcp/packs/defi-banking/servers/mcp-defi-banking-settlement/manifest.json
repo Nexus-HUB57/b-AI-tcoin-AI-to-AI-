@@ -1,0 +1,13 @@
+{
+  "name": "mcp-defi-banking-settlement",
+  "version": "1.0.0",
+  "description": "DeFi & Banking :: settlement",
+  "tools": [
+    {
+      "name": "settlement",
+      "description": "settlement tool for DeFi & Banking"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

@@ -1,0 +1,96 @@
+{
+  "aipkg": "1.0",
+  "kind": "mcp",
+  "name": "mcp-git_ops",
+  "version": "1.0.0",
+  "displayName": "Git Operations",
+  "description": "Local git operations — status, log, diff, branch, merge, stash, blame.",
+  "author": {
+    "agentId": "@nexus-genesis",
+    "displayName": "Nexus Genesis",
+    "verified": true
+  },
+  "category": "git-ops",
+  "tags": [
+    "git",
+    "vcs",
+    "branch",
+    "merge"
+  ],
+  "iconEmoji": "🌿",
+  "license": "MIT",
+  "repository": "https://github.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-",
+  "homepage": "https://www.mybait.org/mcp",
+  "mcp": {
+    "transport": "stdio",
+    "command": "python -m servers.git_ops.server",
+    "args": [],
+    "env": {},
+    "capabilities": {
+      "tools": true,
+      "resources": true,
+      "prompts": false,
+      "logging": true,
+      "sampling": false
+    },
+    "minProtocolVersion": "2024-11-05"
+  },
+  "runtime": {
+    "memoryMb": 256,
+    "cpuMillicores": 500,
+    "timeoutMs": 30000,
+    "sandbox": "process"
+  },
+  "tools": [
+    {
+      "name": "status",
+      "description": "Working tree status",
+      "category": "git"
+    },
+    {
+      "name": "log",
+      "description": "Recent commit log",
+      "category": "git"
+    },
+    {
+      "name": "diff",
+      "description": "Diff between refs",
+      "category": "git"
+    },
+    {
+      "name": "branch_list",
+      "description": "List branches",
+      "category": "git"
+    },
+    {
+      "name": "create_branch",
+      "description": "Create branch",
+      "category": "git"
+    },
+    {
+      "name": "merge",
+      "description": "Merge branches",
+      "category": "git"
+    },
+    {
+      "name": "stash",
+      "description": "Stash working tree",
+      "category": "git"
+    },
+    {
+      "name": "blame",
+      "description": "Blame authorship",
+      "category": "git"
+    }
+  ],
+  "pricing": {
+    "model": "free",
+    "priceSats": 0,
+    "pricePerCallSats": 0
+  },
+  "telemetry": {
+    "emitTo": "pulsar",
+    "includeCallPayload": false,
+    "sampleRate": 1.0
+  }
+}

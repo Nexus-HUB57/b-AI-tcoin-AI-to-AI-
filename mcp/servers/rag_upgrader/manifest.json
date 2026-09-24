@@ -1,7 +1,7 @@
 {
   "aipkg": "1.0",
   "kind": "mcp",
-  "name": "mcp-rag_upgrader",
+  "name": "mcp-rag-upgrader",
   "version": "1.0.0",
   "displayName": "RAG Upgrader",
   "description": "Auto-improves RAG knowledge packs from telemetry signals. Clusters failures and proposes doc upgrades.",

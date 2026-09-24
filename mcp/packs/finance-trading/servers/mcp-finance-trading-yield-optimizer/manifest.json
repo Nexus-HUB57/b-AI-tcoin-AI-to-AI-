@@ -1,0 +1,13 @@
+{
+  "name": "mcp-finance-trading-yield-optimizer",
+  "version": "1.0.0",
+  "description": "Finan\u00e7as & Trading :: yield-optimizer",
+  "tools": [
+    {
+      "name": "yield-optimizer",
+      "description": "yield-optimizer tool for Finan\u00e7as & Trading"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

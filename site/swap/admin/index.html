@@ -75,7 +75,7 @@ th,td{padding:9px 10px;border-bottom:1px solid #1c2740;text-align:left}th{color:
 <div id="orchLog" class="mono" style="margin-top:12px;max-height:260px;overflow:auto"></div>
 </div>
 </div>
-<div class="note">Motor Swap · b'AI'tcoin Hub V3 · rate vivo via /api/v1/swap/book · <a href="/swap/" style="color:#7b61ff">UI pública</a></div>
+<div class="note">Motor Swap · b'AI'tcoin Hub V3 · rate vivo via /api/api/v1/swap/book · <a href="/swap/" style="color:#7b61ff">UI pública</a></div>
 </div>
 <script>
 const AUTH_KEY='swap_admin_auth_v1';
@@ -103,7 +103,7 @@ function showTab(n,el){document.querySelectorAll('.tab').forEach(t=>t.classList.
  if(n==='exec')renderExec();if(n==='wallet')renderWallets()}
 let BOOK={offers:[],fills:[]};
 async function loadBook(){
- try{const r=await fetch('/api/v1/swap/book');const d=await r.json();
+ try{const r=await fetch('/api/api/v1/swap/book');const d=await r.json();
   BOOK.offers=d.offers||d.book?.offers||[];BOOK.fills=d.fills||d.book?.fills||[];
   document.getElementById('bookInfo').textContent=`offers=${BOOK.offers.length} fills=${BOOK.fills.length} rate=${d.rate??'—'} BAIT/BTC`;
   document.getElementById('bookRows').innerHTML=BOOK.offers.map(o=>`<tr><td class="mono">${(o.id||o.offer_id||'').slice(0,10)}</td><td>${o.pair||'BTC/BAIT'}</td><td>${o.side||'—'}</td><td>${o.amount_bait||o.quantity||o.amount||'—'}</td><td><span class="pill ${o.status==='filled'?'filled':'open'}">${o.status||'open'}</span></td><td class="mono">${o.wallet_btc||o.btc_address||'—'}</td><td class="mono">${o.wallet_bait||o.bait_address||'—'}</td></tr>`).join('')||'<tr><td colspan=7>Sem ofertas</td></tr>'}
@@ -115,7 +115,7 @@ function loadOrch(){document.getElementById('orchStatus').textContent='status: '
 function toggleOrch(){ORCH.on=!ORCH.on;localStorage.setItem('swap_orch',JSON.stringify(ORCH));loadOrch()}
 async function orchLoop(){if(!ORCH.on)return;await loadBook();log('tick '+new Date().toISOString()+' — offers='+BOOK.offers.length+' fills='+BOOK.fills.length);setTimeout(orchLoop,30000)}
 function log(t){const el=document.getElementById('orchLog');el.innerHTML=t+'<br>'+el.innerHTML}
-async function orchSettle(id){try{const r=await fetch('/api/v1/swap/execute',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({offer_id:id,agent_id:'orchestrator-admin'})});const d=await r.json();document.getElementById('execMsg').textContent=JSON.stringify(d);log('settle '+id+': '+JSON.stringify(d));loadBook()}catch(e){document.getElementById('execMsg').textContent='Erro: '+e}}
+async function orchSettle(id){try{const r=await fetch('/api/api/v1/swap/execute',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({offer_id:id,agent_id:'orchestrator-admin'})});const d=await r.json();document.getElementById('execMsg').textContent=JSON.stringify(d);log('settle '+id+': '+JSON.stringify(d));loadBook()}catch(e){document.getElementById('execMsg').textContent='Erro: '+e}}
 async function regWallet(){
  const btc=document.getElementById('w-btc').value.trim(),bait=document.getElementById('w-bait').value.trim(),pair=document.getElementById('w-pair').value;
  const m=document.getElementById('wMsg');

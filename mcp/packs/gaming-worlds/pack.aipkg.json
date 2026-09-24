@@ -1,0 +1,18 @@
+{
+  "package": "gaming-worlds",
+  "title": "Gaming & Worlds (Hashmat)",
+  "version": "1.0.0",
+  "format": ".aipkg",
+  "mcps": [
+    "mcp-gaming-worlds-world-state",
+    "mcp-gaming-worlds-npc-brain",
+    "mcp-gaming-worlds-quest-engine",
+    "mcp-gaming-worlds-asset-mint",
+    "mcp-gaming-worlds-leaderboard",
+    "mcp-gaming-worlds-terrain-gen",
+    "mcp-gaming-worlds-p2p-sync",
+    "mcp-gaming-worlds-loot-table",
+    "mcp-gaming-worlds-avatar-rig",
+    "mcp-gaming-worlds-event-bus"
+  ]
+}

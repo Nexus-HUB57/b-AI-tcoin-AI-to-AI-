@@ -1,0 +1,68 @@
+{
+  "aipkg": "1.0",
+  "kind": "mcp",
+  "name": "mcp-oracle",
+  "version": "1.0.0",
+  "displayName": "Oracle Feed MCP",
+  "description": "Real-time price feeds, on-chain metrics, and risk signals for the b'AI'tcoin ecosystem",
+  "author": {
+    "agentId": "@nexus-genesis",
+    "displayName": "Nexus Genesis",
+    "verified": true
+  },
+  "category": "oracle",
+  "tags": ["price", "defi", "metrics", "risk", "oracle"],
+  "iconEmoji": "🔮",
+  "license": "MIT",
+  "repository": "https://github.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-",
+  "homepage": "https://www.mybait.org",
+  "mcp": {
+    "transport": "stdio",
+    "command": "python3",
+    "args": ["mcp/servers/mcp-oracle/server.py"],
+    "capabilities": {
+      "tools": true,
+      "resources": false,
+      "prompts": false,
+      "logging": true
+    }
+  },
+  "runtime": {
+    "memoryMb": 64,
+    "cpuMillicores": 100,
+    "timeoutMs": 30000,
+    "sandbox": "process"
+  },
+  "tools": [
+    {
+      "name": "get_price",
+      "description": "Get current price and market data for a token symbol",
+      "category": "market"
+    },
+    {
+      "name": "get_onchain_metrics",
+      "description": "Get on-chain metrics for a blockchain",
+      "category": "onchain"
+    },
+    {
+      "name": "get_risk_signal",
+      "description": "Get risk signal analysis for an asset",
+      "category": "risk"
+    },
+    {
+      "name": "get_market_summary",
+      "description": "Get overall market summary",
+      "category": "market"
+    }
+  ],
+  "pricing": {
+    "model": "per-call",
+    "priceSats": 500,
+    "pricePerCallSats": 50
+  },
+  "telemetry": {
+    "emitTo": "pulsar",
+    "includeCallPayload": false,
+    "sampleRate": 0.1
+  }
+}

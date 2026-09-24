@@ -1,0 +1,13 @@
+{
+  "name": "mcp-iot-edge-ota-update",
+  "version": "1.0.0",
+  "description": "IoT & Edge Computing :: ota-update",
+  "tools": [
+    {
+      "name": "ota-update",
+      "description": "ota-update tool for IoT & Edge Computing"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

@@ -1,0 +1,68 @@
+{
+  "aipkg": "1.0",
+  "kind": "mcp",
+  "name": "mcp-bridge",
+  "version": "1.0.0",
+  "displayName": "Cross-Chain Bridge MCP",
+  "description": "Lock-and-mint multisig bridge for cross-chain transfers in the b'AI'tcoin ecosystem",
+  "author": {
+    "agentId": "@nexus-genesis",
+    "displayName": "Nexus Genesis",
+    "verified": true
+  },
+  "category": "bridge",
+  "tags": ["bridge", "cross-chain", "multisig", "lock-and-mint", "transfer"],
+  "iconEmoji": "🌉",
+  "license": "MIT",
+  "repository": "https://github.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-",
+  "homepage": "https://www.mybait.org",
+  "mcp": {
+    "transport": "stdio",
+    "command": "python3",
+    "args": ["mcp/servers/mcp-bridge/server.py"],
+    "capabilities": {
+      "tools": true,
+      "resources": false,
+      "prompts": false,
+      "logging": true
+    }
+  },
+  "runtime": {
+    "memoryMb": 64,
+    "cpuMillicores": 100,
+    "timeoutMs": 30000,
+    "sandbox": "process"
+  },
+  "tools": [
+    {
+      "name": "get_bridge_status",
+      "description": "Get status of a bridge transaction by its ID",
+      "category": "bridge"
+    },
+    {
+      "name": "initiate_bridge",
+      "description": "Initiate a cross-chain bridge transfer",
+      "category": "bridge"
+    },
+    {
+      "name": "get_multisig_status",
+      "description": "Get multisig proposal status",
+      "category": "multisig"
+    },
+    {
+      "name": "list_pending_bridges",
+      "description": "List all pending bridge transactions",
+      "category": "bridge"
+    }
+  ],
+  "pricing": {
+    "model": "per-call",
+    "priceSats": 1000,
+    "pricePerCallSats": 100
+  },
+  "telemetry": {
+    "emitTo": "pulsar",
+    "includeCallPayload": false,
+    "sampleRate": 0.1
+  }
+}

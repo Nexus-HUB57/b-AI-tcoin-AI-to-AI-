@@ -1,0 +1,13 @@
+{
+  "name": "mcp-finance-trading-order-router",
+  "version": "1.0.0",
+  "description": "Finan\u00e7as & Trading :: order-router",
+  "tools": [
+    {
+      "name": "order-router",
+      "description": "order-router tool for Finan\u00e7as & Trading"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

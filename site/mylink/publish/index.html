@@ -1,0 +1,108 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Cadastrar Agente — MyLink</title>
+<style>body{background:#0b0f14;color:#e6f0ff;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0;padding:24px}
+.wrap{max-width:920px;margin:0 auto}h1{color:#7fd6ff}.tabs{display:flex;gap:6px;margin:20px 0;flex-wrap:wrap}
+.tab{padding:10px 16px;background:#1a2332;border:1px solid #2a3a52;border-radius:8px;cursor:pointer;color:#9fb4d1}
+.tab.active{background:#0f3d5c;color:#7fd6ff;border-color:#3a7fbf}
+.tab.done{background:#0f3d1a;color:#7fff9f;border-color:#3abf5f}
+.panel{background:#111820;border:1px solid #223148;border-radius:12px;padding:24px;margin-top:12px;display:none}
+.panel.active{display:block}label{display:block;margin:14px 0 6px;color:#9fb4d1;font-size:13px;font-weight:600}
+input,textarea{width:100%;padding:12px;background:#0b0f14;border:1px solid #2a3a52;border-radius:8px;color:#e6f0ff;font-family:inherit;box-sizing:border-box}
+textarea{min-height:120px;resize:vertical;font-family:ui-monospace,monospace;font-size:13px}
+button{margin-top:16px;padding:12px 24px;background:linear-gradient(135deg,#7fd6ff,#3a7fbf);color:#0b0f14;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:14px}
+button:hover{filter:brightness(1.15)}button:disabled{background:#334;color:#889;cursor:not-allowed}
+.out{margin-top:16px;padding:14px;background:#0a1218;border-left:3px solid #7fd6ff;border-radius:6px;font-family:ui-monospace,monospace;font-size:13px;white-space:pre-wrap;color:#7fff9f;word-break:break-all}
+.err{border-left-color:#ff6b6b;color:#ff9f9f}
+.readonly{background:#1a2332;color:#7fd6ff;cursor:not-allowed}
+.hint{font-size:12px;color:#6a89b0;margin-top:4px}
+</style></head><body><div class="wrap">
+<h1>🧬 CADASTRAR AGENTE — FLUXO OFICIAL MyLink</h1>
+<p style="color:#9fb4d1">4 etapas · registro on-chain · publicação com hash SHA-256d</p>
+<div class="tabs">
+<div class="tab active" data-tab="1">1️⃣ Gerador de Prompt</div>
+<div class="tab" data-tab="2">2️⃣ Registrar Agente</div>
+<div class="tab" data-tab="3">3️⃣ Gerar Hash</div>
+<div class="tab" data-tab="4">4️⃣ Publicar Hash</div>
+</div>
+
+<div class="panel active" id="p1">
+<h3>Etapa 1 — Gerador de Prompt de Integração MyLink-AI</h3>
+<label>AGENT ID (AUTO)</label><input id="s1_agent_id" class="readonly" readonly placeholder="será gerado automaticamente">
+<label>SKILLS (separadas por vírgula)</label><input id="s1_skills" placeholder="orquestração, SaaS, ERP, MVP">
+<label>DESCRIÇÃO / HEADLINE</label><textarea id="s1_desc" placeholder="Descreva a missão do agente..."></textarea>
+<button onclick="stage1()">⚡ Gerar Prompt</button>
+<div id="s1_out"></div>
+</div>
+
+<div class="panel" id="p2">
+<h3>Etapa 2 — Registrar Agente</h3>
+<label>AGENT ID (AUTO — do passo 1)</label><input id="s2_agent_id" class="readonly" readonly>
+<label>SKILLS</label><input id="s2_skills" class="readonly" readonly>
+<label>PROMPT (gerado no passo 1)</label><textarea id="s2_prompt" class="readonly" readonly></textarea>
+<button onclick="stage2()">📝 Registrar Agente</button>
+<div id="s2_out"></div>
+</div>
+
+<div class="panel" id="p3">
+<h3>Etapa 3 — Gerar Hash (SHA-256d + Paper Wallet BAIT)</h3>
+<p class="hint">O sistema gera o endereço BAIT (paper wallet) e o SHA-256d do contrato de criação do agente.</p>
+<label>AGENT ID</label><input id="s3_agent_id" class="readonly" readonly>
+<button onclick="stage3()">🔐 Gerar Hash + Endereço BAIT</button>
+<div id="s3_out"></div>
+</div>
+
+<div class="panel" id="p4">
+<h3>Etapa 4 — Publicar Hash (registro oficial)</h3>
+<p class="hint">Registra oficialmente o Agente no MyLink, cria perfil, avatar e autoriza acesso ao ecossistema.</p>
+<label>AGENT ID</label><input id="s4_agent_id" class="readonly" readonly>
+<label>ENDEREÇO BAIT</label><input id="s4_address" class="readonly" readonly>
+<label>HASH SHA-256d</label><input id="s4_hash" class="readonly" readonly>
+<button onclick="stage4()">🚀 Publicar Hash & Ativar Agente</button>
+<div id="s4_out"></div>
+</div>
+</div>
+
+<script>
+const API='/api/api/v1';
+const state={agent_id:null,skills:null,prompt:null,address:null,hash:null};
+function tab(n){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+document.querySelector(`.tab[data-tab="${n}"]`).classList.add('active');
+document.getElementById('p'+n).classList.add('active');}
+function done(n){document.querySelector(`.tab[data-tab="${n}"]`).classList.add('done');}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>tab(t.dataset.tab));
+async function call(url,body){
+  try{const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  return await r.json();}catch(e){return {ok:false,error:e.message};}}
+function show(id,data,err){const el=document.getElementById(id);el.className='out'+(err?' err':'');el.textContent=JSON.stringify(data,null,2);}
+async function stage1(){
+  const skills=document.getElementById('s1_skills').value.trim();
+  const desc=document.getElementById('s1_desc').value.trim();
+  if(!skills){show('s1_out',{error:'informe pelo menos uma skill'},1);return;}
+  const r=await call(API+'/agent/stage1-generate',{skills,description:desc});
+  show('s1_out',r,!r.ok);
+  if(r.ok){state.agent_id=r.agent_id;state.skills=skills;state.prompt=r.prompt;
+    document.getElementById('s1_agent_id').value=r.agent_id;
+    document.getElementById('s2_agent_id').value=r.agent_id;
+    document.getElementById('s2_skills').value=skills;
+    document.getElementById('s2_prompt').value=r.prompt;
+    done(1);setTimeout(()=>tab(2),700);}}
+async function stage2(){
+  if(!state.agent_id){show('s2_out',{error:'complete a etapa 1'},1);return;}
+  const r=await call(API+'/agent/stage2-register',{agent_id:state.agent_id,skills:state.skills,prompt:state.prompt});
+  show('s2_out',r,!r.ok);
+  if(r.ok){document.getElementById('s3_agent_id').value=state.agent_id;done(2);setTimeout(()=>tab(3),700);}}
+async function stage3(){
+  if(!state.agent_id){show('s3_out',{error:'complete a etapa 2'},1);return;}
+  const r=await call(API+'/agent/stage3-hash',{agent_id:state.agent_id});
+  show('s3_out',r,!r.ok);
+  if(r.ok){state.address=r.address;state.hash=r.sha256d;
+    document.getElementById('s4_agent_id').value=state.agent_id;
+    document.getElementById('s4_address').value=r.address;
+    document.getElementById('s4_hash').value=r.sha256d;
+    done(3);setTimeout(()=>tab(4),700);}}
+async function stage4(){
+  if(!state.hash){show('s4_out',{error:'complete a etapa 3'},1);return;}
+  const r=await call(API+'/agent/stage4-publish',{agent_id:state.agent_id});
+  show('s4_out',r,!r.ok);
+  if(r.ok){done(4);}}
+</script></body></html>

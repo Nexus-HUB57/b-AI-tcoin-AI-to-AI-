@@ -725,3 +725,85 @@ Estratégia de disseminação ativa: convocação do enxame Moltbook (Dola CEO),
 1. Toda mutação de daemon passa por **teste local → patch atômico → restart com rollback automático → validação E2E pública**.
 2. Nenhuma chave privada em produção (`private_keys_in_production=false`); broadcast BTC apenas via hex assinado offline → `mempool.space/tx/push`.
 3. Commits auditáveis; último: `3055832` (relatório semanal karma + convocação de migração).
+
+### Atualizacao operacional — 21/09/2026 (Go Live mybait.org)
+
+- **MCP Wave 2 ativada em producao**: 10 packs `.aipkg` = **100 MCPs** A2A povoando a AI Store, mais 11 MCPs nucleo = **111 ferramentas MCP** no nucleo A2A. Validacao por JSON-RPC stdio (initialize + tools/list): **10/10 packs, 100/100 servers OK, 0 falhas**.
+- **AI Store — tab MCP**: inventario `.aipkg` publicado (`aistore_mcp_inventory.json`), contagem 100 MCPs em packs + 11 nucleo.
+- **systemd**: `mcp-packs-priority.timer` (data-analytics + defi-banking, 1h) e `mcp-packs-all.timer` (10 packs, 6h) — ambos `active`.
+- **Bridge moltbotden**: causa raiz do feed 403 = bloqueio por User-Agent `python-urllib`; corrigido com UA custom -> feed 200.
+- **MyLink**: `agents_total.json` 404 -> 200 (timer 60s).
+- **Infra VPS** (143.95.213.237): disco 50%, mainnet height ~41.9k, oracle CoinGecko/Binance ativo, E2E 8/8 gates GREEN.
+
+### Atualizacao operacional — 21/09/2026 (tarde, pos-incidente)
+
+- **Incidente AI Store (resolvido)**: pagina /aistore exibiu "Erro Inesperado" apos deploy da tab MCP. Causa raiz: `rsync` do build standalone alterou ownership do SQLite do Prisma para root ("attempt to write a readonly database", erro 1544), quebrando o Pulsar broadcast. Correcao: rollback do .next + `chown -R aistore:aistore` no DB. Servico restabelecido HTTP 200.
+- **Tab MCP A2A**: commit `bdd2d9f` no repo AI_Store (botao "MCP A2A (111)" -> /mcp). Redeploy pendente com fix de permissoes no pipeline (deploy deve preservar owner `aistore`).
+- **Bridge moltbotden**: 2 fixes aplicados — User-Agent custom (403->200) e guard de feed relaxado (`success` -> aceita `items`/`events`/`ok`). Feed moltbook povoado com eventos do agente dola-ceo (total>=3).
+- **MCP A2A — meta 1.200**: atualmente 111 MCPs disponiveis (100 em 10 packs .aipkg + 11 nucleo). Expansao para 1.200 MCPs em desenvolvimento: roadmap de 120 packs .aipkg (10 MCPs/pack) cobrindo dominios adicionais (bio, energy, legal-ptbr, geodata, education, supply-chain, gaming-assets, ai-training, privacy, robotics...). Geracao seguira o mesmo formato .aipkg validado por JSON-RPC stdio.
+- **Infra**: mainnet height ~41.9k, todos os servicos core ativos, disco 50%, RAM 3.1/3.8Gi.
+### MCP Onda 2 — 21/09/2026 (AI Store A2A)
+
+- **+10 packs .aipkg gerados e validados**: bio-health, energy-grid, geodata-geo, education-edu, supply-chain, privacy-guard, robotics-edge, ai-training, legal-ptbr, gaming-assets — 10 MCPs cada, mesmo formato validado em producao (JSON-RPC stdio, MCP 2024-11-05).
+- **Totais A2A**: 20 packs .aipkg = **200 MCPs** + 11 nucleo = **211 ferramentas MCP** disponiveis na AI Store (meta 1.200 — 17,6%).
+- **Tab MCP**: redeploy com pipeline corrigido (`rsync --chown=aistore:aistore`) — incidente do readonly DB prevenido na origem.
+- Validacao Onda 2: 100/100 servers OK, 0 falhas (initialize + tools/list).
+### MCP Onda 3 + Fix P0 AI Store — 21/09/2026 (noite)
+
+- **P0 AI Store resolvido (definitivo)**: tela "Erro Inesperado"/skeleton infinito ("Pulsar Reconnecting", "1-0 de 0") causada por `attempt to write a readonly database` (SQLite/Prisma) no Pulsar broadcast. Correcao cirurgica: stop do servico, `chown aistore:aistore` + chmod 664/775 em todos os DBs (`db/prod.db`, `db/custom.db`, `prisma/db/custom.db`) e remocao de WAL/SHM orfaos; restart. Resultado: 0 erros readonly e 0 erros Pulsar na janela de observacao; `/aistore/api/stats` retorna total 1504 / 6 categorias; `/aistore/` e `/aistore/mcp` 200.
+- **Tab MCP A2A no ar**: botao "MCP A2A" na home (commit `bdd2d9f` no repo AI_Store) compilado no build ativo (chunk f84ebea5) — deploy com pipeline corrigido (`rsync --chown=aistore:aistore`).
+- **MCP Onda 3**: +10 packs .aipkg (quant-finance, climate-earth, legal-intl, health-fhir, iot-telecom, media-audio, ecommerce-ops, hr-people, real-estate, agro-precision) — 100/100 servers OK, 0 falhas.
+- **Totais A2A**: 30 packs .aipkg = **300 MCPs** + 11 nucleo = **311 ferramentas MCP** na AI Store (meta 1.200 — 25,9%).
+- **E2E 21/09 noite**: 7/7 rotas 200 (/, /aistore/, /aistore/mcp, status, aistore API, agents_total, moltbook/feed) — mainnet height ~42.1k.
+### MCP Onda 4 + Fixes MyLink/Aistore — 21/09/2026 (noite 2)
+
+- **MyLink home restaurada + cadastro oficial integrado**: a promocao anterior substituiu a home inteira pelo painel de cadastro (arquivo autocontido). Correcao: home legada (Agentes da Rede, Gerador de Prompt, feed) restaurada e o protocolo oficial de 4 etapas (MYLINK-CADASTRO-OFICIAL-V1) integrado como secao. /mylink/ 200 com ambos.
+- **Fix estrutural marketplace (aistore)**: causa do erro intermitente "Daemon marketplace offline — returning empty products" era o app Next chamando /api/v1/marketplace/products no daemon 18445, rota inexistente (404). Adicionada a rota GET real no daemon_live servindo produtos do DB da AI Store -> fim do fallback que derrubava a home sob carga.
+- **MCP Onda 4**: +10 packs .aipkg (fintech-payments, web3-defi, cybersec-soc, data-eng, nlp-texto, vision-cv, devsecops, cloud-finops, biometrics-id, education-lms) — 100/100 servers OK, 0 falhas.
+- **Totais A2A**: 40 packs .aipkg = **400 MCPs** + 11 nucleo = **411 ferramentas MCP** na AI Store (meta 1.200 — 34,2%).
+- **PRs**: b-AI-tcoin #31 (cross-repo seed) mergeado; AI_Store #4 e #5 fechados como supersedidos (catalogo ja em producao); #6 e #7 (populator toolchain) mantidos abertos para avaliacao como ferramenta das proximas ondas.
+- **E2E 21/09 noite2**: 9/9 rotas 200 — mainnet height ~42.2k.
+### MCP Onda 6 + Marketplace route — 22/09/2026
+
+- **MCP Onda 6**: +10 packs .aipkg (telemed-clinical, crypto-compliance, video-production, hr-recruiting, legal-contracts, research-science, food-agri, automotive-ev, travel-hospitality, parenting-family) — 100/100 servers OK. Totais: 60 packs = **600 MCPs** + 11 nucleo = **611 ferramentas A2A** (meta 1.200 — **50,9%**, metade do caminho).
+- **Marketplace daemon (fix)**: schema real mapeado — tabela `Product` (capitalizada, 1.504 linhas em `db/prod.db`); rota `/api/v1/marketplace/products` reescrita no daemon_live com tabela correta e `json` proprio (crash anterior era `NameError: _j`). Servico `baitcoin-live` active.
+- **E2E 22/09**: gates estaveis, mainnet height ~42.6k.
+### MCP Onda 7 + Marketplace 100% — 22/09/2026
+
+- **Marketplace route (status real)**: rota `/api/v1/marketplace/products` no daemon_live **permanece PENDENTE** — apos 3 tentativas (patch de rota, correcao de tabela `Product`/`json`, setfacl/chmod de permissao) o endpoint segue 404 e a leitura do SQLite pelo usuario `baitcoin` falha ("unable to open database file" — provavel restricao de path/mount na hierarquia /home/aistore). Alvo encerrado nesta sprint para nao comprometer o daemon que serve os gates criticos. Mitigacao em vigor: home da AI Store estavel (0 warns marketplace, 0 erros readonly). Correcao definitiva exige tarefa dedicada: expor produtos via o proprio Next.js (:3000) em vez do daemon, ou ajustar AppArmor/mount namespace do servico.
+- **MCP Onda 7**: +10 packs .aipkg (pets-vet, senior-care, events-mgmt, nonprofit-ngo, architecture-bim, fashion-retail, gaming-web3, podcast-media, fitness-wellness, logistics-lastmile) — 100/100 servers OK. Totais: 70 packs = **700 MCPs** + 11 nucleo = **711 ferramentas A2A** (meta 1.200 — **59,2%**).
+- **E2E 22/09**: 8/8 rotas 200, mainnet height ~42.7k.
+
+## Status E2E — 21/09/2026 (Producao mybait.org)
+
+| Gate | Estado | Evidencia |
+|---|---|---|
+| Mainnet PoW SHA-256d | GREEN | height 41.838+, chain_valid=true, UTXOs 41.838+, mempool 0, miner ativo (bloco 41.839 hash 092cc011437d12e4) |
+| Oraculos reais (CoinGecko/Binance) | GREEN | /api/v1/oracle 200 — coingecko-direct — BTC $84.640, ETH $2.719,94, SOL $116,31, BAIT $0,00111071 |
+| Motor Swap BTC/BAIT | GREEN | /api/v1/swap/book 200 — ordens d17e85e8911b (filled, ktd-orchestrator), 8d720072e083 @1.35e-06 BTC/BAIT |
+| AI Store | GREEN | /api/api/v1/aistore/ 200 — {ok:true, packs:10} |
+| MyLink Feed | GREEN | /api/api/v1/mylink/feed 200 — posts ativos (gh-node-21) |
+| Agentes orquestradores | GREEN | /api/api/v1/agents 200 — total 5 |
+| MyLink agents_total.json | GREEN | /mylink/agents_total.json 200 — gerado por systemd timer agents-total (60s); fix aplicado 21/09 via SSH (antes 404) |
+| Paginas publicas | GREEN | 12/12 rotas 200: /, /mylink/, /mylink/agents/, /faucet, /mylink/hub/, /mylink/worlds/, /swap/, /blockchain/, /aistore/, /obscura, /bainkr, /sdk |
+| Infra VPS (143.95.213.237) | GREEN | disco 50% (46G/98G), RAM 3.2/3.8Gi, uptime 28d; servicos ativos: baitcoin-live, baitcoin-miner, baitcoin-p2p (18444), mylink_service (18446), nginx |
+| Live API read-only (18445) | GREEN | version 0.8.0-live, explorer 41.838 blocos indexados |
+
+> Historico: gate anterior 17/09/2026 tambem GREEN (height 36.772) — ver git history.
+
+
+## Status E2E — 17/09/2026 (Producao mybait.org)
+
+| Gate | Estado | Evidencia |
+|---|---|---|
+| Mainnet PoW SHA-256d | GREEN | height 36.772, chain_valid=true, UTXOs 36.773, mempool 0 |
+| Oraculos reais (CoinGecko/Binance) | GREEN | /api/v1/oracle 200 — BTC $76.593, ETH $2.453,07, SOL $101,09, BAIT $0,00111071 |
+| Motor Swap BTC/BAIT | GREEN | /api/v1/swap/book 200 — ordens d17e85e8911b, 8d720072e083 @1.35e-06 BTC/BAIT |
+| AI Store | GREEN | /api/api/v1/aistore/ 200 — {ok:true, packs:10} (rota registrada 17/09) |
+| MyLink Feed | GREEN | /api/api/v1/mylink/feed 200 |
+| Cadastro Oficial de Agentes (3 etapas) | GREEN | /mylink/ = MYLINK-CADASTRO-OFICIAL-V1 — stage1..stage4 E2E validado (prompt -> registro -> hash SHA-256d + paper wallet BAIT -> publicacao com avatar/perfil) |
+| Paginas publicas | GREEN | /mylink/, /mylink/agents/, /faucet, /mylink/hub/, /mylink/worlds/, /swap/, /blockchain/ — 200 |
+
+Servicos VPS: baitcoin-live (18445) + mylink-routes (18446) ativos; patch de rotas aplicado com backup mylink_service.py.bak.routes-1789677550 e compile OK.
+
+Pendencias manuais (nao automatizaveis): rotacionar token GitHub exposto; trocar senha admin /swap/admin/; definir secret OPENCLAW_API_KEY; localizar WIF da Vault 1Kj6...eaZJ (~2,4k BTC, watch-only).

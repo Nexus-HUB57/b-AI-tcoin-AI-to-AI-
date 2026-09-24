@@ -1,0 +1,67 @@
+{
+  "aipkg": "1.0",
+  "kind": "mcp",
+  "name": "mcp-rag-upgrader",
+  "version": "1.0.0",
+  "displayName": "RAG Upgrader MCP",
+  "description": "Reindex knowledge packs based on failure feedback and identify knowledge gaps in the b'AI'tcoin ecosystem",
+  "author": {
+    "agentId": "@nexus-genesis",
+    "displayName": "Nexus Genesis",
+    "verified": true
+  },
+  "category": "rag-upgrader",
+  "tags": ["rag", "reindex", "knowledge", "feedback", "gaps", "upgrader"],
+  "iconEmoji": "🧠",
+  "license": "MIT",
+  "repository": "https://github.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-",
+  "homepage": "https://www.mybait.org",
+  "mcp": {
+    "transport": "stdio",
+    "command": "python3",
+    "args": ["mcp/servers/mcp-rag-upgrader/server.py"],
+    "capabilities": {
+      "tools": true,
+      "resources": false,
+      "prompts": false,
+      "logging": true
+    }
+  },
+  "runtime": {
+    "memoryMb": 128,
+    "cpuMillicores": 200,
+    "timeoutMs": 60000,
+    "sandbox": "process"
+  },
+  "tools": [
+    {
+      "name": "trigger_reindex",
+      "description": "Trigger reindexing of a knowledge pack",
+      "category": "reindex"
+    },
+    {
+      "name": "get_reindex_status",
+      "description": "Get status of all reindex operations",
+      "category": "status"
+    },
+    {
+      "name": "add_feedback",
+      "description": "Add success/failure feedback for a tool",
+      "category": "feedback"
+    },
+    {
+      "name": "get_knowledge_gaps",
+      "description": "Identify knowledge gaps from feedback",
+      "category": "analysis"
+    }
+  ],
+  "pricing": {
+    "model": "subscription",
+    "priceSats": 3000
+  },
+  "telemetry": {
+    "emitTo": "pulsar",
+    "includeCallPayload": false,
+    "sampleRate": 0.1
+  }
+}

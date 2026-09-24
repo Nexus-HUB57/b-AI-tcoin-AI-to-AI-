@@ -40,7 +40,7 @@ export default function NexusAiControlHub() {
             <div>
               <h1 className="text-3xl lg:text-4xl font-extrabold tracking-tight">Nexus AI Control Hub</h1>
               <p className="text-sm text-muted-foreground mt-1">
-                Ecossistema Mainnet nativo operando sob a Master Passphrase <span className="font-mono text-foreground font-semibold">Benjamin2020*1981$</span>.
+                Ecossistema Mainnet nativo operando sob a Master Passphrase <span className="font-mono text-foreground font-semibold">[REDACTED_PASSPHRASE]</span>.
               </p>
             </div>
           </div>
@@ -57,7 +57,7 @@ export default function NexusAiControlHub() {
 
       {/* Main Navigation Tabs */}
       <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid grid-cols-2 md:grid-cols-4 lg:w-[600px] h-auto p-1 bg-muted/50 border border-border rounded-xl">
+        <TabsList className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 h-auto p-1 bg-muted/50 border border-border rounded-xl">
           <TabsTrigger value="overview" className="py-2.5 data-[state=active]:bg-card data-[state=active]:shadow-sm">Visão Geral</TabsTrigger>
           <TabsTrigger value="workers" className="py-2.5 data-[state=active]:bg-card data-[state=active]:shadow-sm">20 Workers Nativos</TabsTrigger>
           <TabsTrigger value="wallet" className="py-2.5 data-[state=active]:bg-card data-[state=active]:shadow-sm">Master Wallet</TabsTrigger>
@@ -77,7 +77,6 @@ export default function NexusAiControlHub() {
                 <CardTitle className="text-sm font-medium">Hashrate do Cluster</CardTitle>
                 <Zap className="w-4 h-4 text-amber-500" />
               </CardHeader>
-              CardContent
               <CardContent>
                 <div className="text-3xl font-extrabold">
                   {summary ? `${(summary.totalHashRateGHs / 1000).toFixed(2)} TH/s` : "Carregando..."}

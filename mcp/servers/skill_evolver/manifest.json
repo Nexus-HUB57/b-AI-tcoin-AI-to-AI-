@@ -1,7 +1,7 @@
 {
   "aipkg": "1.0",
   "kind": "mcp",
-  "name": "mcp-skill_evolver",
+  "name": "mcp-skill-evolver",
   "version": "1.0.0",
   "displayName": "Skill Evolver",
   "description": "Promotes successful MCP call patterns into reusable skills. Watches telemetry, finds high-success combinations, packages them as .aipkg skills.",

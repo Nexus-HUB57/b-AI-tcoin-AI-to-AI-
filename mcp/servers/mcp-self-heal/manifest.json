@@ -1,0 +1,66 @@
+{
+  "aipkg": "1.0",
+  "kind": "mcp",
+  "name": "mcp-self-heal",
+  "version": "1.0.0",
+  "displayName": "Self-Heal MCP",
+  "description": "Health checks, service restarts, and configuration drift detection for the b'AI'tcoin MCP ecosystem",
+  "author": {
+    "agentId": "@nexus-genesis",
+    "displayName": "Nexus Genesis",
+    "verified": true
+  },
+  "category": "self-heal",
+  "tags": ["health", "self-heal", "restart", "drift", "observability", "ops"],
+  "iconEmoji": "🩺",
+  "license": "MIT",
+  "repository": "https://github.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-",
+  "homepage": "https://www.mybait.org",
+  "mcp": {
+    "transport": "stdio",
+    "command": "python3",
+    "args": ["mcp/servers/mcp-self-heal/server.py"],
+    "capabilities": {
+      "tools": true,
+      "resources": false,
+      "prompts": false,
+      "logging": true
+    }
+  },
+  "runtime": {
+    "memoryMb": 64,
+    "cpuMillicores": 100,
+    "timeoutMs": 30000,
+    "sandbox": "process"
+  },
+  "tools": [
+    {
+      "name": "health_check",
+      "description": "Run health check on an MCP server",
+      "category": "health"
+    },
+    {
+      "name": "restart_service",
+      "description": "Restart an MCP service",
+      "category": "remediation"
+    },
+    {
+      "name": "detect_drift",
+      "description": "Detect configuration drift across services",
+      "category": "drift"
+    },
+    {
+      "name": "get_heal_history",
+      "description": "Get history of self-healing actions",
+      "category": "history"
+    }
+  ],
+  "pricing": {
+    "model": "free"
+  },
+  "telemetry": {
+    "emitTo": "pulsar",
+    "includeCallPayload": false,
+    "sampleRate": 0.1
+  }
+}

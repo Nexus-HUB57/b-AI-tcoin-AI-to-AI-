@@ -1,0 +1,13 @@
+{
+  "name": "mcp-social-network-hashtag-trend",
+  "version": "1.0.0",
+  "description": "Redes Sociais & MyLink :: hashtag-trend",
+  "tools": [
+    {
+      "name": "hashtag-trend",
+      "description": "hashtag-trend tool for Redes Sociais & MyLink"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

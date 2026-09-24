@@ -1,5 +1,7 @@
 # b'AI'tcoin (BAIT) — Technical Summary for Binance
 
+> **CORRECTION (OPSEC Remediation):** The zkML-PoUW system uses SHA-256d Proof of Work with tensor commitment hashes for integrity verification. It does **NOT** perform zero-knowledge proofs of ML inference. The naming "zkML" is legacy and should **not** be interpreted as zk-SNARK/STARK capability. No Groth16 setup, no trusted setup ceremony, and no ZK circuit compilation exists. The integrity guarantee is deterministic hash-verification of tensor commitments, not cryptographic zero-knowledge.
+
 ## Token Overview
 
 | Parameter | Value |

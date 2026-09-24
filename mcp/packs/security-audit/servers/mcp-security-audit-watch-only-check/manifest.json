@@ -1,0 +1,13 @@
+{
+  "name": "mcp-security-audit-watch-only-check",
+  "version": "1.0.0",
+  "description": "Seguran\u00e7a & Auditoria :: watch-only-check",
+  "tools": [
+    {
+      "name": "watch-only-check",
+      "description": "watch-only-check tool for Seguran\u00e7a & Auditoria"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}

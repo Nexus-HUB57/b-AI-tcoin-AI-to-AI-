@@ -1,0 +1,13 @@
+{
+  "name": "mcp-defi-banking-apy-calc",
+  "version": "1.0.0",
+  "description": "DeFi & Banking :: apy-calc",
+  "tools": [
+    {
+      "name": "apy-calc",
+      "description": "apy-calc tool for DeFi & Banking"
+    }
+  ],
+  "runtime": "python3.11",
+  "entrypoint": "server.py"
+}
