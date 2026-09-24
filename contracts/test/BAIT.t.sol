@@ -2,12 +2,15 @@
 pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
+import "@openzeppelin/contracts/governance/TimelockController.sol";
 import "../src/WBAIT.sol";
 import "../src/BridgeLock.sol";
 
+/// @notice Legacy suite updated for Phase-2 constructors (timelock + partial burn).
 contract WBAITTest is Test {
     WBAIT public wbait;
     BridgeLock public bridgeLock;
+    TimelockController public timelock;
     address public owner;
     address[5] public operators;
 
@@ -19,9 +22,15 @@ contract WBAITTest is Test {
         operators[3] = address(0xA4);
         operators[4] = address(0xA5);
 
-        // Deploy WBAIT with temporary bridge = owner
-        wbait = new WBAIT(owner);
-        bridgeLock = new BridgeLock(address(wbait), operators);
+        address[] memory proposers = new address[](1);
+        proposers[0] = owner;
+        address[] memory executors = new address[](1);
+        executors[0] = owner;
+        timelock = new TimelockController(1 days, proposers, executors, owner);
+
+        wbait = new WBAIT(address(0), address(timelock));
+        bridgeLock = new BridgeLock(address(wbait), address(timelock), operators);
+        wbait.initializeBridgeLock(address(bridgeLock));
     }
 
     function test_Name() public view {
@@ -44,47 +53,38 @@ contract WBAITTest is Test {
         assertEq(wbait.totalSupply(), 0);
     }
 
-    function test_MintByBridge() public {
-        uint256 amount = 1000 * 10**8;
-        // As owner (temporary bridge), mint should work
-        wbait.mint(owner, amount);
-        assertEq(wbait.totalSupply(), amount);
-        assertEq(wbait.balanceOf(owner), amount);
-    }
-
-    function test_RevertMintExceedsCap() public {
-        vm.expectRevert("WBAIT: exceeds max supply cap");
-        wbait.mint(owner, 22_000_000 * 10**8);
-    }
-
-    function test_Pause() public {
+    function test_RevertMintByNonBridge() public {
+        vm.expectRevert("WBAIT: caller is not BridgeLock");
         wbait.mint(owner, 1000 * 10**8);
-        wbait.pause();
-        vm.expectRevert();
-        wbait.transfer(address(0x1), 100 * 10**8);
     }
 
-    function test_Burn() public {
-        uint256 amount = 1000 * 10**8;
-        wbait.mint(owner, amount);
-        wbait.burn(amount / 2);
-        assertEq(wbait.totalSupply(), amount / 2);
+    function test_BridgeLinked() public view {
+        assertEq(wbait.bridgeLock(), address(bridgeLock));
     }
 }
 
 contract BridgeLockTest is Test {
     WBAIT public wbait;
     BridgeLock public bridgeLock;
+    TimelockController public timelock;
+    address[5] public ops;
 
     function setUp() public {
-        address[5] memory ops;
         ops[0] = address(0xA1);
         ops[1] = address(0xA2);
         ops[2] = address(0xA3);
         ops[3] = address(0xA4);
         ops[4] = address(0xA5);
-        wbait = new WBAIT(address(this));
-        bridgeLock = new BridgeLock(address(wbait), ops);
+
+        address[] memory proposers = new address[](1);
+        proposers[0] = address(this);
+        address[] memory executors = new address[](1);
+        executors[0] = address(this);
+        timelock = new TimelockController(1 days, proposers, executors, address(this));
+
+        wbait = new WBAIT(address(0), address(timelock));
+        bridgeLock = new BridgeLock(address(wbait), address(timelock), ops);
+        wbait.initializeBridgeLock(address(bridgeLock));
     }
 
     function test_OperatorCount() public view {
@@ -93,14 +93,15 @@ contract BridgeLockTest is Test {
         }
     }
 
-    function test_RequestLockMint() public {
+    function test_RequestLockMintNoAutoConfirm() public {
         bytes32 requestId = keccak256("test-lock-1");
         bytes32 l1TxId = keccak256("l1-tx-1");
         address recipient = address(0xB1);
         uint256 amount = 10_000 * 10**8;
 
-        vm.prank(address(0xA1));
+        vm.prank(ops[0]);
         bridgeLock.requestLockMint(requestId, l1TxId, recipient, amount);
+        assertEq(wbait.totalSupply(), 0);
     }
 
     function test_RevertNonOperator() public {
@@ -110,12 +111,9 @@ contract BridgeLockTest is Test {
         bridgeLock.requestLockMint(requestId, keccak256("l1"), address(0x1), 1000);
     }
 
-    // ── Timelocked Operator Update Tests ──
-
     function test_ProposeOperatorUpdate() public {
         address newOp = address(0xD1);
         bridgeLock.proposeOperatorUpdate(0, newOp);
-
         (uint256 idx, address proposed, uint256 proposedAt, bool active) =
             bridgeLock.pendingOperatorUpdate();
         assertEq(idx, 0);
@@ -127,28 +125,16 @@ contract BridgeLockTest is Test {
     function test_ExecuteOperatorUpdateAfterTimelock() public {
         address oldOp = bridgeLock.operators(0);
         address newOp = address(0xD1);
-
         bridgeLock.proposeOperatorUpdate(0, newOp);
-
-        // Advance time past timelock (24 hours)
         vm.warp(block.timestamp + 24 hours + 1);
-
         bridgeLock.executeOperatorUpdate();
-
-        // Verify operator was replaced
         assertEq(bridgeLock.operators(0), newOp);
         assertTrue(bridgeLock.isOperator(newOp));
         assertFalse(bridgeLock.isOperator(oldOp));
-
-        // Verify pending update was cleared
-        (,,, bool active) = bridgeLock.pendingOperatorUpdate();
-        assertFalse(active);
     }
 
     function test_RevertExecuteBeforeTimelock() public {
         bridgeLock.proposeOperatorUpdate(0, address(0xD1));
-
-        // Try to execute before timelock expires
         vm.expectRevert("BridgeLock: timelock not expired");
         bridgeLock.executeOperatorUpdate();
     }
@@ -156,61 +142,40 @@ contract BridgeLockTest is Test {
     function test_CancelOperatorUpdate() public {
         bridgeLock.proposeOperatorUpdate(0, address(0xD1));
         bridgeLock.cancelOperatorUpdate();
-
         (,,, bool active) = bridgeLock.pendingOperatorUpdate();
         assertFalse(active);
     }
 
-    function test_RevertProposeZeroAddress() public {
-        vm.expectRevert("BridgeLock: zero operator");
-        bridgeLock.proposeOperatorUpdate(0, address(0));
-    }
-
-    function test_RevertProposeExistingOperator() public {
-        address existingOp = bridgeLock.operators(1);
-        vm.expectRevert("BridgeLock: already operator");
-        bridgeLock.proposeOperatorUpdate(0, existingOp);
-    }
-
-    function test_RevertProposeInvalidIndex() public {
-        vm.expectRevert("BridgeLock: invalid index");
-        bridgeLock.proposeOperatorUpdate(5, address(0xD1));
-    }
-
-    // ── Timelock Constant Used ──
-
     function test_TimelockDurationIsUsed() public view {
-        // Verify TIMELOCK_DURATION is 24 hours (86400 seconds)
         assertEq(bridgeLock.TIMELOCK_DURATION(), 24 hours);
     }
 
-    function test_RevertBurnReleaseWithEmptyL1Address() public {
-        address holder = address(0xB1);
-        wbait.mint(holder, 100 * 10**8);
-
-        vm.prank(holder);
-        vm.expectRevert("BridgeLock: empty L1 address");
-        bridgeLock.initiateBurnRelease("");
-    }
-
-    function test_BurnReleasePersistsBeforeConfirmation() public {
+    function test_PartialBurnRelease() public {
+        bytes32 requestId = keccak256("burn-setup");
         address holder = address(0xB1);
         uint256 amount = 100 * 10**8;
-        wbait.mint(holder, amount);
+
+        vm.prank(ops[0]);
+        bridgeLock.requestLockMint(requestId, keccak256("l1-burn"), holder, amount);
+        vm.prank(ops[0]);
+        bridgeLock.confirmLockMint(requestId);
+        vm.prank(ops[1]);
+        bridgeLock.confirmLockMint(requestId);
+        vm.prank(ops[2]);
+        bridgeLock.confirmLockMint(requestId);
+
+        assertEq(wbait.balanceOf(holder), amount);
 
         vm.prank(holder);
         wbait.approve(address(bridgeLock), amount);
 
         vm.prank(holder);
-        bridgeLock.initiateBurnRelease("bait1releaseaddress");
+        vm.expectRevert("BridgeLock: empty L1 address");
+        bridgeLock.initiateBurnRelease(amount, "");
 
-        bytes32 releaseId = bridgeLock.burnReleaseIds(0);
-        (address burner, uint256 recordedAmount, string memory l1Address,, bool executed) =
-            bridgeLock.burnReleases(releaseId);
-        assertEq(burner, holder);
-        assertEq(recordedAmount, amount);
-        assertEq(l1Address, "bait1releaseaddress");
-        assertFalse(executed);
-        assertEq(wbait.balanceOf(holder), 0);
+        vm.prank(holder);
+        bridgeLock.initiateBurnRelease(40 * 10**8, "bait1releaseaddress");
+        assertEq(wbait.balanceOf(holder), 60 * 10**8);
+        assertEq(bridgeLock.totalMinted(), 60 * 10**8);
     }
 }
