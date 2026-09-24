@@ -1,0 +1,14 @@
+testMode: property
+testLimit: 50000
+seqLen: 40
+shrinkLimit: 5000
+coverage: true
+corpusDir: echidna-corpus
+deployer: "0x10000"
+sender: ["0x10000", "0x20000", "0x30000", "0x40000", "0x50000", "0xBEEF"]
+cryticArgs:
+  - "--foundry-compile-all"
+filterBlacklist: true
+filterFunctions:
+  - "EchidnaBridgeTester.echidna_*"
+workers: 2
