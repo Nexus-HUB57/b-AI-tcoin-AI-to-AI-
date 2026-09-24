@@ -888,6 +888,13 @@ class EcosystemNode:
             self._persist_marketplace()
         return pid
 
+    def settle_purchase(self, purchase_id: str, settlement_txid: str, confirmations: int) -> bool:
+        r"""Regista settlement externo verificado antes de permitir avaliação."""
+        ok = self.marketplace.settle_purchase(purchase_id, settlement_txid, confirmations)
+        if ok and self.auto_persist:
+            self._persist_marketplace()
+        return ok
+
     def rate_service(self, purchase_id: str, score: float) -> bool:
         r"""Avalia serviço comprado (1.0 a 5.0)."""
         ok = self.marketplace.rate_service(purchase_id, score)
