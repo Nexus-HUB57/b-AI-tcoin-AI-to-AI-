@@ -44,10 +44,11 @@ python3 scripts/verify_public_pool.py \
   --api https://node-b.example.org/api \
   --api https://node-c.example.org/api \
   --api https://node-d.example.org/api \
-  --min-peers 3
+  --min-peers 3 \
+  --require-tip-hash
 ```
 
-O resultado somente é `GO` quando todos os nós estão ativos, têm pelo menos três handshakes, informam `chain_valid: true` e convergem para a mesma altura. Esse resultado comprova transporte e convergência observável; não substitui a validação de consenso.
+O resultado somente é `GO` quando todos os nós estão ativos, têm pelo menos três handshakes, informam `chain_valid: true`, expõem um `tip_hash` hexadecimal de 64 caracteres e convergem para a mesma altura e o mesmo hash. O auditor normaliza esquema, hostname, porta e caminho e rejeita origens duplicadas, inclusive aliases como `https://NODE-A.example.org/api/` e `https://node-a.example.org:443/api`. Esse resultado comprova transporte e convergência observável; não substitui a validação de consenso.
 
 ## Exercícios obrigatórios
 
