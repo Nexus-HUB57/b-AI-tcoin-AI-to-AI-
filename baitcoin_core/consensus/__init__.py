@@ -12,6 +12,7 @@ from baitcoin_core.consensus.work_template import (
     WorkTemplate,
     WorkTemplateManager,
 )
+from baitcoin_core.consensus.mining_transport import MiningTransportService
 
 __all__ = [
     "ZkMLConsensus",
@@ -24,4 +25,5 @@ __all__ = [
     "ShareSubmission",
     "WorkTemplate",
     "WorkTemplateManager",
+    "MiningTransportService",
 ]

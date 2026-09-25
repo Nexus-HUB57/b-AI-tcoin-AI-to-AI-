@@ -162,6 +162,7 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
     explorer_analytics = None # OnChainAnalytics instance
     explorer_docs = None      # DeveloperDocs instance
     rate_limiter = None       # RateLimiter instance
+    mining_transport = None   # MiningTransportService; explicit testnet/regtest opt-in
 
     # Moltbook-protected routes (requerem X-Moltbook-Identity header)
     MOLTBOOK_PROTECTED_POST = {
@@ -350,6 +351,8 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
             '/api/v1/marketplace/search': self._post_marketplace_search,
             # Phase 21: Bug Bounty
             '/api/v1/bug-bounty/submit': self._post_bug_bounty_submit,
+            '/api/v1/mining/template': self._post_mining_template,
+            '/api/v1/mining/share': self._post_mining_share,
         }
         handler = routes.get(path)
         if handler:
@@ -389,6 +392,59 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
         self.moltbook_agent = result.agent
         self.moltbook_headers = headers_dict
         return None
+
+    # --- External mining transport (explicit regtest/testnet opt-in) ---
+    def _mining_client_id(self) -> str:
+        return (self.headers.get('X-Mining-Client') or
+                self.headers.get('X-Forwarded-For') or
+                self.client_address[0])[:128]
+
+    def _read_json_body_bounded(self):
+        try:
+            length = int(self.headers.get('Content-Length', 0))
+        except ValueError:
+            return None, {'error': 'invalid_content_length'}
+        if length <= 0 or length > 16 * 1024:
+            return None, {'error': 'request_body_out_of_bounds'}
+        try:
+            return json.loads(self.rfile.read(length).decode('utf-8')), None
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            return None, {'error': 'invalid_json'}
+
+    def _post_mining_template(self):
+        if self.mining_transport is None:
+            return self._send_json({'error': 'mining_transport_disabled'}, 503)
+        body, error = self._read_json_body_bounded()
+        if error:
+            return self._send_json(error, 400)
+        try:
+            result = self.mining_transport.issue_template(
+                miner_id=body.get('miner_id', ''),
+                payout_script_hex=body.get('payout_script_hex', ''),
+                client_id=self._mining_client_id(),
+            )
+        except PermissionError as exc:
+            return self._send_json({'error': str(exc)}, 429)
+        except (TypeError, ValueError) as exc:
+            return self._send_json({'error': str(exc)}, 400)
+        return self._send_json(result, 201)
+
+    def _post_mining_share(self):
+        if self.mining_transport is None:
+            return self._send_json({'error': 'mining_transport_disabled'}, 503)
+        body, error = self._read_json_body_bounded()
+        if error:
+            return self._send_json(error, 400)
+        try:
+            result = self.mining_transport.submit_share(
+                body, client_id=self._mining_client_id(),
+            )
+        except PermissionError as exc:
+            return self._send_json({'error': str(exc)}, 429)
+        except (TypeError, ValueError) as exc:
+            return self._send_json({'error': str(exc)}, 400)
+        status = 200 if result.get('status') in {'accepted', 'duplicate'} else 400
+        return self._send_json(result, status)
 
     def _get_auth_status(self):
         r"""Retorna info do agente Moltbook autenticado (se houver)."""
