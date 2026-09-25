@@ -38,6 +38,11 @@ jobs:
             fi
           done
           echo "All HTML files valid"
+      - name: Count REST endpoints (dynamic gate)
+        run: |
+          echo "Counting REST endpoints from baitcoin_api/server.py..."
+          python3 scripts/count_api_endpoints.py --gate 50
+
       - name: Check no JS syntax errors
         run: |
           python3 << 'PYEOF'
@@ -64,9 +69,15 @@ jobs:
       - name: Check content consistency
         run: |
           python3 << 'PYEOF'
-          import re, sys
+          import re, sys, subprocess
           with open('netlify/index.html') as f:
               netlify = f.read()
+
+          # Dynamic count — what does the API actually expose today?
+          count = int(subprocess.check_output(
+              ['python3', 'scripts/count_api_endpoints.py', '--json']
+          ))
+
           errors = []
           if 'Pre-Alpha' in netlify:
               errors.append('netlify/index.html still contains Pre-Alpha')
@@ -74,14 +85,22 @@ jobs:
               errors.append('netlify/index.html still contains 52 REST')
           if 'Mainnet' not in netlify and 'MAINNET' not in netlify:
               errors.append('netlify/index.html missing Mainnet')
-          # Accept "67 REST" or any "N REST" / "REST endpoints" marketing claim
-          if '67 REST' not in netlify and not re.search(r'\d+\+?\s*REST', netlify, re.I):
+          if re.search(r'\d+\+?\s*REST', netlify, re.I) is None:
               errors.append('netlify/index.html missing REST endpoint claim (e.g. 67 REST)')
+
+          # Cross-check: HTML must advertise the *current* count, not a stale one.
+          m = re.search(r'(\d+)\+?\s*REST', netlify, re.I)
+          if m:
+              claimed = int(m.group(1))
+              if abs(claimed - count) > 5:  # tolerate ±5 for grouping heuristics
+                  errors.append(f'netlify/index.html endpoint count drift: '
+                               f'HTML says {claimed}, code has {count}')
+
           for e in errors:
               print(f'ERROR: {e}')
           if errors:
               sys.exit(1)
-          print('Content consistency OK')
+          print(f'Content consistency OK (endpoints={count})')
           PYEOF
 
   notify:
