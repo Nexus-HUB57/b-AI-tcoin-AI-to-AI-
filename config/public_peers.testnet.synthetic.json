@@ -1,0 +1,52 @@
+{
+  "environment": "synthetic-example",
+  "operational": false,
+  "network": "baitcoin-testnet",
+  "protocol_version": 1,
+  "genesis_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "minimum_nodes": 4,
+  "minimum_independent_operators": 3,
+  "minimum_handshakes_per_node": 3,
+  "nodes": [
+    {
+      "node_id": "1111111111111111111111111111111111111111111111111111111111111111",
+      "operator_id": "synthetic-operator-a",
+      "provider": "synthetic-provider-a",
+      "region": "synthetic-north-america",
+      "asn": "64512",
+      "p2p_host": "node-a.test.invalid",
+      "p2p_port": 19000,
+      "api_base": "https://node-a.test.invalid/api"
+    },
+    {
+      "node_id": "2222222222222222222222222222222222222222222222222222222222222222",
+      "operator_id": "synthetic-operator-b",
+      "provider": "synthetic-provider-b",
+      "region": "synthetic-europe",
+      "asn": "64513",
+      "p2p_host": "node-b.test.invalid",
+      "p2p_port": 19001,
+      "api_base": "https://node-b.test.invalid/api"
+    },
+    {
+      "node_id": "3333333333333333333333333333333333333333333333333333333333333333",
+      "operator_id": "synthetic-operator-c",
+      "provider": "synthetic-provider-c",
+      "region": "synthetic-asia-pacific",
+      "asn": "64514",
+      "p2p_host": "node-c.test.invalid",
+      "p2p_port": 19002,
+      "api_base": "https://node-c.test.invalid/api"
+    },
+    {
+      "node_id": "4444444444444444444444444444444444444444444444444444444444444444",
+      "operator_id": "synthetic-operator-d",
+      "provider": "synthetic-provider-d",
+      "region": "synthetic-south-america",
+      "asn": "64515",
+      "p2p_host": "node-d.test.invalid",
+      "p2p_port": 19003,
+      "api_base": "https://node-d.test.invalid/api"
+    }
+  ]
+}
