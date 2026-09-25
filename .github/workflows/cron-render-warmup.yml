@@ -1,0 +1,43 @@
+name: Render Warmup Ping
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'   # every 15 minutes (GitHub minimum)
+  workflow_dispatch:
+
+concurrency:
+  group: cron-render-warmup
+  cancel-in-progress: false
+
+jobs:
+  warmup:
+    name: Keep Render alive
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Ping Render API
+        run: |
+          set -uo pipefail
+          RENDER_URL="https://b-ai-tcoin-ai-to-ai.onrender.com/api/v1/status"
+          START=$(date +%s)
+          HTTP_CODE=$(curl -sS --max-time 30 -o /tmp/render-status.json -w "%{http_code}" "$RENDER_URL" 2>/dev/null || echo "000")
+          END=$(date +%s)
+          ELAPSED=$((END - START))
+
+          if [ "$HTTP_CODE" = "200" ]; then
+            HEIGHT=$(python3 -c "import json; d=json.load(open('/tmp/render-status.json')); print(d.get('chain_height','?'))" 2>/dev/null || echo "?")
+            echo "✅ Render warmup OK — HTTP $HTTP_CODE, height=$HEIGHT, latency=${ELAPSED}s"
+          else
+            echo "⚠️ Render warmup got HTTP $HTTP_CODE (latency=${ELAPSED}s) — cold-start or down"
+          fi
+
+      - name: Ping mybait.org (primary)
+        run: |
+          set -uo pipefail
+          LOCAL_URL="https://mybait.org/api.cgi/health"
+          HTTP_CODE=$(curl -sS --max-time 10 -o /dev/null -w "%{http_code}" "$LOCAL_URL" 2>/dev/null || echo "000")
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "✅ mybait.org primary OK — HTTP $HTTP_CODE"
+          else
+            echo "❌ mybait.org primary FAIL — HTTP $HTTP_CODE"
+          fi
