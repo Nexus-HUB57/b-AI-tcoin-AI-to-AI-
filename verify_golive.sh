@@ -6,6 +6,7 @@
 # v3 fix: hasE corrigido, C11 com captura robusta do código HTTP.
 # ============================================================
 set -u
+DEPLOY_SECRET="${DEPLOY_SECRET:?DEPLOY_SECRET not set — deploy aborted}"
 BASE="${1:-https://mybait.org}"
 API="$BASE/api/api/v1"
 PASS=0; FAIL=0; SKIP=0
@@ -63,7 +64,7 @@ if [ "$c" = 200 ] && has '"total"' /tmp/v10.json; then
 else FAIL=$((FAIL+1)); row C10 FAIL "aistore/stats=$c"; fi
 
 PAYLOAD='{"target":"all","ref":"main","sha":"verify-golive"}'
-SIG=$(printf '%s' "$PAYLOAD" | openssl dgst -sha256 -hmac 'baitcoin-deploy-2024' 2>/dev/null | awk '{print $NF}')
+SIG=$(printf '%s' "$PAYLOAD" | openssl dgst -sha256 -hmac "$DEPLOY_SECRET" 2>/dev/null | awk '{print $NF}')
 HTTP_CODE=$(curl -s -m 20 -o /tmp/v11.txt -w '%{http_code}' -X POST "$BASE/deploy-webhook.php" \
   -H 'Content-Type: application/json' -H "X-Deploy-Signature: $SIG" -d "$PAYLOAD" 2>/dev/null || echo 000)
 if [ "$HTTP_CODE" = 200 ] && has '"' /tmp/v11.txt && ! has 'Page cannot be displayed' /tmp/v11.txt && ! has '<html' /tmp/v11.txt; then

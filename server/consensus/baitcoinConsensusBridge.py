@@ -2,15 +2,16 @@
 """
 b'AI'tcoin Python-Rust Consensus & Autonomous Agent Bridge
 Integrates autonomous agent skills with deterministic consensus validation rules
-under Master Wallet protection ('Benjamin2020*1981$').
+under Master Wallet protection ('[REDACTED_PASSPHRASE]').
 """
 
 import hashlib
 import hmac
+import os
 import time
 import json
 
-MASTER_PASSPHRASE = "Benjamin2020*1981$"
+MASTER_PASSPHRASE = os.getenv('MASTER_WALLET_PASSPHRASE', '')
 MASTER_ADDRESS = "bc1qmastervaltfixednexusgenesis2026"
 
 class BaitcoinConsensusBridge:

@@ -30,6 +30,7 @@ import json
 import time
 import argparse
 import logging
+import signal
 
 logging.basicConfig(
     level=logging.INFO,
@@ -37,6 +38,45 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S',
 )
 logger = logging.getLogger(__name__)
+
+
+def load_p2p_seeds(value: str | None = None) -> list[tuple[str, int]]:
+    """Parse comma-separated host:port seeds; Mainnet never defaults to loopback."""
+    raw = value if value is not None else os.getenv("BAIT_P2P_SEEDS", "")
+    if not raw.strip():
+        raise RuntimeError("BAIT_P2P_SEEDS is required for Mainnet; refusing loopback-only bootstrap")
+    seeds = []
+    for entry in raw.split(","):
+        entry = entry.strip()
+        if ":" not in entry:
+            raise ValueError(f"invalid P2P seed (expected host:port): {entry}")
+        host, port_raw = entry.rsplit(":", 1)
+        port = int(port_raw)
+        if not host or not (1 <= port <= 65535) or host in {"127.0.0.1", "localhost", "::1"}:
+            raise ValueError(f"invalid external Mainnet P2P seed: {entry}")
+        seeds.append((host, port))
+    if len(set(seeds)) < 3:
+        raise RuntimeError("Mainnet requires at least three distinct external P2P seeds")
+    return seeds
+
+
+def load_p2p_port(value: str | None = None) -> int:
+    raw = value if value is not None else os.getenv("BAIT_P2P_PORT", "18444")
+    port = int(raw)
+    if not 1 <= port <= 65535:
+        raise ValueError("BAIT_P2P_PORT must be between 1 and 65535")
+    return port
+
+
+def get_chain_identity(blockchain) -> dict[str, str]:
+    """Return canonical tip/genesis hashes for read-only public status."""
+    if blockchain is None or not getattr(blockchain, "chain", None):
+        raise RuntimeError("chain identity unavailable: blockchain has no blocks")
+    tip_hash = blockchain.last_block.block_hash.hex()
+    genesis_hash = blockchain.chain[0].block_hash.hex()
+    if len(tip_hash) != 64 or len(genesis_hash) != 64:
+        raise RuntimeError("chain identity unavailable: invalid block hash length")
+    return {"tip_hash": tip_hash, "genesis_hash": genesis_hash}
 
 
 class BAITDaemon:
@@ -106,9 +146,10 @@ class BAITDaemon:
         # 8. P2P Network v0.2 (TCP asyncio real via bridge síncrono)
         from baitcoin_core.network.p2p_bridge import P2PBridge
         self.p2p_network = P2PBridge(
-            node_id="bait_mainnet_001",
-            agent_id="chimera7",
-            port=18444,
+            node_id=os.getenv("BAIT_NODE_ID", "bait_mainnet_001"),
+            agent_id=os.getenv("BAIT_AGENT_ID", "chimera7"),
+            port=load_p2p_port(),
+            seeds=load_p2p_seeds(),
         )
         # Conectar hooks do blockchain para sync P2P
         self.p2p_network.set_blockchain_hooks(
@@ -121,7 +162,7 @@ class BAITDaemon:
             on_tx=lambda data, peer: logger.info(f"TX recebida via P2P de {peer}"),
         )
         self.p2p_network.start()
-        logger.info(f"P2P v0.2 inicializado: {self.p2p_network.node_id} na porta 18444")
+        logger.info(f"P2P v0.2 inicializado: {self.p2p_network.node_id} na porta {self.p2p_network.port}")
 
         # 9. Obscura Bridge (headless browser, standby)
         from baitcoin_obscura.bridge import ObscuraBridge
@@ -6436,9 +6477,11 @@ class BAITDaemon:
             for sym in self.oracle.feeds:
                 oracle_prices[sym] = self.oracle.get_price(sym)
         or_data["prices"] = oracle_prices
+        chain_identity = get_chain_identity(self.blockchain)
         return {
             "network": "b'AI'tcoin Mainnet",
             "chain_height": self.blockchain.height,
+            **chain_identity,
             "chain_valid": chain_valid,
             "blocks_immutable": True,
             "persistence": "WAL + Snapshots",
@@ -6488,10 +6531,26 @@ async def run_daemon(num_blocks: int = 0, data_path: str = "~/.baitcoin/memory",
     # Iniciar API HTTP em thread separada
     import threading
     from baitcoin_api.server import create_app
-    api_server = create_app(host='127.0.0.1', port=api_port)
-    api_thread = threading.Thread(target=api_server.serve_forever, daemon=True)
+    api_host = os.getenv("BAIT_API_HOST", "127.0.0.1")
+    api_server = create_app(host=api_host, port=api_port)
+    api_thread = threading.Thread(target=api_server.serve_forever, daemon=False)
     api_thread.start()
     logger.info(f"API HTTP server iniciada na porta {api_port}")
+
+    # ═══ Signal handlers — graceful shutdown on SIGTERM/SIGINT ═══
+    _shutdown_requested = False
+
+    def _signal_handler(signum, frame):
+        nonlocal _shutdown_requested
+        if _shutdown_requested:
+            logger.warning("Segundo sinal recebido — forçando saida")
+            sys.exit(1)
+        _shutdown_requested = True
+        sig_name = signal.Signals(signum).name
+        logger.info(f"Sinal {sig_name} recebido — iniciando graceful shutdown...")
+
+    signal.signal(signal.SIGTERM, _signal_handler)
+    signal.signal(signal.SIGINT, _signal_handler)
 
     # Sobrepor _get_status para usar daemon.get_status() (com marketplace + oracle)
     def _get_status_with_marketplace(self):
@@ -6531,6 +6590,9 @@ async def run_daemon(num_blocks: int = 0, data_path: str = "~/.baitcoin/memory",
     _rng.seed(int(time.time()))
 
     while True:
+        if _shutdown_requested:
+            logger.info("Shutdown solicitado — encerrando loop de mineracao")
+            break
         if num_blocks > 0 and block_count >= num_blocks:
             logger.info(f"Limite de {num_blocks} blocos atingido. Encerrando.")
             break
@@ -6566,8 +6628,30 @@ async def run_daemon(num_blocks: int = 0, data_path: str = "~/.baitcoin/memory",
 
         await asyncio.sleep(0.1)
 
+    # ═══ Graceful shutdown sequence ═══
+    logger.info("Parando P2P network...")
+    daemon.shutdown()  # P2P stop + WAL snapshot
+
+    if daemon.obscura_bridge and hasattr(daemon.obscura_bridge, 'stop'):
+        logger.info("Parando Obscura Bridge...")
+        try:
+            daemon.obscura_bridge.stop()
+        except Exception as e:
+            logger.warning(f"Erro ao parar Obscura Bridge: {e}")
+
+    logger.info("Parando API HTTP server...")
+    try:
+        api_server.shutdown()
+    except Exception as e:
+        logger.warning(f"Erro ao parar API server: {e}")
+    api_thread.join(timeout=10.0)
+
     # Snapshot final antes de encerrar
-    daemon.persistent_state.force_snapshot_all()
+    if daemon.persistent_state:
+        try:
+            daemon.persistent_state.force_snapshot_all()
+        except Exception as e:
+            logger.warning(f"Erro no snapshot final: {e}")
     status = daemon.get_status()
     print()
     print("=" * 70)

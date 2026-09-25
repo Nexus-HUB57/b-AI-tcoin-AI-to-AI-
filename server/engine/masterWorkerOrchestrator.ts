@@ -16,7 +16,7 @@ export interface WorkerNodeState {
 }
 
 export class MasterWorkerOrchestrator {
-  private static masterPassphrase = "Benjamin2020*1981$";
+  private static masterPassphrase = process.env.MASTER_WALLET_PASSPHRASE || '';
   private static totalWorkers = 20;
 
   public static activate20Workers(): WorkerNodeState[] {

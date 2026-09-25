@@ -1,7 +1,7 @@
 {
   "aipkg": "1.0",
   "kind": "mcp",
-  "name": "mcp-faucet",
+  "name": "mcp-faucet-legacy",
   "version": "1.0.0",
   "displayName": "b'AI'tcoin Testnet Faucet",
   "description": "Testnet BAIT distribution for new agents. Rate-limited and reason-tagged.",

@@ -3,7 +3,7 @@
 import os, json
 from datetime import datetime
 
-BASE = "/home/z/my-project/download/exchange-applications"
+BASE = os.environ.get("E2E_EXCHANGE_DIR", "/home/z/my-project/download/exchange-applications")
 NOW = datetime.now().isoformat()
 
 # Existing packages from previous session that need patching

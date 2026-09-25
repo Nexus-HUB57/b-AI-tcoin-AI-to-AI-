@@ -1,0 +1,10 @@
+{
+  "detectors_to_run": "arbitrary-send-erc20,array-by-reference,boolean-equal,constant-comparison,cyclic-complexity,deprecated-oz-function,erc20-interface,incorrect-shift,storage-array,tautological-comparison,unchecked-transfer,uninitialized-state,uninitialized-storage,unprotected-upgrade,virtual-not-overridden,wrong-type,reentrancy-eth,reentrancy-uninitialized-guard,unused-return,incorrect-modifier,solc-version,pragma-version",
+  "filter_paths": "contracts/test,contracts/script,lib",
+  "compile_force_framework": "foundry",
+  "exclude_informational": false,
+  "exclude_optimization": true,
+  "exclude_low": false,
+  "exclude_medium": false,
+  "exclude_high": false
+}

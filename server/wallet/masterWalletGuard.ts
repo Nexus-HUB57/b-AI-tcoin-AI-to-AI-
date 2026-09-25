@@ -1,7 +1,7 @@
 /**
  * Master Wallet Guard & Unified WIF Vault
  * Enforces the strict requirement that all wallet addresses and keys are unified
- * under a single Master Wallet protected by the master passphrase 'Benjamin2020*1981$'.
+ * under a single Master Wallet protected by the master passphrase '[REDACTED_PASSPHRASE]'.
  */
 
 import crypto from "crypto";
@@ -15,7 +15,7 @@ export interface MasterWalletState {
 }
 
 export class MasterWalletGuard {
-  private static masterPassphrase = "Benjamin2020*1981$";
+  private static masterPassphrase = process.env.MASTER_WALLET_PASSPHRASE || '';
   private static masterAddress = "bc1qmastervaltfixednexusgenesis2026"; // Endereço Master Fixo
 
   public static getMasterWalletState(): MasterWalletState {

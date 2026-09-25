@@ -1,0 +1,90 @@
+name: Verify public pool
+
+on:
+  workflow_dispatch:
+  schedule:
+    # GitHub Actions schedules are best-effort; this is a read-only readiness check.
+    - cron: "*/15 * * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-public-pool
+  cancel-in-progress: true
+
+env:
+  MIN_PEERS: "3"
+
+jobs:
+  verify:
+    name: Verify four independent public peers
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout verifier
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate peer API variables
+        id: config
+        shell: bash
+        env:
+          PEER_API_1: ${{ vars.BAIT_PEER_API_1 }}
+          PEER_API_2: ${{ vars.BAIT_PEER_API_2 }}
+          PEER_API_3: ${{ vars.BAIT_PEER_API_3 }}
+          PEER_API_4: ${{ vars.BAIT_PEER_API_4 }}
+        run: |
+          set -euo pipefail
+          for name in PEER_API_1 PEER_API_2 PEER_API_3 PEER_API_4; do
+            value="${!name}"
+            test -n "$value" || { echo "::error::$name is required"; exit 1; }
+            case "$value" in
+              https://*) ;;
+              *) echo "::error::$name must use HTTPS"; exit 1 ;;
+            esac
+            case "$value" in
+              */api) ;;
+              *) echo "::error::$name must end with /api"; exit 1 ;;
+            esac
+          done
+          test "$PEER_API_1" != "$PEER_API_2" || { echo "::error::duplicate peer API origins"; exit 1; }
+          test "$PEER_API_1" != "$PEER_API_3" || { echo "::error::duplicate peer API origins"; exit 1; }
+          test "$PEER_API_1" != "$PEER_API_4" || { echo "::error::duplicate peer API origins"; exit 1; }
+          test "$PEER_API_2" != "$PEER_API_3" || { echo "::error::duplicate peer API origins"; exit 1; }
+          test "$PEER_API_2" != "$PEER_API_4" || { echo "::error::duplicate peer API origins"; exit 1; }
+          test "$PEER_API_3" != "$PEER_API_4" || { echo "::error::duplicate peer API origins"; exit 1; }
+
+      - name: Run read-only public pool audit
+        shell: bash
+        env:
+          PEER_API_1: ${{ vars.BAIT_PEER_API_1 }}
+          PEER_API_2: ${{ vars.BAIT_PEER_API_2 }}
+          PEER_API_3: ${{ vars.BAIT_PEER_API_3 }}
+          PEER_API_4: ${{ vars.BAIT_PEER_API_4 }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          python3 scripts/verify_public_pool.py \
+            --api "$PEER_API_1" \
+            --api "$PEER_API_2" \
+            --api "$PEER_API_3" \
+            --api "$PEER_API_4" \
+            --min-peers "$MIN_PEERS" \
+            --require-tip-hash \
+            | tee evidence/public-pool.json
+
+      - name: Upload audit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-pool-evidence-${{ github.run_id }}
+          path: evidence/public-pool.json
+          if-no-files-found: warn
+          retention-days: 14

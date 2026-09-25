@@ -13,19 +13,25 @@ _ADMIN_STORE='/home/baitcoin/.baitcoin/admin_store.json'
 _AGENT_STAGES='/home/baitcoin/.baitcoin/agent_stages.json'
 def _load(p,d):
     try: return _j.load(open(p))
-    except: return d
+    except Exception: return d
 def _save(p,o):
     try:
         _os.makedirs(_os.path.dirname(p),exist_ok=True)
         _j.dump(o,open(p,'w'),indent=2); return True
-    except: return False
+    except Exception: return False
 def _admin_bootstrap():
     st=_load(_ADMIN_STORE,{})
-    if 'lucasmpthomaz@gmail.com' not in st:
+    _ADMIN_EMAIL=_os.environ.get('ADMIN_EMAIL','lucasmpthomaz@gmail.com')
+    if _ADMIN_EMAIL not in st:
         salt=_sec.token_hex(16)
-        h=_hl.sha256((salt+'123456').encode()).hexdigest()
+        _INIT_PW=_os.environ.get('ADMIN_INIT_PASSWORD','')
+        if not _INIT_PW:
+            _INIT_PW=_sec.token_urlsafe(12)
+            print(f'[SECURITY] Admin password generated (set ADMIN_INIT_PASSWORD env): {_INIT_PW}')
+        h=_hl.sha256((salt+_INIT_PW).encode()).hexdigest()
         for _ in range(50000): h=_hl.sha256((salt+h).encode()).hexdigest()
-        st['lucasmpthomaz@gmail.com']={'salt':salt,'hash':h,'must_change':True,'role':'admin','created':int(_t.time())}
+        _ADMIN_EMAIL=_os.environ.get('ADMIN_EMAIL','lucasmpthomaz@gmail.com')
+        st[_ADMIN_EMAIL]={'salt':salt,'hash':h,'must_change':True,'role':'admin','created':int(_t.time())}
         _save(_ADMIN_STORE,st)
     return st
 _admin_bootstrap()
@@ -80,7 +86,7 @@ def _mk_post_wrapper(orig):
             cl=int(self.headers.get('Content-Length','0') or 0)
             raw=self.rfile.read(cl) if cl else b'{}'
             try: body=_j.loads(raw.decode() or '{}')
-            except: body={}
+            except Exception: body={}
             # ---- ADMIN AUTH ----
             if path.endswith('/admin/login'):
                 r=_verify_admin(body.get('email',''),body.get('password',''))
@@ -145,7 +151,7 @@ def _mk_post_wrapper(orig):
             try:
                 self.send_response(500); self.send_header('Content-Type','application/json'); self.send_header('Access-Control-Allow-Origin','*'); self.end_headers()
                 self.wfile.write(_j.dumps({'ok':False,'error':str(e)}).encode())
-            except: pass
+            except Exception: pass
             return
         if orig: return orig(self)
         self.send_response(404); self.send_header('Content-Type','application/json'); self.end_headers()

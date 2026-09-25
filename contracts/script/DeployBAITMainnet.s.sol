@@ -19,6 +19,7 @@ import "../src/BridgeLock.sol";
  * Environment Variables Required:
  *   DEPLOYER_PRIVATE_KEY  - Deployer private key
  *   OPERATOR_1..5         - 5 unique bridge operator addresses
+ *   TIMELOCK_ADDRESS      - Existing TimelockController contract
  *   MULTISIG_OWNER        - Multisig address for ownership transfer
  */
 contract DeployBAITMainnet is Script {
@@ -39,6 +40,7 @@ contract DeployBAITMainnet is Script {
             vm.envAddress("OPERATOR_4"),
             vm.envAddress("OPERATOR_5")
         ];
+        address timelockAddress = vm.envAddress("TIMELOCK_ADDRESS");
         multisig = vm.envAddress("MULTISIG_OWNER");
 
         // Pre-deployment checks
@@ -53,7 +55,7 @@ contract DeployBAITMainnet is Script {
 
         // Step 1: Deploy WBAIT (bridge = deployer temporarily)
         console.log("--- Step 1: Deploy WBAIT ---");
-        wbait = new WBAIT(deployer);
+        wbait = new WBAIT(deployer, timelockAddress);
         console.log("WBAIT deployed at:", address(wbait));
         console.log("  decimals:", wbait.decimals());
         console.log("  MAX_SUPPLY:", wbait.MAX_SUPPLY());
@@ -61,7 +63,7 @@ contract DeployBAITMainnet is Script {
 
         // Step 2: Deploy BridgeLock
         console.log("--- Step 2: Deploy BridgeLock ---");
-        bridgeLock = new BridgeLock(address(wbait), operators);
+        bridgeLock = new BridgeLock(address(wbait), timelockAddress, operators);
         console.log("BridgeLock deployed at:", address(bridgeLock));
         console.log("  wbait ref:", address(bridgeLock.wbait()));
         console.log("  threshold:", bridgeLock.REQUIRED_CONFIRMATIONS());

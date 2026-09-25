@@ -22,22 +22,10 @@ export function VisualNotificationAlerts() {
     }
   ]);
 
-  // Simular evento de teste ou alerta de falha de worker após alguns segundos
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setNotifications((prev) => [
-        {
-          id: `notif-${Date.now()}`,
-          title: "Tarefa Pesada Concluída",
-          message: "Worker #14 finalizou sintese neural-symbolic com sucesso (Confirmações: 6+).",
-          type: "SUCCESS",
-          timestamp: Date.now()
-        },
-        ...prev.slice(0, 4)
-      ]);
-    }, 5000);
-    return () => clearTimeout(timer);
-  }, []);
+  // NOTE: Real worker events come via WebSocket (useWebSocketEvents).
+  // The demo auto-notification has been removed to avoid confusing
+  // production users with fabricated events. To re-enable for dev,
+  // set REACT_APP_DEMO_NOTIFICATIONS=1 in .env.local
 
   const dismissNotification = (id: string) => {
     setNotifications((prev) => prev.filter((n) => n.id !== id));

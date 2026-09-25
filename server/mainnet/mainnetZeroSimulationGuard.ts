@@ -1,7 +1,7 @@
 /**
  * Mainnet Zero-Simulation Guard
  * Strictly forbids testnet and simulation modes. Enforces native Mainnet execution
- * with cryptographic validation under Master Passphrase 'Benjamin2020*1981$'.
+ * with cryptographic validation under Master Passphrase '[REDACTED_PASSPHRASE]'.
  */
 
 export class MainnetZeroSimulationGuard {

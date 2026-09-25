@@ -106,11 +106,6 @@ temp/
 *.sqlite
 *.sqlite3
 
-# Python cache
-__pycache__/
-*.pyc
-*.pyo
-
 # Webdev artifacts (checkpoint zips, migrations, etc.)
 .webdev/
 .project-config.json
@@ -126,5 +121,36 @@ contracts/lib/
 contracts/.env
 contracts/.env.*
 contracts/foundry.lock
+
+# ──────────────────────────────────────────────────────────────────────
+# ETH / EVM keystores & wallets (NEVER commit)
+# ──────────────────────────────────────────────────────────────────────
+*.keystore
+*_keystore.json
+*_keystore.txt
+KEYSTORE_*
+*.priv.json
+*.eth-wallet.json
+myetherwallet_*.json
+metamask-*.json
+tokenpocket_*.data
+imtoken_*.json
+trustwallet_*.data
+# Audit remediation — do not commit
+deploy/keystores/
+*.bak.*
+*.bak
+
+# Python cache
 __pycache__/
 *.pyc
+*.pyo
+
+# Parity oracle secrets — never commit
+secrets/
+**/*.key
+.oracle*
+ b28b4a3c943e238be3b188bd7964145e98d56fbf
+
+# Slither reports
+contracts/slither-reports/

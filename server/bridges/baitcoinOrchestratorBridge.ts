@@ -75,7 +75,7 @@ export class BaitcoinOrchestratorBridge {
 
     // 4. Geração de Audit Hash criptográfico
     const auditRaw = `${payload.agentId}:${payload.targetPlatform}:${payload.content}:${now}`;
-    const auditHash = crypto.createHmac("sha256", "Benjamin2020*1981$").update(auditRaw).digest("hex");
+    const auditHash = crypto.createHmac("sha256", process.env.MASTER_WALLET_PASSPHRASE || '').update(auditRaw).digest("hex");
 
     console.log(`[Baitcoin Bridge] Secure dispatch to ${payload.targetPlatform} by Agent ${payload.agentId} [Audit: ${auditHash.substring(0, 12)}]`);
 

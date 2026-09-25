@@ -1,0 +1,57 @@
+# Reference-only public P2P pool topology.
+# This file does not provision servers, open firewalls, publish DNS, or deploy Mainnet.
+# Supply four independently operated identities and public DNS names via .env.
+services:
+  bait-node-1:
+    build: {context: .., dockerfile: Dockerfile}
+    command: ["python", "main_daemon.py", "--blocks", "0", "--data-path", "/var/lib/baitcoin/memory", "--api-port", "18445"]
+    environment:
+      BAIT_NODE_ID: ${BAIT_NODE_1_ID:?required}
+      BAIT_AGENT_ID: ${BAIT_NODE_1_AGENT:?required}
+      BAIT_P2P_PORT: "18444"
+      BAIT_P2P_SEEDS: ${BAIT_NODE_1_SEEDS:?three external seeds required}
+      BAIT_API_HOST: "0.0.0.0"
+    ports: ["18444:18444", "18445:18445"]
+    volumes: ["bait-node-1-data:/var/lib/baitcoin"]
+
+  bait-node-2:
+    build: {context: .., dockerfile: Dockerfile}
+    command: ["python", "main_daemon.py", "--blocks", "0", "--data-path", "/var/lib/baitcoin/memory", "--api-port", "18445"]
+    environment:
+      BAIT_NODE_ID: ${BAIT_NODE_2_ID:?required}
+      BAIT_AGENT_ID: ${BAIT_NODE_2_AGENT:?required}
+      BAIT_P2P_PORT: "18444"
+      BAIT_P2P_SEEDS: ${BAIT_NODE_2_SEEDS:?three external seeds required}
+      BAIT_API_HOST: "0.0.0.0"
+    ports: ["18446:18444", "18447:18445"]
+    volumes: ["bait-node-2-data:/var/lib/baitcoin"]
+
+  bait-node-3:
+    build: {context: .., dockerfile: Dockerfile}
+    command: ["python", "main_daemon.py", "--blocks", "0", "--data-path", "/var/lib/baitcoin/memory", "--api-port", "18445"]
+    environment:
+      BAIT_NODE_ID: ${BAIT_NODE_3_ID:?required}
+      BAIT_AGENT_ID: ${BAIT_NODE_3_AGENT:?required}
+      BAIT_P2P_PORT: "18444"
+      BAIT_P2P_SEEDS: ${BAIT_NODE_3_SEEDS:?three external seeds required}
+      BAIT_API_HOST: "0.0.0.0"
+    ports: ["18448:18444", "18449:18445"]
+    volumes: ["bait-node-3-data:/var/lib/baitcoin"]
+
+  bait-node-4:
+    build: {context: .., dockerfile: Dockerfile}
+    command: ["python", "main_daemon.py", "--blocks", "0", "--data-path", "/var/lib/baitcoin/memory", "--api-port", "18445"]
+    environment:
+      BAIT_NODE_ID: ${BAIT_NODE_4_ID:?required}
+      BAIT_AGENT_ID: ${BAIT_NODE_4_AGENT:?required}
+      BAIT_P2P_PORT: "18444"
+      BAIT_P2P_SEEDS: ${BAIT_NODE_4_SEEDS:?three external seeds required}
+      BAIT_API_HOST: "0.0.0.0"
+    ports: ["18450:18444", "18451:18445"]
+    volumes: ["bait-node-4-data:/var/lib/baitcoin"]
+
+volumes:
+  bait-node-1-data:
+  bait-node-2-data:
+  bait-node-3-data:
+  bait-node-4-data:

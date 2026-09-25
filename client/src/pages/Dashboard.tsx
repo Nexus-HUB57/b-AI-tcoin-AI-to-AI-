@@ -125,7 +125,7 @@ export default function Dashboard() {
             <CardContent>
               <div className="text-3xl font-bold">{status?.eventsProcessed || 0}</div>
               <p className="text-xs text-muted-foreground mt-2">
-                {metricsData?.eventsPerSecond.toFixed(2) || "0"} eventos/seg
+                {(metricsData?.eventsPerSecond ?? 0).toFixed(2)} eventos/seg
               </p>
             </CardContent>
           </Card>
@@ -139,7 +139,7 @@ export default function Dashboard() {
             <CardContent>
               <div className="text-3xl font-bold">{status?.commandsOrchestrated || 0}</div>
               <p className="text-xs text-muted-foreground mt-2">
-                Taxa de resposta: {metricsData?.responseRate.toFixed(1) || "0"}%
+                Taxa de resposta: {(metricsData?.responseRate ?? 0).toFixed(1)}%
               </p>
             </CardContent>
           </Card>

@@ -20,7 +20,7 @@ from pathlib import Path
 FOUNDRY_BIN = os.path.expanduser("~/.foundry/bin")
 os.environ["PATH"] = FOUNDRY_BIN + ":" + os.environ.get("PATH", "")
 
-CONTRACTS_DIR = Path("/home/z/my-project/baitcoin-repo-remote/contracts")
+CONTRACTS_DIR = Path(os.environ.get("CONTRACTS_DIR", "/home/z/my-project/baitcoin-repo-remote/contracts"))
 
 def run_cmd(cmd, timeout=120):
     """Run a command and return stdout."""
@@ -295,7 +295,7 @@ def main():
     results["status"] = "GO_LIVE_VALIDATED" if conservation_ok else "VALIDATION_FAILED"
 
     # Save results
-    output_file = Path("/home/z/my-project/baitcoin-repo-remote/deploy/go-live-results.json")
+    output_file = Path(os.environ.get("DEPLOY_RESULTS_PATH", "/home/z/my-project/baitcoin-repo-remote/deploy/go-live-results.json"))
     with open(output_file, "w") as f:
         json.dump(results, f, indent=2, default=str)
     print(f"\n  Results saved to: {output_file}")

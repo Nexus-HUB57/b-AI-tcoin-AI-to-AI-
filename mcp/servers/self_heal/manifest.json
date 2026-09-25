@@ -1,7 +1,7 @@
 {
   "aipkg": "1.0",
   "kind": "mcp",
-  "name": "mcp-self_heal",
+  "name": "mcp-self-heal",
   "version": "1.0.0",
   "displayName": "MCP Self-Heal",
   "description": "Health checks, restart, drift detection for the MCP fleet.",

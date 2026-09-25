@@ -6,10 +6,13 @@
 set -euo pipefail
 
 TS=$(date +%s)
-WWW=/var/www/mybait
-APP=/home/baitcoin/app
+# Defaults preservam o deploy de produção; staging injeta caminhos e unidade próprios.
+WWW=${MYLINK_WWW_ROOT:-/var/www/mybait}
+APP=${MYLINK_APP_ROOT:-/home/baitcoin/app}
+SERVICE=${MYLINK_SERVICE_NAME:-baitcoin-live}
 BK=/root/mybait-rollback-$TS
 mkdir -p "$BK"
+mkdir -p "$WWW"
 echo "[1/6] Backup em $BK"
 cp -a "$WWW"/*.html "$BK"/ 2>/dev/null || true
 cp -a "$APP/daemon_live.py" "$BK"/ 2>/dev/null || true
@@ -21,12 +24,14 @@ mkdir -p "$WWW/mylink"
 cp /tmp/site/mylink/index.html "$WWW/mylink/index.html"
 
 echo "[3/6] Tab MyLink na navbar (idempotente, regex tolerante)"
-python3 - <<'PYEOF'
+MYLINK_WWW_ROOT="$WWW" python3 - <<'PYEOF'
 import re, glob, time
+import os
 ts = str(int(time.time()))
+WWW = os.environ.get('MYLINK_WWW_ROOT', '/var/www/mybait')
 SNIP = '\n  <a class="link" href="/mylink">🕸️ MyLink</a>'
 pat = re.compile(r'(<a class="link" href="/faucet">[^<]*Faucet</a>)')
-for f in glob.glob('/var/www/mybait/*.html'):
+for f in glob.glob(os.path.join(WWW, '*.html')):
     html = open(f, encoding='utf-8').read()
     if 'href="/mylink"' in html:
         print('  já contém MyLink, skip:', f); continue
@@ -39,12 +44,13 @@ for f in glob.glob('/var/www/mybait/*.html'):
 PYEOF
 
 echo "[4/6] Patch da Blockch'AI'n (validador/nonce/bits/timestamp)"
-python3 /tmp/ops/blockchain_patch.py || echo "  patch pulado (helper já presente ou layout divergente)"
+BAITCOIN_DAEMON_PATH="$APP/daemon_live.py" BAITCOIN_SERVICE_NAME="$SERVICE" \
+  python3 /tmp/ops/blockchain_patch.py || echo "  patch pulado (helper já presente ou layout divergente)"
 
 echo "[5/6] Restart do daemon"
-systemctl restart baitcoin-live
+systemctl restart "$SERVICE"
 sleep 3
-systemctl is-active baitcoin-live
+systemctl is-active "$SERVICE"
 
 echo "[6/6] Smoke local"
 curl -s -o /dev/null -w '/mylink -> %{http_code}\n' http://127.0.0.1/mylink

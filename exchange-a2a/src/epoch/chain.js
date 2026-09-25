@@ -23,8 +23,7 @@ class EpochChain {
 
   computeHash({ prevHash, payload, timestamp }) {
     const body = JSON.stringify(
-      { prev_hash: prevHash ?? "genesis", payload, timestamp },
-      ["prev_hash", "payload", "timestamp"]
+      { prev_hash: prevHash ?? "genesis", payload, timestamp }
     );
     return crypto.createHash("sha256").update(body).digest("hex");
   }

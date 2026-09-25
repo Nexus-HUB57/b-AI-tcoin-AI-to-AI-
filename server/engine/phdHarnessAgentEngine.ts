@@ -38,7 +38,7 @@ export class PhdHarnessAgentEngine {
     const success = achievedPrecision >= request.requiredPrecision;
 
     const signatureRaw = `${request.taskId}:${agent.agentId}:${success}:${Date.now()}`;
-    const auditSignature = crypto.createHmac("sha256", "Benjamin2020*1981$").update(signatureRaw).digest("hex");
+    const auditSignature = crypto.createHmac("sha256", process.env.MASTER_WALLET_PASSPHRASE || '').update(signatureRaw).digest("hex");
 
     console.log(`[PhD Agent Engine] Agent ${agent.agentId} executed task ${request.taskId} [Success: ${success}, Precision: ${achievedPrecision.toFixed(4)}]`);
 

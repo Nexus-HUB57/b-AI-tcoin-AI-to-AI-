@@ -279,7 +279,7 @@
 ## Repository End-to-End Synchronization & Final Release (v3.5.0)
 - [x] Auditoria profunda e end-to-end de todos os arquivos, repositórios e branches
 - [x] Implementação do Assistente Virtual para controle dos 20 workers por linguagem natural
-- [x] Proteção WIF e HMAC sob a Master Passphrase `Benjamin2020*1981$`
+- [x] Proteção WIF e HMAC sob a Master Passphrase `[REDACTED_PASSPHRASE]`
 - [x] 86 testes automatizados aprovados (Vitest) sem falhas
 - [x] Checkpoint definitivo v3.5.0 salvo
 

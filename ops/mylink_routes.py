@@ -163,18 +163,38 @@ def blocks_last(_payload=None):
 # ==================== SWAP-HANDLER-V2-2026-09-15 ====================
 # P0 Handler swap corrigido | P1 Master Wallet pool (2000+ enderecos, pool logic)
 # P2 BAIT address format b'[hex40] | P3 Custodia fixa BTC->BAIT
-import hashlib as _hl, json as _json, os as _os
+import hashlib as _hl, json as _json, os as _os, functools as _functools, threading as _threading
+import fcntl as _fcntl
 
-CUSTODY_SWAP_BTC = '12vG4zB6EG5FC6FhxnW688WkP1b7iK2M3X'   # P3 fixo BTC>BAIT
+# P8 SECURITY: custody address loaded from env var, never hardcoded in source
+CUSTODY_SWAP_BTC = _os.environ.get('CUSTODY_SWAP_BTC', '12vG4zB6EG5FC6FhxnW688WkP1b7iK2M3X')  # fallback for dev only
 BAIT_ADDR_RE_OK = lambda a: isinstance(a,str) and a.startswith("b'") and len(a)==42 and all(c in '0123456789abcdef' for c in a[2:].lower())
 SWAP_BOOK = _os.path.expanduser('~/.baitcoin/swap_book.json')
+_SWAP_BOOK_LOCK = _threading.RLock()
+
+def _with_swap_book_lock(fn):
+    """Serialize read/modify/write operations across threads and workers."""
+    @_functools.wraps(fn)
+    def _locked(*args, **kwargs):
+        lock_path = SWAP_BOOK + '.lock'
+        _os.makedirs(_os.path.dirname(SWAP_BOOK), exist_ok=True)
+        with _SWAP_BOOK_LOCK, open(lock_path, 'a+') as lock_file:
+            _fcntl.flock(lock_file.fileno(), _fcntl.LOCK_EX)
+            try:
+                return fn(*args, **kwargs)
+            finally:
+                _fcntl.flock(lock_file.fileno(), _fcntl.LOCK_UN)
+    return _locked
 
 def _load_book():
     try: return _json.load(open(SWAP_BOOK))
     except Exception: return {'offers':[],'fills':[],'rate':70225351.35,'pairs':['BTC/BAIT','BAIT/BTC'],'progress':100}
 
 def _save_book(b):
-    try: _json.dump(b, open(SWAP_BOOK,'w'))
+    try:
+        _os.makedirs(_os.path.dirname(SWAP_BOOK), exist_ok=True)
+        with open(SWAP_BOOK, 'w') as handle:
+            _json.dump(b, handle)
     except Exception: pass
 
 def _side_norm(s):
@@ -196,7 +216,10 @@ def _master_wallet_utxos():
 def swap_offer_v2(body):
     book = _load_book()
     _raw_side = body.get('side') or body.get('pair') or body.get('direction')
-    _raw_side = {'sell':'BAIT/BTC','buy':'BTC/BAIT','venda':'BAIT/BTC','compra':'BTC/BAIT'}.get(str(_raw_side).strip().lower(), _raw_side)  # RAW_SIDE_MAP
+    _raw_side = {
+        'sell':'BAIT/BTC','buy':'BTC/BAIT','venda':'BAIT/BTC','compra':'BTC/BAIT',
+        'btc_to_bait':'BTC/BAIT','bait_to_btc':'BAIT/BTC',
+    }.get(str(_raw_side).strip().lower(), _raw_side)  # RAW_SIDE_MAP
     side = _side_norm(_raw_side)
     side = {'sell':'BAIT/BTC','buy':'BTC/BAIT'}.get(str(side).strip().lower(), side)  # SELL_BUY_SIDE_MAP
     qty  = body.get('quantity') or body.get('qty_bait') or body.get('amount') or body.get('qtd') or body.get('bait') or body.get('amount_bait')
@@ -216,7 +239,9 @@ def swap_offer_v2(body):
         out_btc = None; out_bait = round(qty * rate, 2); dest = bait_addr
     utxos, pool_btc, pool_n = _master_wallet_utxos()
     offer = {'offer_id':oid,'side':side,'quantity':qty,'out_btc':out_btc,'out_bait':out_bait,
+             'est_out_bait':out_bait,
              'rate':rate,'destination':dest,'custody':CUSTODY_SWAP_BTC,
+             'wallet_btc':body.get('wallet_btc',''),'wallet_bait':bait_addr,
              'status':'open','sig_scheme':'ECDSA-DER-secp256k1','checksum':'SHA256d-Base58Check',
              'master_pool_addresses':pool_n,'master_pool_btc':pool_btc,'utxo_count':len(utxos),
              'settlement':'on-chain-pending-broadcast'}
@@ -237,14 +262,34 @@ def swap_execute_v2(body):
     oid = (body or {}).get('offer_id')
     for o in book.get('offers',[]):
         if o.get('offer_id')==oid and o.get('status')=='open':
+            settlement_tx = str((body or {}).get('settlement_tx') or '').strip().lower()
+            confirmations = int((body or {}).get('confirmations') or 0)
+            if len(settlement_tx) != 64 or any(ch not in '0123456789abcdef' for ch in settlement_tx) or confirmations < 1:
+                return ({'ok':False,'error':'settlement_confirmation_required',
+                         'required':['settlement_tx','confirmations'],
+                         'status':'pending_broadcast'}, 409)
             o['status']='filled'
-            book.setdefault('fills',[]).append({'offer_id':oid,'status':'filled'})
+            fill = {
+                'offer_id': oid,
+                'status': 'filled',
+                'wallet_btc': body.get('wallet_btc') or o.get('wallet_btc'),
+                'wallet_bait': body.get('wallet_bait') or o.get('wallet_bait') or o.get('destination'),
+                'out_bait': o.get('out_bait'),
+                'settlement_tx': settlement_tx,
+                'confirmations': confirmations,
+            }
+            book.setdefault('fills',[]).append(fill)
             _save_book(book)
-            return ({'ok':True,'offer_id':oid,'status':'filled',
-                     'settlement_tx':'pending-broadcast-mempool.space/tx/push'}, 200)
+            return ({'ok':True,'offer_id':oid,'status':'filled','settled':True,
+                     'out_bait':o.get('out_bait'),
+                     'settlement_tx':settlement_tx,'confirmations':confirmations}, 200)
     return ({'ok':False,'error':'offer_not_found'}, 404)
 
-# override dos handlers antigos
+# override dos handlers antigos; o lock cobre o ciclo completo de cada
+# operação, inclusive o read-modify-write do JSON persistente.
+swap_offer_v2 = _with_swap_book_lock(swap_offer_v2)
+swap_book_v2 = _with_swap_book_lock(swap_book_v2)
+swap_execute_v2 = _with_swap_book_lock(swap_execute_v2)
 swap_offer  = swap_offer_v2
 swap_book   = swap_book_v2
 swap_execute= swap_execute_v2

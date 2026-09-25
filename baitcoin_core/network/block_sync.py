@@ -20,6 +20,10 @@ import time
 import logging
 from typing import List, Dict, Optional, Any
 from baitcoin_core.blockchain.block import Block
+from baitcoin_core.consensus.block_validation import (
+    BlockValidationResult,
+    CandidateBlockValidator,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +65,15 @@ class BlockSync:
         self._blocks_applied: int = 0
         self._blocks_rejected: int = 0
         self._forks_resolved: int = 0
+        self._candidate_validator = CandidateBlockValidator(blockchain)
+
+    def validate_candidate(self, block: Block) -> BlockValidationResult:
+        """Run consensus admission checks without mutating chain state.
+
+        A successful result does not append the block. Callers must explicitly
+        choose the normal apply or reorg path after this boundary.
+        """
+        return self._candidate_validator.validate(block)
 
     # ── Sync Status ──────────────────────────────────────────
 

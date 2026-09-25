@@ -1138,9 +1138,23 @@ def _do_OPTIONS(self):
 H.do_OPTIONS = _do_OPTIONS
 
 if __name__ == '__main__':
+    import signal as _sig
     refresh()
     refresh_oracle()
     threading.Thread(target=_c, daemon=True).start()
     threading.Thread(target=_o, daemon=True).start()
     print('daemon_live v5.1 on 18445 height=%d' % CACHE['height'], flush=True)
-    ThreadingHTTPServer(('127.0.0.1', 18445), H).serve_forever()
+
+    httpd = ThreadingHTTPServer(('127.0.0.1', 18445), H)
+
+    # ═══ Signal handlers — graceful shutdown on SIGTERM/SIGINT ═══
+    def _sig_handler(signum, frame):
+        sig_name = _sig.Signals(signum).name
+        print(f'\n{sig_name} recebido — encerrando daemon_live...', flush=True)
+        httpd.shutdown()  # unblocks serve_forever()
+
+    _sig.signal(_sig.SIGTERM, _sig_handler)
+    _sig.signal(_sig.SIGINT, _sig_handler)
+
+    httpd.serve_forever()
+    print('daemon_live encerrado graciosamente.', flush=True)

@@ -1,7 +1,7 @@
 {
   "aipkg": "1.0",
   "kind": "mcp",
-  "name": "mcp-oracle",
+  "name": "mcp-oracle-legacy",
   "version": "1.0.0",
   "displayName": "b'AI'tcoin Price Oracle",
   "description": "Real-time and on-chain price feeds for the b'AI'tcoin ecosystem. Aggregates reports from registered oracle agents using weighted-median reputation.",

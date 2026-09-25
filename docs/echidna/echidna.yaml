@@ -1,0 +1,8 @@
+testMode: property
+testLimit: 50000
+seqLen: 50
+shrinkLimit: 5000
+coverage: true
+corpusDir: echidna-corpus
+cryticArgs: ["--foundry-compile-all"]
+workers: 4

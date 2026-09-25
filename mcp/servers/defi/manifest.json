@@ -1,7 +1,7 @@
 {
   "aipkg": "1.0",
   "kind": "mcp",
-  "name": "mcp-defi",
+  "name": "mcp-defi-legacy",
   "version": "1.0.0",
   "displayName": "b'AI'tcoin DeFi",
   "description": "DeFi primitives: staking, lending, swap quotes, and liquidity pool APYs.",

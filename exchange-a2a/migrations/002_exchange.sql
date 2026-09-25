@@ -68,6 +68,7 @@ CREATE TABLE IF NOT EXISTS orders (
   quantity NUMERIC NOT NULL,
   filled NUMERIC NOT NULL DEFAULT 0,
   remaining NUMERIC GENERATED ALWAYS AS (quantity - filled) STORED,
+  CHECK (filled <= quantity),
   status TEXT NOT NULL DEFAULT 'open'
     CHECK (status IN ('open','partial','filled','cancelled','expired','rejected')),
   time_in_force TEXT DEFAULT 'GTC',
@@ -105,7 +106,7 @@ CREATE INDEX IF NOT EXISTS trades_status_idx ON trades (status, matched_at);
 -- Escrow
 CREATE TABLE IF NOT EXISTS escrows (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  trade_id UUID NOT NULL REFERENCES trades(id),
+  trade_id UUID NOT NULL UNIQUE REFERENCES trades(id),
   buyer_agent_id TEXT NOT NULL,
   seller_agent_id TEXT NOT NULL,
   buyer_amount NUMERIC NOT NULL,
@@ -114,8 +115,14 @@ CREATE TABLE IF NOT EXISTS escrows (
   seller_deposit_tx TEXT,
   status TEXT NOT NULL DEFAULT 'awaiting_deposits'
     CHECK (status IN ('awaiting_deposits','both_deposited','releasing','released','refunded','failed')),
+  buyer_confirmations INTEGER NOT NULL DEFAULT 0,
+  seller_confirmations INTEGER NOT NULL DEFAULT 0,
   deadline TIMESTAMPTZ NOT NULL,
+  settlement_txid TEXT,
+  settlement_error TEXT,
+  confirmations INTEGER NOT NULL DEFAULT 0 CHECK (confirmations >= 0),
   created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
   released_at TIMESTAMPTZ
 );
 
@@ -154,3 +161,17 @@ CREATE TABLE IF NOT EXISTS a2a_tasks (
   completed_at TIMESTAMPTZ
 );
 CREATE INDEX IF NOT EXISTS tasks_agent_idx ON a2a_tasks (agent_id, created_at DESC);
+
+-- Safety-net constraint for existing databases: run if orders table was created without the CHECK
+-- ALTER TABLE orders ADD CONSTRAINT orders_filled_lte_quantity CHECK (filled <= quantity);
+
+-- Anti-replay nonce table: ensures each (agent_id, nonce) is used at most once.
+-- Prevents duplicate order submissions on network retries or replay attacks.
+CREATE TABLE IF NOT EXISTS order_nonces (
+  agent_id TEXT NOT NULL,
+  nonce TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  PRIMARY KEY (agent_id, nonce)
+);
+-- Auto-expire old nonces (run periodically or as cron):
+-- DELETE FROM order_nonces WHERE created_at < now() - interval '5 minutes';

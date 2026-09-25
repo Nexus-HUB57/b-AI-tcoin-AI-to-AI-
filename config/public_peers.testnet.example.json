@@ -1,0 +1,50 @@
+{
+  "network": "baitcoin-testnet",
+  "protocol_version": 1,
+  "genesis_hash": "REPLACE_WITH_APPROVED_TESTNET_GENESIS_HASH",
+  "minimum_nodes": 4,
+  "minimum_independent_operators": 3,
+  "minimum_handshakes_per_node": 3,
+  "nodes": [
+    {
+      "node_id": "REPLACE_NODE_A_ID",
+      "operator_id": "operator-a",
+      "provider": "REPLACE_PROVIDER_A",
+      "region": "REPLACE_REGION_A",
+      "asn": "REPLACE_ASN_A",
+      "p2p_host": "node-a.example.org",
+      "p2p_port": 19000,
+      "api_base": "https://node-a.example.org/api"
+    },
+    {
+      "node_id": "REPLACE_NODE_B_ID",
+      "operator_id": "operator-b",
+      "provider": "REPLACE_PROVIDER_B",
+      "region": "REPLACE_REGION_B",
+      "asn": "REPLACE_ASN_B",
+      "p2p_host": "node-b.example.org",
+      "p2p_port": 19000,
+      "api_base": "https://node-b.example.org/api"
+    },
+    {
+      "node_id": "REPLACE_NODE_C_ID",
+      "operator_id": "operator-c",
+      "provider": "REPLACE_PROVIDER_C",
+      "region": "REPLACE_REGION_C",
+      "asn": "REPLACE_ASN_C",
+      "p2p_host": "node-c.example.org",
+      "p2p_port": 19000,
+      "api_base": "https://node-c.example.org/api"
+    },
+    {
+      "node_id": "REPLACE_NODE_D_ID",
+      "operator_id": "operator-d",
+      "provider": "REPLACE_PROVIDER_D",
+      "region": "REPLACE_REGION_D",
+      "asn": "REPLACE_ASN_D",
+      "p2p_host": "node-d.example.org",
+      "p2p_port": 19000,
+      "api_base": "https://node-d.example.org/api"
+    }
+  ]
+}

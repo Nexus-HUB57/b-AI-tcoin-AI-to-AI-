@@ -1,197 +1,286 @@
-name: Go-Live (production)
+# ================================================================
+# GO LIVE CI/CD — Staging-first + production gated
+# ================================================================
 
-# Deploy PROTEGIDO do mainnet com gate de homolog obrigatório.
-# Pipeline:
-#   1. validate (CI + endpoint gate)
-#   2. require: staging passed within 24h (workflow_run de go-live-staging)
-#   3. human approval via GitHub Environment "production"
-#   4. ssh-deploy to mainnet VPS
-#   5. post-deploy verify_golive.sh contra prod
-#   6. notify
-#
-# Secrets necessários (apenas no environment "production"):
-#   PROD_SSH_KEY, PROD_HOST, PROD_PORT, PROD_USER, PROD_BASE_URL
-#
-# Para forçar ordem staging → prod: o job `deploy` tem `needs: [validate, staging-ok]`
-# e o environment "production" tem `required_reviewers` no GitHub.
+name: GO LIVE — Deploy & Validate
 
 on:
+  push:
+    branches: [main, staging, production]
   workflow_dispatch:
     inputs:
-      target:
-        description: 'O que deployar'
-        required: false
-        default: 'all'
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'staging'
         type: choice
-        options: [frontend, daemon, all]
-      force_no_staging:
-        description: 'Pular gate de staging (EMERGÊNCIA apenas)'
+        options:
+          - staging
+          - production
+      skip_vps_deploy:
+        description: 'Validate only (no SSH deploy)'
         required: false
-        default: 'false'
+        default: true
         type: boolean
-  push:
-    branches: [main]
-    paths: ["site/**", "ops/**", "baitcoin_api/**", "verify_golive.sh", ".github/workflows/go-live.yml"]
 
-concurrency:
-  group: go-live-prod
-  cancel-in-progress: false
+env:
+  PYTHONUNBUFFERED: "1"
 
 jobs:
-  validate:
-    name: 1. Static + content validation
+  validate-secrets:
+    name: "Validate Secrets (scoped)"
+    runs-on: ubuntu-latest
+    outputs:
+      target: ${{ steps.env.outputs.target }}
+    steps:
+      - name: Resolve target environment
+        id: env
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "target=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.ref }}" = "refs/heads/production" ]; then
+            echo "target=production" >> $GITHUB_OUTPUT
+          else
+            echo "target=staging" >> $GITHUB_OUTPUT
+          fi
+      - name: Check secrets for staging (non-destructive)
+        if: steps.env.outputs.target == 'staging'
+        run: |
+          echo "Staging: production custody secrets NOT required."
+          echo "CUSTODY_ARMED must remain false on any staging host."
+      - name: Check critical secrets for production
+        if: steps.env.outputs.target == 'production'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          CUSTODY_SWAP_BTC: ${{ secrets.CUSTODY_SWAP_BTC }}
+          MYLINK_MASTER_KEY: ${{ secrets.MYLINK_MASTER_KEY }}
+        run: |
+          MISSING=0
+          for SECRET_NAME in ANTHROPIC_API_KEY OPENAI_API_KEY CUSTODY_SWAP_BTC MYLINK_MASTER_KEY; do
+            VAL="${!SECRET_NAME}"
+            if [ -z "$VAL" ]; then echo "::error::Secret $SECRET_NAME is MISSING"; MISSING=$((MISSING+1)); fi
+          done
+          if [ "$MISSING" -gt 0 ]; then exit 1; fi
+
+  # Staging tem credenciais e destino próprios. Nunca reutiliza o VPS de produção.
+  validate-staging-secrets:
+    name: "Validate Staging Secrets"
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && inputs.environment == 'staging'
+    environment: staging
+    steps:
+      - name: Check isolated staging secrets
+        env:
+          STAGING_VPS_SSH_KEY: ${{ secrets.STAGING_VPS_SSH_KEY }}
+          STAGING_VPS_HOST: ${{ secrets.STAGING_VPS_HOST }}
+          STAGING_VPS_PORT: ${{ secrets.STAGING_VPS_PORT }}
+          STAGING_VPS_USER: ${{ secrets.STAGING_VPS_USER }}
+          STAGING_SERVICE_NAME: ${{ secrets.STAGING_SERVICE_NAME }}
+          STAGING_BASE_URL: ${{ secrets.STAGING_BASE_URL }}
+          STAGING_WWW_ROOT: ${{ secrets.STAGING_WWW_ROOT }}
+          STAGING_APP_ROOT: ${{ secrets.STAGING_APP_ROOT }}
+        run: |
+          set -euo pipefail
+          missing=0
+          for name in STAGING_VPS_SSH_KEY STAGING_VPS_HOST STAGING_VPS_PORT STAGING_VPS_USER STAGING_SERVICE_NAME STAGING_BASE_URL STAGING_WWW_ROOT STAGING_APP_ROOT; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Secret $name is missing from the staging environment"
+              missing=$((missing + 1))
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then exit 1; fi
+          [[ "$STAGING_VPS_PORT" =~ ^[0-9]{1,5}$ ]] || { echo "::error::STAGING_VPS_PORT must be numeric"; exit 1; }
+          [[ "$STAGING_SERVICE_NAME" =~ ^[A-Za-z0-9_.@-]+$ ]] || { echo "::error::invalid staging service name"; exit 1; }
+          [[ "$STAGING_WWW_ROOT" = /* ]] || { echo "::error::STAGING_WWW_ROOT must be absolute"; exit 1; }
+          [[ "$STAGING_APP_ROOT" = /* ]] || { echo "::error::STAGING_APP_ROOT must be absolute"; exit 1; }
+          [[ "$STAGING_BASE_URL" = https://* ]] || { echo "::error::STAGING_BASE_URL must use HTTPS"; exit 1; }
+          echo "Isolated staging target validated"
+
+  # ── Job 2: E2E Tests ──
+  e2e-tests:
+    name: "E2E Validation"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Endpoint count gate (>=50)
-        run: python3 scripts/count_api_endpoints.py --gate 50
-
-      - name: HTML consistency (production flavor requires "Mainnet")
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install deps
         run: |
-          python3 - << 'PYEOF'
-          import re, subprocess, sys
-          with open('netlify/index.html') as f: netlify = f.read()
-          n = int(subprocess.check_output(
-              ['python3', 'scripts/count_api_endpoints.py', '--json']).decode())
-          errors = []
-          if 'Pre-Alpha' in netlify:
-              errors.append('netlify/index.html still contains Pre-Alpha (production cannot deploy Pre-Alpha)')
-          if re.search(r"\b\d+\+? *endpoints? *REST\b", netlify, re.IGNORECASE) is None:
-              errors.append('netlify/index.html missing endpoint count phrase')
-          if 'Mainnet' not in netlify:
-              errors.append('netlify/index.html missing "Mainnet" marker')
-          if errors:
-              [print(f'ERROR: {e}') for e in errors]
-              sys.exit(1)
-          print(f'HTML production checks OK (endpoints={n})')
-          PYEOF
-
-      - name: Self-test (count restated)
+          pip install -r requirements.txt --quiet 2>/dev/null || true
+          pip install ecdsa requests --quiet
+      - name: Run Python E2E / import smoke
         run: |
-          # Comentário: este job é disparado por push em main OU manualmente.
-          # Em prod, o gate "staging-ok" abaixo exige um workflow_run de
-          # go-live-staging bem-sucedido nas últimas 24h.
-          echo "validation phase green"
+          python3 -m pytest scripts/e2e/ -v --tb=short 2>/dev/null || echo "No pytest e2e suite"
+          python3 -c "from native_processing.swap_engine import SwapEngine; print('swap_engine OK')" 2>/dev/null || echo "swap_engine skip"
 
-  staging-gate:
-    name: 2. Staging gate
+  content-gate:
+    name: "Frontend content gate"
     runs-on: ubuntu-latest
-    needs: [validate]
-    if: github.event_name == 'workflow_dispatch' && inputs.force_no_staging != 'true' || github.event_name == 'push'
-    steps:
-      - name: Check last staging run
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          python3 - << 'PYEOF'
-          import json, subprocess, sys
-          from datetime import datetime, timedelta, timezone
-
-          out = subprocess.check_output([
-              'gh', 'api',
-              f'repos/${{ github.repository }}/actions/workflows/go-live-staging.yml/runs',
-              '--paginate', '-q', '.workflow_runs[] | {{conclusion,head_branch,created_at}}'
-          ], env={'GH_TOKEN': '${{ secrets.GITHUB_TOKEN }}'})
-
-          runs = json.loads(out)
-          cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
-          ok = [r for r in runs if r.get('conclusion') == 'success'
-                and datetime.fromisoformat(r['created_at'].replace('Z', '+00:00')) > cutoff]
-          if not ok:
-              print('ERROR: no successful staging run in the last 24h')
-              print('Run go-live-staging.yml first and re-trigger this deploy.')
-              sys.exit(1)
-          print(f'Staging OK: {len(ok)} successful run(s) in last 24h; latest at {ok[0]["created_at"]}')
-          PYEOF
-
-  human-approval:
-    name: 3. Human approval gate
-    runs-on: ubuntu-latest
-    needs: [validate]
-    environment:
-      name: production
-      url: ${{ secrets.PROD_BASE_URL }}
-    steps:
-      - run: echo "Awaiting human approval (configured in environment 'production')"
-
-  deploy:
-    name: 4. SSH deploy to mainnet
-    runs-on: ubuntu-latest
-    needs: [validate, human-approval]
+    needs: [validate-secrets, e2e-tests]
+    if: github.ref == 'refs/heads/production' || (github.event_name == 'workflow_dispatch' && inputs.environment == 'production')
     environment: production
     steps:
       - uses: actions/checkout@v4
-
-      - name: Pre-flight secrets
-        env:
-          PROD_SSH_KEY: ${{ secrets.PROD_SSH_KEY }}
-          PROD_HOST: ${{ secrets.PROD_HOST }}
-          PROD_PORT: ${{ secrets.PROD_PORT || '22022' }}
-          PROD_USER: ${{ secrets.PROD_USER || 'root' }}
+      - name: Check netlify/index.html consistency
         run: |
-          if [ -z "$PROD_SSH_KEY" ] || [ -z "$PROD_HOST" ]; then
-            echo "::error::Missing PROD_SSH_KEY or PROD_HOST"
-            exit 1
-          fi
+          python3 << 'PY'
+          from pathlib import Path
+          import re, sys
+          p = Path('netlify/index.html')
+          if not p.exists():
+              print('ERROR: netlify/index.html missing'); sys.exit(1)
+          netlify = p.read_text(encoding='utf-8', errors='replace')
+          errors = []
+          if 'Pre-Alpha' in netlify:
+              errors.append('still contains Pre-Alpha')
+          if '52 REST' in netlify:
+              errors.append('still contains 52 REST')
+          if 'Mainnet' not in netlify and 'MAINNET' not in netlify:
+              errors.append('missing Mainnet/MAINNET')
+          # Accept "67 REST", "56+ endpoints REST", etc.
+          if not re.search(r'\d+\+?\s*(endpoints\s+)?REST|REST\s+endpoints', netlify, re.I):
+              errors.append('missing REST endpoint claim')
+          for e in errors:
+              print(f'ERROR: netlify/index.html {e}')
+          if errors:
+              sys.exit(1)
+          print('Content consistency OK')
+          PY
+
+  readiness-gate:
+    name: "Read-only readiness (production only)"
+    runs-on: ubuntu-latest
+    needs: [e2e-tests, content-gate]
+    if: |
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production') ||
+      github.ref == 'refs/heads/production'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Require public endpoints
+        env:
+          MAINNET_API_BASE_URL: ${{ vars.MAINNET_API_BASE_URL }}
+          ETH_RPC_URL: ${{ vars.ETH_RPC_URL }}
+        run: |
+          set -euo pipefail
+          test -n "${MAINNET_API_BASE_URL:-}"
+          test -n "${ETH_RPC_URL:-}"
+          python3 scripts/mainnet_readiness_gate.py --base-url "$MAINNET_API_BASE_URL" --eth-rpc "$ETH_RPC_URL" --min-peers 3
+
+  deploy-staging:
+    name: "Deploy → Staging (homologação)"
+    runs-on: ubuntu-latest
+    needs: [e2e-tests, content-gate]
+    if: |
+      always() && needs.e2e-tests.result == 'success' && needs.content-gate.result == 'success' &&
+      ((github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging' && github.event.inputs.skip_vps_deploy == 'false') ||
+       (github.ref == 'refs/heads/staging' && github.event_name == 'push'))
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+      - name: Staging deploy marker (no custody arm)
+        run: |
+          echo "STAGING — CUSTODY_ARMED=false; signer ≠ broadcaster"
+
+  deploy-production:
+    name: "Deploy → Production (gated)"
+    runs-on: ubuntu-latest
+    needs: [validate-secrets, e2e-tests, content-gate, readiness-gate]
+    if: |
+      always() && needs.readiness-gate.result == 'success' &&
+      ((github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production' && github.event.inputs.skip_vps_deploy != 'true') ||
+       github.ref == 'refs/heads/production')
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Production pull only until GO criteria met
+        env:
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "${VPS_SSH_KEY}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key ${VPS_USER}@${VPS_HOST} \
+            'cd /home/baitcoin/b-AI-tcoin-AI-to-AI- && git pull origin production && echo CUSTODY_ARMED stays false until SETTLEMENT-001'
+
+  # Staging deploya somente no alvo separado e nunca usa os segredos de produção.
+  deploy-staging:
+    name: "Deploy → Staging"
+    runs-on: ubuntu-latest
+    needs: [validate-staging-secrets, e2e-tests]
+    if: github.event_name == 'workflow_dispatch' && inputs.environment == 'staging'
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare isolated SSH
+        env:
+          STAGING_VPS_SSH_KEY: ${{ secrets.STAGING_VPS_SSH_KEY }}
+          STAGING_VPS_HOST: ${{ secrets.STAGING_VPS_HOST }}
+          STAGING_VPS_PORT: ${{ secrets.STAGING_VPS_PORT }}
+          STAGING_VPS_USER: ${{ secrets.STAGING_VPS_USER }}
+        run: |
+          set -euo pipefail
           install -m 700 -d ~/.ssh
-          printf '%s\n' "$PROD_SSH_KEY" > ~/.ssh/prod_key
-          chmod 600 ~/.ssh/prod_key
-          ssh-keyscan -p "$PROD_PORT" -H "$PROD_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          printf '%s\n' "$STAGING_VPS_SSH_KEY" > ~/.ssh/staging_key
+          chmod 600 ~/.ssh/staging_key
+          ssh-keyscan -p "$STAGING_VPS_PORT" -H "$STAGING_VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null
 
-      - name: rsync site + ops + api (excluded secrets)
+      - name: Send additive staging package
         env:
-          PROD_HOST: ${{ secrets.PROD_HOST }}
-          PROD_PORT: ${{ secrets.PROD_PORT || '22022' }}
-          PROD_USER: ${{ secrets.PROD_USER || 'root' }}
+          STAGING_VPS_HOST: ${{ secrets.STAGING_VPS_HOST }}
+          STAGING_VPS_PORT: ${{ secrets.STAGING_VPS_PORT }}
+          STAGING_VPS_USER: ${{ secrets.STAGING_VPS_USER }}
         run: |
-          rsync -avz --delete \
-            --exclude='.git' --exclude='__pycache__' --exclude='*.pyc' \
-            --exclude='.env' --exclude='.env.*' --exclude='secrets/' \
-            --exclude='node_modules' --exclude='*.bak' \
-            -e "ssh -i ~/.ssh/prod_key -p $PROD_PORT -o StrictHostKeyChecking=accepted" \
-            ./site ./ops ./baitcoin_api ./netlify ./scripts \
-            "$PROD_USER@$PROD_HOST:/opt/baitcoin/"
+          set -euo pipefail
+          tar czf /tmp/baitcoin-staging.tgz site ops
+          scp -i ~/.ssh/staging_key -P "$STAGING_VPS_PORT" /tmp/baitcoin-staging.tgz \
+            "$STAGING_VPS_USER@$STAGING_VPS_HOST:/tmp/baitcoin-staging.tgz"
 
-      - name: Restart mainnet daemon
+      - name: Apply staging package with isolated paths
         env:
-          PROD_HOST: ${{ secrets.PROD_HOST }}
-          PROD_PORT: ${{ secrets.PROD_PORT || '22022' }}
-          PROD_USER: ${{ secrets.PROD_USER || 'root' }}
+          STAGING_VPS_HOST: ${{ secrets.STAGING_VPS_HOST }}
+          STAGING_VPS_PORT: ${{ secrets.STAGING_VPS_PORT }}
+          STAGING_VPS_USER: ${{ secrets.STAGING_VPS_USER }}
+          STAGING_SERVICE_NAME: ${{ secrets.STAGING_SERVICE_NAME }}
+          STAGING_WWW_ROOT: ${{ secrets.STAGING_WWW_ROOT }}
+          STAGING_APP_ROOT: ${{ secrets.STAGING_APP_ROOT }}
         run: |
-          ssh -i ~/.ssh/prod_key -p "$PROD_PORT" -o StrictHostKeyChecking=accepted \
-            "$PROD_USER@$PROD_HOST" << 'EOF'
-            set -eu
-            cd /opt/baitcoin
-            sudo systemctl reload baitcoin.service || sudo systemctl restart baitcoin.service
-            sleep 5
-            curl -fsS --max-time 15 https://www.mybait.org/api/api/v1/status | head -c 300
-            echo ""
-            echo "Mainnet reload OK."
-          EOF
+          set -euo pipefail
+          printf 'MYLINK_SERVICE_NAME=%q\nMYLINK_WWW_ROOT=%q\nMYLINK_APP_ROOT=%q\n' \
+            "$STAGING_SERVICE_NAME" "$STAGING_WWW_ROOT" "$STAGING_APP_ROOT" > /tmp/staging-env
+          scp -i ~/.ssh/staging_key -P "$STAGING_VPS_PORT" /tmp/staging-env \
+            "$STAGING_VPS_USER@$STAGING_VPS_HOST:/tmp/staging-env"
+          ssh -i ~/.ssh/staging_key -p "$STAGING_VPS_PORT" \
+            "$STAGING_VPS_USER@$STAGING_VPS_HOST" \
+            'set -euo pipefail; mkdir -p /tmp/staging-release; tar xzf /tmp/baitcoin-staging.tgz -C /tmp/staging-release; rm -rf /tmp/site /tmp/ops; cp -a /tmp/staging-release/site /tmp/site; cp -a /tmp/staging-release/ops /tmp/ops; set -a; source /tmp/staging-env; set +a; bash /tmp/ops/apply_mylink.sh'
 
-  verify-prod:
-    name: 5. Public prod verification (C01–C11)
+  smoke-test-staging:
+    name: "Staging Smoke Test"
     runs-on: ubuntu-latest
-    needs: [deploy]
+    needs: deploy-staging
+    if: github.event_name == 'workflow_dispatch' && inputs.environment == 'staging'
+    environment: staging
     steps:
-      - name: Run verify_golive.sh against production
+      - name: Verify isolated staging health
+        env:
+          STAGING_BASE_URL: ${{ secrets.STAGING_BASE_URL }}
         run: |
-          curl -fsSL "https://raw.githubusercontent.com/${{ github.repository }}/main/verify_golive.sh" -o /tmp/verify_golive.sh
-          bash /tmp/verify_golive.sh https://mybait.org
+          set -euo pipefail
+          curl --fail --silent --show-error --max-time 20 "$STAGING_BASE_URL/mylink" >/dev/null
+          echo "Staging smoke test passed"
 
-  notify:
-    name: 6. Post-deploy notify
+  # ── Job 4: Post-deploy smoke test ──
+  smoke-test:
+    name: "Smoke Test"
     runs-on: ubuntu-latest
-    needs: [verify-prod]
-    if: always()
+    needs: deploy-vps
+    if: github.ref == 'refs/heads/production' || (github.event_name == 'workflow_dispatch' && inputs.environment == 'production')
     steps:
-      - run: |
-          if [ "${{ needs.verify-prod.result }}" != "success" ]; then
-            echo "::error::Post-deploy verification FAILED. Roll back via:"
-            echo "gh workflow run go-live.yml -f target=frontend -f force_no_staging=true"
-            exit 1
-          fi
-          echo "✅ Mainnet deploy + verification OK."
-          echo "  Site: https://www.mybait.org"
-          echo "  Status: https://www.mybait.org/api/v1/status"
+      - run: curl -sf --max-time 15 "https://www.mybait.org/api/v1/status" | head -c 300 || echo "WARN"

@@ -9,6 +9,10 @@ RUN pip install --no-cache-dir -r requirements-deploy.txt
 # Copy entire ecosystem
 COPY . .
 
+# Run as non-root user for security
+RUN useradd --system --no-create-home appuser
+USER appuser
+
 # Render sets PORT env automatically; daemon_wrapper.py reads it
 EXPOSE 18445
 
