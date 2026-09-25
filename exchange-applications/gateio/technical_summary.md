@@ -5,13 +5,18 @@
 
 ## 1. Project Overview
 
-**b'AI'tcoin** (BAIT) is a novel Layer-1 blockchain that reimagines
-proof-of-work by redirecting mining energy toward useful AI/ML computations. The network combines
-two consensus mechanisms — **zkML-PoUW** (Zero-Knowledge Machine Learning Proof of Useful Work)
-and **SHA-256d** — to achieve both meaningful computation and Bitcoin-grade security.
+**b'AI'tcoin** (BAIT) is a novel Layer-1 blockchain combining
+SHA-256d PoW (Bitcoin-compatible) with cryptographic integrity commitments
+(SHA-256 tensor_commitment + zkml_proof_hash) for AI-block audit trail.
+
+**IMPORTANT**: Despite the name zkML-PoUW, the current implementation does NOT
+include zero-knowledge proofs of ML inference — only SHA-256 binding hashes.
+See baitcoin_core/consensus/zkml_engine.py for actual implementation.
+
+Roadmap MAY upgrade to true zk-SNARK in the future.
 
 ### Key Differentiators
-- **Novel Consensus**: First blockchain to use AI computation as proof-of-work via zk-SNARK verification
+- **Novel Consensus (honest framing)**: First blockchain combining SHA-256d PoW with cryptographic commitment hashes for AI-block integrity. Currently **no** zk-SNARK ML proofs (despite the name "zkML-PoUW"). Roadmap MAY add them later.
 - **Bitcoin-Compatible Supply**: Fixed 21M cap with halving schedule matching Bitcoin's emission curve
 - **Secure Bridge**: Lock-and-Mint mechanism with 3-of-5 multisig custody for cross-chain transfers
 - **Low Audit Risk**: Slither audit confirms LOW overall risk with zero high/medium findings
@@ -29,7 +34,7 @@ and **SHA-256d** — to achieve both meaningful computation and Bitcoin-grade se
 | **Block Time** | 60 seconds |
 | **Initial Block Reward** | 50 BAIT |
 | **Halving Interval** | 210,000 blocks (~4 years) |
-| **Consensus** | zkML-PoUW + SHA-256d |
+| **Consensus** | SHA-256d PoW + Integrity Commitments (no zk-SNARK today) |**Consensus** | SHA-256d PoW + Integrity Commitments (no zk-SNARK today) |
 
 ---
 

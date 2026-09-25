@@ -1,0 +1,76 @@
+# Audit 2026-09-22 — P1 item 1 (DevSecOps):
+#   "Análise Estática de Segredos: Integrar gitleaks, trufflehog e detect-secrets
+#    nas rotinas de pre-commit e no pipeline do GitHub Actions."
+
+repos:
+  # --- Segredos ---
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.0
+    hooks:
+      - id: gitleaks
+        name: gitleaks (block secrets)
+        description: Detect hardcoded secrets (API keys, passwords, tokens)
+        entry: gitleaks protect --staged --redact --no-banner
+        language: system
+        stages: [pre-commit]
+        require_serial: true
+
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
+        exclude: |
+          (?x)^(
+            .*\.bak\..*|
+            deploy/keystores/.*|
+            reference_blockchain_com\.json|
+            .*\.pem|
+            .*\.key
+          )$
+
+  # --- Lint básico ---
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-added-large-files
+        args: ['--maxkb=1024']
+      - id: check-merge-conflict
+      - id: detect-private-key
+      - id: no-commit-to-branch
+        args: ['--branch=main']
+
+  # --- Python ---
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      - id: ruff
+        args: ['--fix', '--exit-non-zero-on-fix']
+      - id: ruff-format
+
+  # --- Solidity ---
+  - repo: https://github.com/ethereum/web3.py
+    rev: v7.6.0
+    hooks: []
+
+  - repo: local
+    hooks:
+      - id: forbid-bak-files
+        name: forbid .bak.* in commits
+        entry: |
+          bash -c 'git diff --cached --name-only | grep -E "\.bak\." && echo "ERROR: .bak.* files detected. Remove before commit." && exit 1 || exit 0'
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: forbid-keystore-paths
+        name: forbid deploy/keystores in commits
+        entry: |
+          bash -c 'git diff --cached --name-only | grep -E "deploy/keystores/" && echo "ERROR: keystore path detected. Remove before commit." && exit 1 || exit 0'
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]

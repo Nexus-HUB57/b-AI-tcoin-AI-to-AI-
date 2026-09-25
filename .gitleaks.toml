@@ -1,0 +1,47 @@
+# Audit 2026-09-22 — P1 item 1 (gitleaks config).
+# Custom rules p/ BAIT/MyBait context (além do default ruleset).
+
+title = "BAIT/MyBait — gitleaks config"
+
+[extend]
+# Usa o ruleset público padrão da gitleaks (extensive)
+useDefault = true
+
+# Allowlist (não bloquear estes arquivos)
+[[allowlists]]
+description = "Audit docs and historical files"
+paths = [
+  '''(?i).*\.bak\..*''',
+  '''deploy/keystores/.*''',
+  '''reference_blockchain_com\.json''',
+  '''.mavis/.*''',
+  '''.git/.*''',
+  '''node_modules/.*''',
+  '''venv/.*''',
+  '''__pycache__/.*''',
+]
+
+# Custom rules específicos do contexto
+[[rules]]
+id = "bait-private-key"
+description = "Detecta padrões de chave privada BAIT/ETH-like"
+regex = '''(?i)(bait|eth)[_-]?(private[_-]?key|privkey)\s*[:=]\s*["']?[0-9a-fA-F]{64}["']?'''
+keywords = ["bait_private", "eth_private"]
+
+[[rules]]
+id = "deployer-private-key-env"
+description = "Variável DEPLOYER_PRIVATE_KEY com valor real"
+regex = '''DEPLOYER_PRIVATE_KEY\s*=\s*["']?[0-9a-fA-F]{64}["']?'''
+keywords = ["DEPLOYER_PRIVATE_KEY"]
+
+[[rules]]
+id = "lnd-macaroon"
+description = "Macaroon LND hex-encoded"
+regex = '''(?:LND|MACAROON|HOSTGATOR_LND).{0,40}["'][0-9a-f]{200,}["']'''
+keywords = ["LND_MACAROON", "MACAROON_HEX"]
+
+[[rules]]
+id = "rpc-url-tokenized"
+description = "RPC URLs com tokens inline"
+regex = '''https?://[a-z0-9.-]+\.(alchemy|infura|quicknode|ankr\.com)/v2/[a-zA-Z0-9_-]{20,}'''
+keywords = ["alchemy", "infura", "quicknode", "ankr"]

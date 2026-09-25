@@ -1,0 +1,71 @@
+name: Cron - A2A Compliance Audit
+
+# Audit 2026-09-22 — P3 item 2:
+#   "Agente Jurídico de Compliance Regulatoria: Implementar script autônomo
+#    para auditoria contínua e emissão de pareceres internos de jurisprudência
+#    a cada 72 horas via Cron Job."
+#
+# Disclaimer: este workflow gera uma análise heurística INTERNA. NÃO substitui
+# parecer formal de escritório de advocacia habilitado. Não constitui opinião legal.
+
+on:
+  schedule:
+    # A cada 72h
+    - cron: "0 */72 * * *"
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Motivo da execução manual"
+        required: false
+        default: "manual run"
+
+permissions:
+  contents: read
+
+jobs:
+  compliance-audit:
+    name: Compliance Audit Cycle
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pydantic
+
+      - name: Run A2A Compliance cycle
+        env:
+          COMPLIANCE_WEBHOOK_URL: ${{ secrets.COMPLIANCE_WEBHOOK_URL }}
+          COMPLIANCE_REPORTS_DIR: ./compliance-reports
+          COMPLIANCE_PROOF_LOG: ./compliance-reports/_proof-log.json
+          RUN_REASON: ${{ github.event.inputs.reason || 'scheduled' }}
+        run: |
+          echo "=== A2A Compliance cycle start (reason: $RUN_REASON) ==="
+          python -m a2a_compliance.cron
+          echo "=== Cycle end ==="
+
+      - name: Validate cycle produced artifacts
+        run: |
+          if [ ! -s compliance-reports/_proof-log.json ]; then
+            echo "ERROR: proof log empty"
+            exit 1
+          fi
+          echo "=== Latest entries ==="
+          tail -5 compliance-reports/_proof-log.json
+
+      - name: Upload compliance artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a2a-compliance-${{ github.run_id }}
+          path: |
+            compliance-reports/
+          retention-days: 90
