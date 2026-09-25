@@ -4,32 +4,52 @@ import { settlement } from "./settlement.js";
 import { tradesTotal } from "../metrics/registry.js";
 
 class MatchingEngine {
+  /**
+   * Match a new order against the order book using pessimistic locking.
+   *
+   * The entire match cycle runs inside a single serializable transaction
+   * with SELECT ... FOR UPDATE to prevent concurrent matchers from
+   * double-filling the same resting orders.
+   */
   async match(newOrder) {
     const opposite = newOrder.side === "buy" ? "sell" : "buy";
     const priceFilter = newOrder.type === "market" ? "" : newOrder.side === "buy" ? "AND price <= $4" : "AND price >= $4";
     const params = [newOrder.pair, opposite, newOrder.id];
     if (newOrder.type !== "market") params.push(newOrder.price);
-    const { rows: resting } = await query(
-      `SELECT * FROM orders WHERE pair=$1 AND side=$2 AND status IN ('open','partial') AND id <> $3 ${priceFilter}
-       ORDER BY price ${newOrder.side === "buy" ? "ASC" : "DESC"}, created_at ASC LIMIT 20`, params);
-    if (resting.length === 0) {
-      if (newOrder.type === "market") {
-        await query(`UPDATE orders SET status='cancelled', updated_at=now() WHERE id=$1 AND status IN ('open','partial')`, [newOrder.id]);
-        newOrder.status = "cancelled";
-        logger.info({ orderId: newOrder.id.slice(0,8) }, "matching: market sem liquidez -> cancelled");
+
+    // Run the entire match cycle in a single transaction with FOR UPDATE
+    return withTx(async (c) => {
+      // Lock resting orders with FOR UPDATE — prevents concurrent matchers
+      const { rows: resting } = await c.query(
+        `SELECT * FROM orders WHERE pair=$1 AND side=$2 AND status IN ('open','partial') AND id <> $3 ${priceFilter}
+         ORDER BY price ${newOrder.side === "buy" ? "ASC" : "DESC"}, created_at ASC LIMIT 20
+         FOR UPDATE`, params);
+
+      if (resting.length === 0) {
+        if (newOrder.type === "market") {
+          await c.query(`UPDATE orders SET status='cancelled', updated_at=now() WHERE id=$1 AND status IN ('open','partial')`, [newOrder.id]);
+          newOrder.status = "cancelled";
+          logger.info({ orderId: newOrder.id.slice(0,8) }, "matching: market sem liquidez -> cancelled");
+        }
+        return [];
       }
-      return [];
-    }
-    const matches = [];
-    let remaining = Number(newOrder.quantity) - Number(newOrder.filled);
-    for (const book of resting) {
-      if (remaining <= 0) break;
-      const bookRemaining = Number(book.remaining);
-      const fillQty = Math.min(remaining, bookRemaining);
-      const fillPrice = Number(book.price);
-      const trade = await withTx(async (c) => {
+
+      // Also lock the incoming order row
+      await c.query(`SELECT 1 FROM orders WHERE id=$1 FOR UPDATE`, [newOrder.id]);
+
+      const matches = [];
+      let remaining = Number(newOrder.quantity) - Number(newOrder.filled);
+      for (const book of resting) {
+        if (remaining <= 0) break;
+        // Re-read book.remaining under lock (could have changed if partial fill from another path)
+        const bookRemaining = Number(book.remaining);
+        if (bookRemaining <= 0) continue;
+        const fillQty = Math.min(remaining, bookRemaining);
+        const fillPrice = Number(book.price);
+
         await c.query(`UPDATE orders SET filled = filled + $2, updated_at=now() WHERE id=$1`, [newOrder.id, fillQty]);
         await c.query(`UPDATE orders SET filled = filled + $2, updated_at=now() WHERE id=$1`, [book.id, fillQty]);
+
         const notional = fillQty * fillPrice;
         const buyerFee = newOrder.side === "buy" ? notional * 0.001 : notional * 0.0005;
         const sellerFee = newOrder.side === "sell" ? notional * 0.001 : notional * 0.0005;
@@ -42,15 +62,17 @@ class MatchingEngine {
            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'matched') RETURNING *`,
           [newOrder.pair, buyOrderId, sellOrderId, buyerAgent, sellerAgent, fillPrice, fillQty, buyerFee, sellerFee]);
         await c.query(`UPDATE orders SET status = CASE WHEN filled >= quantity THEN 'filled' ELSE 'partial' END WHERE id IN ($1,$2)`, [newOrder.id, book.id]);
-        return rows[0];
-      });
-      matches.push(trade);
-      tradesTotal.inc({ pair: newOrder.pair, status: "matched" });
-      remaining -= fillQty;
-      settlement.settleTrade(trade).catch((err) => logger.error({ tradeId: trade.id, err: err.message }, "settlement falhou"));
-    }
-    logger.info({ orderId: newOrder.id.slice(0, 8), matches: matches.length }, "matching: concluído");
-    return matches;
+
+        const trade = rows[0];
+        matches.push(trade);
+        tradesTotal.inc({ pair: newOrder.pair, status: "matched" });
+        remaining -= fillQty;
+        // Settlement runs async — decoupled from matching transaction
+        settlement.settleTrade(trade).catch((err) => logger.error({ tradeId: trade.id, err: err.message }, "settlement falhou"));
+      }
+      logger.info({ orderId: newOrder.id.slice(0, 8), matches: matches.length }, "matching: concluído");
+      return matches;
+    });
   }
 }
 

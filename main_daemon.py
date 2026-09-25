@@ -30,6 +30,7 @@ import json
 import time
 import argparse
 import logging
+import signal
 
 logging.basicConfig(
     level=logging.INFO,
@@ -6519,9 +6520,24 @@ async def run_daemon(num_blocks: int = 0, data_path: str = "~/.baitcoin/memory",
     from baitcoin_api.server import create_app
     api_host = os.getenv("BAIT_API_HOST", "127.0.0.1")
     api_server = create_app(host=api_host, port=api_port)
-    api_thread = threading.Thread(target=api_server.serve_forever, daemon=True)
+    api_thread = threading.Thread(target=api_server.serve_forever, daemon=False)
     api_thread.start()
     logger.info(f"API HTTP server iniciada na porta {api_port}")
+
+    # ═══ Signal handlers — graceful shutdown on SIGTERM/SIGINT ═══
+    _shutdown_requested = False
+
+    def _signal_handler(signum, frame):
+        nonlocal _shutdown_requested
+        if _shutdown_requested:
+            logger.warning("Segundo sinal recebido — forçando saida")
+            sys.exit(1)
+        _shutdown_requested = True
+        sig_name = signal.Signals(signum).name
+        logger.info(f"Sinal {sig_name} recebido — iniciando graceful shutdown...")
+
+    signal.signal(signal.SIGTERM, _signal_handler)
+    signal.signal(signal.SIGINT, _signal_handler)
 
     # Sobrepor _get_status para usar daemon.get_status() (com marketplace + oracle)
     def _get_status_with_marketplace(self):
@@ -6561,6 +6577,9 @@ async def run_daemon(num_blocks: int = 0, data_path: str = "~/.baitcoin/memory",
     _rng.seed(int(time.time()))
 
     while True:
+        if _shutdown_requested:
+            logger.info("Shutdown solicitado — encerrando loop de mineracao")
+            break
         if num_blocks > 0 and block_count >= num_blocks:
             logger.info(f"Limite de {num_blocks} blocos atingido. Encerrando.")
             break
@@ -6596,8 +6615,30 @@ async def run_daemon(num_blocks: int = 0, data_path: str = "~/.baitcoin/memory",
 
         await asyncio.sleep(0.1)
 
+    # ═══ Graceful shutdown sequence ═══
+    logger.info("Parando P2P network...")
+    daemon.shutdown()  # P2P stop + WAL snapshot
+
+    if daemon.obscura_bridge and hasattr(daemon.obscura_bridge, 'stop'):
+        logger.info("Parando Obscura Bridge...")
+        try:
+            daemon.obscura_bridge.stop()
+        except Exception as e:
+            logger.warning(f"Erro ao parar Obscura Bridge: {e}")
+
+    logger.info("Parando API HTTP server...")
+    try:
+        api_server.shutdown()
+    except Exception as e:
+        logger.warning(f"Erro ao parar API server: {e}")
+    api_thread.join(timeout=10.0)
+
     # Snapshot final antes de encerrar
-    daemon.persistent_state.force_snapshot_all()
+    if daemon.persistent_state:
+        try:
+            daemon.persistent_state.force_snapshot_all()
+        except Exception as e:
+            logger.warning(f"Erro no snapshot final: {e}")
     status = daemon.get_status()
     print()
     print("=" * 70)

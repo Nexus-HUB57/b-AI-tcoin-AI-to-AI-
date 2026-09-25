@@ -141,7 +141,7 @@ deploy/keystores/
 *.bak.*
 *.bak
 
-# Python caches
+# Python cache
 __pycache__/
 *.pyc
 *.pyo
@@ -151,3 +151,6 @@ secrets/
 **/*.key
 .oracle*
  b28b4a3c943e238be3b188bd7964145e98d56fbf
+
+# Slither reports
+contracts/slither-reports/

@@ -12,7 +12,7 @@ import hashlib
 from datetime import datetime
 
 NOW = datetime.now().isoformat()
-BASE = "/home/z/my-project/download"
+BASE = os.environ.get("E2E_OUTPUT_DIR", "/home/z/my-project/download")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # PHASE 1: CONTRACT COMPILATION & VERIFICATION

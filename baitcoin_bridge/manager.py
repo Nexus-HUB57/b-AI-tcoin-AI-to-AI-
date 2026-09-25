@@ -191,6 +191,10 @@ class BridgeManager:
         self._total_burned_sats = 0
         self._total_released_sats = 0
 
+        # Duplicate detection: track processed tx_hashes and (agent_id, amount, recipient) tuples
+        self._processed_tx_hashes: Dict[str, str] = {}  # tx_hash -> transfer_id
+        self._lock_dedup: Dict[str, str] = {}  # dedup_key -> transfer_id
+
     def _reset_daily_volume(self) -> None:
         r"""Reset daily volume counters at UTC midnight."""
         today = time.strftime("%Y-%m-%d", time.gmtime())
@@ -314,12 +318,24 @@ class BridgeManager:
             return {"error": "too_many_pending"}
 
         fee_sats = self._compute_fee(amount_sats, chain)
+
+        # Duplicate detection: reject if the same (agent_id, amount, recipient, chain) was already locked
+        dedup_key = hashlib.sha256(
+            f"{agent_id}:{amount_sats}:{recipient}:{target_chain_id}".encode()
+        ).hexdigest()
+        if dedup_key in self._lock_dedup:
+            return {"error": "duplicate_lock", "existing_transfer_id": self._lock_dedup[dedup_key]}
+
         transfer_id = uuid.uuid4().hex[:16]
         event_id = f"evt_{transfer_id}"
         now = time.time()
         tx_hash = hashlib.sha256(
             f"lock:{event_id}:{now}".encode()
         ).hexdigest()
+
+        # Also check tx_hash uniqueness (paranoia: different params but same hash)
+        if tx_hash in self._processed_tx_hashes:
+            return {"error": "duplicate_tx_hash", "existing_transfer_id": self._processed_tx_hashes[tx_hash]}
 
         # Create transfer record
         record = TransferRecord(
@@ -367,6 +383,10 @@ class BridgeManager:
         record.lock_event = event.to_dict()
         self._transfers[transfer_id] = record
         self._events[event_id] = event
+
+        # Record dedup keys to prevent duplicate locks
+        self._lock_dedup[dedup_key] = transfer_id
+        self._processed_tx_hashes[tx_hash] = transfer_id
 
         # Update conservation tracking
         self._total_locked_sats += amount_sats

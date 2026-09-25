@@ -23,11 +23,13 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -p ${{ secrets.SSH_PORT || 22 }} -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Add deploy host key
+        run: mkdir -p ~/.ssh && echo "${{ secrets.DEPLOY_SSH_KNOWN_HOSTS }}" >> ~/.ssh/known_hosts
 
       - name: Deploy frontend files via SCP
         run: |
-          SSH_OPTS="-o StrictHostKeyChecking=no -i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT || 22 }}"
+          SSH_OPTS="-i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT || 22 }}"
           USER_HOST="${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}"
           
           echo "=== Deploying frontend HTML files ==="
@@ -46,7 +48,7 @@ jobs:
           
       - name: Deploy MyLink sub-pages
         run: |
-          SSH_OPTS="-o StrictHostKeyChecking=no -i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT || 22 }}"
+          SSH_OPTS="-i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT || 22 }}"
           USER_HOST="${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}"
           
           echo "=== Creating sub-directories ==="
@@ -66,7 +68,7 @@ jobs:
 
       - name: Restart daemon
         run: |
-          SSH_OPTS="-o StrictHostKeyChecking=no -i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT || 22 }}"
+          SSH_OPTS="-i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT || 22 }}"
           USER_HOST="${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}"
           
           echo "=== Restarting daemon ==="

@@ -1,5 +1,6 @@
 import { query } from "../db.js";
 import { logger } from "../logger.js";
+import { reputationUpdates } from "../metrics/registry.js";
 
 const TIER_THRESHOLDS = { new: 0, bronze: 0.4, silver: 0.7, gold: 0.85, platinum: 0.95 };
 
@@ -41,6 +42,7 @@ class ReputationEngine {
       [agentId, settled, disputes, volume, uptime, tier]
     );
     logger.debug({ agentId, event, tier, score: score.toFixed(3) }, "reputation: registrado");
+    reputationUpdates.inc({ event });
     return { tier, score };
   }
 

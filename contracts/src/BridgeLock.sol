@@ -49,6 +49,7 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
     mapping(bytes32 => LockRequest) public lockRequests;
     mapping(bytes32 => bool) public consumedL1TxIds;
     bytes32[] public lockRequestIds;
+    mapping(bytes32 => bool) public usedL1TxIds;  // Anti-double-mint: track processed L1 lock txs
 
     struct BurnRelease {
         address burner;
@@ -121,6 +122,7 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
         require(!consumedL1TxIds[l1TxId], "BridgeLock: l1 tx already consumed");
         require(recipient != address(0), "BridgeLock: zero recipient");
         require(amount > 0, "BridgeLock: zero amount");
+        require(!usedL1TxIds[l1TxId], "BridgeLock: l1TxId already processed");
 
         totalLockedOnL1 += amount;
 
@@ -143,6 +145,7 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
         req.amount = amount;
         req.executed = false;
         // confirmations remains 0 — requester must call confirmLockMint explicitly
+        usedL1TxIds[l1TxId] = true;
         lockRequestIds.push(requestId);
 
         emit LockRequested(requestId, l1TxId, recipient, amount);

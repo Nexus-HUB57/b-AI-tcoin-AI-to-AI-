@@ -12,7 +12,13 @@
  */
 
 // Configuration
-define('DEPLOY_SECRET', getenv('DEPLOY_SECRET') ?: 'baitcoin-deploy-2024'); // Must match GitHub secret
+$_deploy_secret = getenv('DEPLOY_SECRET');
+if (empty($_deploy_secret)) {
+    http_response_code(500);
+    echo json_encode(['status' => 500, 'message' => 'DEPLOY_SECRET env var not set — deploy aborted']);
+    exit(1);
+}
+define('DEPLOY_SECRET', $_deploy_secret); // Must match GitHub secret
 define('GITHUB_RAW_BASE', 'https://raw.githubusercontent.com/Nexus-HUB57/b-AI-tcoin-AI-to-AI-/main/');
 define('REPO_API', 'https://api.github.com/repos/Nexus-HUB57/b-AI-tcoin-AI-to-AI-/commits/main');
 
