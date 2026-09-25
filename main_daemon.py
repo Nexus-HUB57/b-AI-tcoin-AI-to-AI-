@@ -6405,55 +6405,16 @@ class BAITDaemon:
         return info
 
     def get_status(self) -> dict:
-        r"""Retorna status completo do daemon."""
-        chain_valid = self.blockchain.validate_chain()
-        mp_data = self.marketplace.to_dict() if self.marketplace else {}
-        # Nao incluir services completos no status — usar /api/v1/marketplace/products
-        # para listar produtos com paginacao (1500+ produtos)
-        or_data = self.oracle.to_dict() if self.oracle else {}
-        # Status per-module para indicadores frontend
-        modules = {
-            "blockchain": bool(self.blockchain and chain_valid),
-            "zkml": bool(self.zkml_verifier),
-            "pouw": bool(self.blockchain),  # PoUW e parte do mine_block
-            "schnorr": bool(self.blockchain),  # Schnorr e usado em cada bloco
-            "api": True,  # API server esta rodando se estamos aqui
-            "explorer": bool(self.explorer_index),
-            "bank": bool(self.staking_pool and self.lending_engine),
-            "agents": bool(self.agent_registry),
-            "memory": bool(self.persistent_state),
-            "wallet": True,  # Paper wallet e inline no server.py
-            "p2p": bool(self.p2p_network),
-            "tests": self.test_suites > 0,
-            "obscura": bool(self.obscura_bridge),
-            "dev": True,  # Dev docs sempre disponiveis
-        }
-        # Staking info para dashboard
-        staking_info = self.staking_pool.to_dict() if self.staking_pool else {}
-        # Oracle com precos reais agora (3 fontes)
-        oracle_prices = {}
-        if self.oracle:
-            for sym in self.oracle.feeds:
-                oracle_prices[sym] = self.oracle.get_price(sym)
-        or_data["prices"] = oracle_prices
-        return {
-            "network": "b'AI'tcoin Mainnet",
-            "chain_height": self.blockchain.height,
-            "chain_valid": chain_valid,
-            "blocks_immutable": True,
-            "persistence": "WAL + Snapshots",
-            "data_path": self.data_path,
-            "utxo_count": len(self.blockchain.utxo_set),
-            "mempool_size": len(self.blockchain.mempool),
-            "agents_registered": len(self.agent_registry.agents),
-            "explorer_index": self.explorer_index.stats,
-            "token_minted_bait": self.token.total_minted / 100_000_000,
-            "marketplace": mp_data,
-            "oracle": or_data,
-            "staking": staking_info,
-            "modules": modules,
-            "timestamp": time.time(),
-        }
+        r"""Retorna status completo do daemon.
+
+        Audit 2026-09-22 — modularização: delegação ao módulo
+        ``baitcoin_core.daemon.status.build_status``. Mantida a
+        assinatura retro-compatível (mesmo retorno) mas o corpo
+        foi extraído para um módulo testável independentemente.
+        """
+        # Lazy import para evitar ciclo na inicialização
+        from baitcoin_core.daemon.status import build_status
+        return build_status(self)
 
 
 async def run_daemon(num_blocks: int = 0, data_path: str = "~/.baitcoin/memory",

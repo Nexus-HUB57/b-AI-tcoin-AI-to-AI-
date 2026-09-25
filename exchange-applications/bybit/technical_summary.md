@@ -8,7 +8,7 @@
 | **Symbol** | BAIT (Native) / wBAIT (ERC-20) |
 | **Decimals** | 8 (smallest unit: s'AI'toshi) |
 | **Max Supply** | 21,000,000 BAIT (Bitcoin-mirroring) |
-| **Consensus** | zkML-PoUW + SHA-256d |
+| **Consensus** | SHA-256d PoW + Integrity Commitments (no zk-SNARK today) |**Consensus** | SHA-256d PoW + Integrity Commitments (no zk-SNARK today) |
 | **Block Time** | 30s (target) / 60s (exchange compatibility) |
 | **Bridge** | Lock-and-Mint (3-of-5 multisig) |
 | **Website** | https://mybait.org |
@@ -17,7 +17,7 @@
 
 b'AI'tcoin is a Layer-1 blockchain with a novel hybrid consensus mechanism:
 
-- **zkML-PoUW (Zero-Knowledge Machine Learning Proof-of-Useful-Work)**: Mining energy is redirected toward useful AI/ML computations. Miners provide zk-SNARK proofs (Groth16) of correct ML inference execution, making every mined block contribute to real AI work.
+- **SHA-256d PoW + Integrity Commitments (no zk-SNARK today)**: Mining uses standard double SHA-256 PoW. Each block records two cryptographic commitments for audit trail (SHA-256 tensor_commitment + SHA-256 zkml_proof_hash). These are honest binding hashes, **not** zero-knowledge proofs of ML inference. See ``baitcoin_core/consensus/zkml_engine.py`` for actual implementation. Roadmap MAY upgrade to true zk-SNARK in the future.
 - **SHA-256d (Double SHA-256)**: Secondary consensus layer compatible with Bitcoin mining infrastructure. Provides immutable security anchoring independent of the ML component.
 - **Schnorr Signatures (BIP-340)**: x-only public keys (32 bytes) and 64-byte signatures for aggregate validation efficiency.
 

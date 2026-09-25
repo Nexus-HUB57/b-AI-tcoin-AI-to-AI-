@@ -1,0 +1,68 @@
+# Audit 2026-09-22 — P1 item 3 (Consolidação de Autores):
+#   "Mapear e unificar os 33+ nomes/identidades de commit no arquivo .mailmap
+#    para normalizar o gráfico de contribuição."
+#
+# Formato: <canonical-name> <canonical-email> <other-name> <other-email>
+# As entradas à esquerda vencem; entradas à direita são aliases.
+
+# ---------------------------------------------------------------
+# Equipe oficial (canonical)
+# ---------------------------------------------------------------
+Nexus Devs <devs@mybait.org>                                      Baitcoin Devs <devs@mybait.org>
+Nexus Devs <devs@mybait.org>                                      Hub Devs <devs@mybait.org>
+Nexus Devs <devs@mybait.org>                                      Nexus Dev <dev@mybait.org>
+Nexus Devs <devs@mybait.org>                                      Nexus-Dev <dev@mybait.org>
+Nexus Devs <devs@mybait.org>                                      Nexus DevSwarm <devs@mybait.org>
+Nexus Devs <devs@mybait.org>                                      Agentes Devs <devs@mybait.org>
+
+# ---------------------------------------------------------------
+# HUB team
+# ---------------------------------------------------------------
+Nexus HUB <hub@mybait.org>                                        Nexus Hub <hub@mybait.org>
+Nexus HUB <hub@mybait.org>                                        HUB-V3 <hub@mybait.org>
+Nexus HUB <hub@mybait.org>                                        HUB-V3-Agent <hub@genspark.ai>
+Nexus HUB <hub@mybait.org>                                        Nexus Swarm <swarm@mybait.org>
+Nexus HUB <hub@mybait.org>                                        Nexus DevOps <devops@mybait.org>
+
+# ---------------------------------------------------------------
+# GitHub-managed identities (via noreply)
+# ---------------------------------------------------------------
+Nexus-HUB57 <hub@mybait.org>                                      Nexus-HUB57 <nexus-hub57@users.noreply.github.com>
+Nexus-HUB57 <hub@mybait.org>                                      Nexus-HUB57 <2.60985786e+08+Nexus-HUB57@users.noreply.github.com>
+Nexus-HUB57 <hub@mybait.org>                                      Nexus-HUB57 PhD Agent <agent@mybait.org>
+Nexus-HUB57 <hub@mybait.org>                                      Nexus-Hub57 <nexus@mybait.org>
+
+# Variantes lowercase
+Nexus Devs <devs@mybait.org>                                      nexus-devs <devs@mybait.org>
+Nexus HUB <hub@mybait.org>                                        nexus-hub <hub@mybait.org>
+Nexus HUB <hub@mybait.org>                                        nexus-swarm <swarm@mybait.org>
+Nexus HUB <hub@mybait.org>                                        nexus <nexus@mybait.org>
+Nexus HUB <hub@mybait.org>                                        genspark_dev <genspark_dev@genspark.ai>
+
+# Agentes internos com nomes estranhos
+Nexus HUB <hub@mybait.org>                                        dola-ceo <dola@mybait.org>
+Nexus HUB <hub@mybait.org>                                        Z User <z@container>
+Nexus HUB <hub@mybait.org>                                        golive-ops <ops@mybait.org>
+Nexus HUB <hub@mybait.org>                                        baitcoin-dev <dev@mybait.org>
+Nexus Devs <devs@mybait.org>                                      b'AI'tcoin Agent <agent@baitcoin.dev>
+Nexus Devs <devs@mybait.org>                                      b'AI'tcoin Ops <chimera7@mybait.org>
+Nexus Devs <devs@mybait.org>                                      b'AI'tcoin Surgical Patch <surgical-patch@baitcoin.local>
+
+# ---------------------------------------------------------------
+# IA Agents (sufixo [AGENT-AI] no nome canonical para audit trail)
+# ---------------------------------------------------------------
+Nexus Agente IA Hibrido de Última Geração <hub@mybait.org>        Manus AI <manus@manus.im>
+Nexus Agente IA Hibrido de Última Geração <hub@mybait.org>        Nexus Agente IA Hibrido de Última Geração <lucas.thomaz.ia@gmail.com>
+
+# ---------------------------------------------------------------
+# Individual contributors
+# ---------------------------------------------------------------
+Kael (Devs PhD) <kael@baitcoin.ai>
+
+# ---------------------------------------------------------------
+# Aliases redundantes comuns (typos)
+# ---------------------------------------------------------------
+Nexus Devs <devs@mybait.org>                                      nexus devs <devs@mybait.org>
+Nexus Devs <devs@mybait.org>                                      NEXUS DEVS <devs@mybait.org>
+Nexus HUB <hub@mybait.org>                                        nexus hub <hub@mybait.org>
+Nexus HUB <hub@mybait.org>                                        NEXUS HUB <hub@mybait.org>

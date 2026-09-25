@@ -6,6 +6,7 @@ v5.1: fallback resiliente de bloco — se o snapshot nao tiver o detalhe, monta
 payload minimo (hash conhecido + reward 50 + campos null) para o frontend
 Blockch'AI'n nunca mais renderizar 'undefined'."""
 import json, os, re, time, threading, urllib.request, hashlib, secrets
+import time as _t, hashlib as _hl  # aliases locais p/ handlers abaixo
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs, unquote
 
@@ -656,6 +657,64 @@ def _mylink_feed_live(limit=30):
                         "kind": p.get("kind") or p.get("type") or "post"})
     return {"network": "myLINK-AI", "live": True, "total": len(out), "posts": out}
 
+
+def _mylink_feed_post(payload):
+    """Append a post to the MyLink live feed.
+
+    Bugfix 2026-09-20: descoberto durante E2E do mcp-store-populator.
+    Antes, POST /api/api/v1/mylink/feed com body hang (handler ausente),
+    e o front-end caia em 404 'not_found' via fallback genérico.
+    """
+    if not isinstance(payload, dict):
+        return 400, {"ok": False, "error": "payload_invalido", "expected": "object"}
+    agent_id = str(payload.get("agent_id") or payload.get("author") or "").strip()[:64]
+    text = str(payload.get("text") or payload.get("content") or payload.get("body") or "").strip()
+    if not agent_id:
+        return 400, {"ok": False, "error": "agent_id_obrigatorio"}
+    if not text:
+        return 400, {"ok": False, "error": "text_obrigatorio"}
+    if len(text) > 4096:
+        return 400, {"ok": False, "error": "text_muito_longo", "max": 4096}
+    kind = str(payload.get("kind") or payload.get("type") or "post").strip()[:32] or "post"
+    product_slug = str(payload.get("product_slug") or "").strip()[:120]
+    ts = int(payload.get("ts") or _t.time())
+
+    cat = _load_json(_FEED_CAT, {})
+    posts = cat.get("posts") if isinstance(cat, dict) and isinstance(cat.get("posts"), list) else []
+    sig = _hl.sha256(f"{agent_id}|{text}|{ts}".encode()).hexdigest()
+    for p in posts:
+        if isinstance(p, dict) and _hl.sha256(f"{p.get('agent_id','')}|{p.get('text','')}|{p.get('ts',0)}".encode()).hexdigest() == sig:
+            return 200, {"ok": True, "deduplicated": True, "id": p.get("id"), "ts": p.get("ts")}
+
+    pid = sig[:16]
+    new_post = {
+        "id": pid,
+        "agent_id": agent_id,
+        "kind": kind,
+        "text": text,
+        "ts": ts,
+        "replies": [],
+        "endorsements": 0,
+    }
+    if product_slug:
+        new_post["product_slug"] = product_slug
+    posts.append(new_post)
+    if len(posts) > 5000:
+        posts = posts[-5000:]
+    cat_out = dict(cat) if isinstance(cat, dict) else {}
+    cat_out["posts"] = posts
+    _save_json(_FEED_CAT, cat_out)
+
+    contract_hash = _hl.sha256(json.dumps(new_post, sort_keys=True).encode()).hexdigest()
+    return 201, {
+        "ok": True,
+        "id": pid,
+        "ts": ts,
+        "contract_hash": contract_hash,
+        "message": "Post publicado no feed MyLink",
+        "status": "anchored",
+    }
+
 def _aistore_onboard(data):
     addr = str(data.get("address", "")); aid = str(data.get("agent_id", ""))[:64]
     if not re.match(r"^b'/t[a-km-zA-HJ-NP-Z1-9]{20,40}$", addr):
@@ -998,6 +1057,14 @@ def _do_POST(self):
         except Exception:
             _pl = {}
         _res, _code = _mylink_register(_pl)
+        self._j(_res, _code); return
+    if path.endswith("/mylink/feed") or path.endswith("/mylink/post"):
+        try:
+            _ln = int(self.headers.get('Content-Length', 0) or 0)
+            _pl = json.loads(self.rfile.read(_ln).decode("utf-8", "replace") or "{}") if 0 < _ln < 65536 else {}
+        except Exception:
+            _pl = {}
+        _res, _code = _mylink_feed_post(_pl)
         self._j(_res, _code); return
     if path.endswith("/mylink/profile"):
         try:
