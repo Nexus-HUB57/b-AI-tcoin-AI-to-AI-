@@ -56,29 +56,42 @@ jobs:
           else:
               print('No JS syntax errors found')
           PYEOF
+      - name: Verify endpoint count (dynamic)
+        run: |
+          echo "Counting REST endpoints from baitcoin_api/server.py..."
+          python3 scripts/count_api_endpoints.py --gate 50
+
       - name: Check content consistency
         run: |
           python3 << 'PYEOF'
           # netlify/index.html must match frontend/index.html in key fields
+          import re, subprocess, json
           with open('netlify/index.html') as f: netlify = f.read()
           with open('frontend/index.html') as f: frontend = f.read()
-          
+
+          # Cross-check that the HTML advertises the actual endpoint count
+          n = int(subprocess.check_output(
+              ['python3', 'scripts/count_api_endpoints.py', '--json']
+          ).decode())
+          expected = f"{n} endpoints REST"
+          present = re.search(r"\b\d+\+? *endpoints? *REST\b", netlify, re.IGNORECASE)
+
           errors = []
           if 'Pre-Alpha' in netlify:
               errors.append('netlify/index.html still contains Pre-Alpha')
-          if '52 REST' in netlify:
-              errors.append('netlify/index.html still contains 52 REST')
+          if not present or present.group().lower() != expected.lower():
+              errors.append(f'netlify/index.html endpoint count drift: '
+                           f'expected "{expected}", got "{present.group() if present else None}"')
           if 'Mainnet' not in netlify:
               errors.append('netlify/index.html missing Mainnet')
-          if '67 REST' not in netlify:
-              errors.append('netlify/index.html missing 67 REST')
-          
+          if '<title>' not in netlify or 'b' not in netlify.split('<title>', 1)[1][:20]:
+              errors.append('netlify/index.html <title> missing brand')
+
           for e in errors:
               print(f'ERROR: {e}')
           if errors:
               import sys; sys.exit(1)
-          else:
-              print('Content consistency OK')
+          print(f'Content consistency OK ({n} endpoints)')
           PYEOF
 
   # Render auto-deploys from GitHub on push — no action needed.

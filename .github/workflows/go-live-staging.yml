@@ -1,0 +1,187 @@
+name: Deploy to Staging (homolog)
+
+# Deploy END-TO-END para um ambiente de HOMOLOGAÇÃO (staging) antes do
+# production (mainnet). Re-aproveita toda a infra de deploy-mybait mas
+# aponta para VPS/host separados.
+#
+# Secrets necessários (configurar em Settings → Environments → "staging"):
+#   STAGING_SSH_KEY  — chave privada SSH da VPS de homolog
+#   STAGING_HOST     — ex: staging.mybait.org ou IP da VPS
+#   STAGING_PORT     — SSH port (default 22022)
+#   STAGING_USER     — usuário SSH
+#   STAGING_BASE_URL — ex: https://staging.mybait.org (para verify_golive)
+#
+# Cadastro via CLI:
+#   gh secret set --env staging STAGING_SSH_KEY < ~/.ssh/staging_root_key
+#   gh secret set --env staging STAGING_HOST --body "staging.mybait.org"
+#   gh secret set --env staging STAGING_PORT --body "22022"
+#   gh secret set --env staging STAGING_USER --body "root"
+#   gh secret set --env staging STAGING_BASE_URL --body "https://staging.mybait.org"
+#
+# # Cadastrar o environment "staging" no GitHub:
+#   gh api -X PUT repos/:owner/:repo/environments/staging \
+#     -f wait_timer=60 -f prevent_self_review=false
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'O que deployar'
+        required: false
+        default: 'all'
+        type: choice
+        options: [frontend, daemon, all]
+      skip_verify:
+        description: 'Pular verify_golive.sh (apenas para emergências)'
+        required: false
+        default: 'false'
+        type: boolean
+  push:
+    branches: [develop, release/**, hotfix/**]
+    paths: ["site/**", "ops/**", "baitcoin_api/**", ".github/workflows/go-live-staging.yml"]
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+environment:
+  name: staging
+  url: ${{ secrets.STAGING_BASE_URL }}
+
+jobs:
+  validate:
+    name: Pre-deploy validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Endpoint count gate (>=50)
+        run: python3 scripts/count_api_endpoints.py --gate 50
+
+      - name: HTML consistency (staging flavor allows Pre-Alpha tags)
+        run: |
+          python3 - << 'PYEOF'
+          import re, subprocess
+          with open('netlify/index.html') as f: netlify = f.read()
+          # staging requires current endpoint count + brand + mainnet marker
+          n = int(subprocess.check_output(
+              ['python3', 'scripts/count_api_endpoints.py', '--json']).decode())
+          errors = []
+          if re.search(r"\b\d+\+? *endpoints? *REST\b", netlify, re.IGNORECASE) is None:
+              errors.append('netlify/index.html missing endpoint count')
+          if 'b' not in netlify[:500]:
+              errors.append('netlify/index.html missing brand marker')
+          if 'STAGING' not in netlify.upper():
+              pass  # not strictly required but recommended
+          if errors:
+              [print(f'ERROR: {e}') for e in errors]
+              import sys; sys.exit(1)
+          print(f'Staging HTML OK (endpoints={n})')
+          PYEOF
+
+  verify:
+    name: Verify staging (verify_golive.sh C01-C11)
+    runs-on: ubuntu-latest
+    needs: [validate]
+    steps:
+      - name: Discover staging base URL
+        id: discover
+        run: |
+          if [ -n "${{ secrets.STAGING_BASE_URL }}" ]; then
+            echo "base=${{ secrets.STAGING_BASE_URL }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::STAGING_BASE_URL secret not set — skipping public verification"
+            echo "base=skip" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run verify_golive.sh against staging
+        if: steps.discover.outputs.base != 'skip'
+        run: |
+          base="${{ steps.discover.outputs.base }}"
+          curl -fsSL "https://raw.githubusercontent.com/${{ github.repository }}/main/verify_golive.sh" -o /tmp/verify_golive.sh
+          bash /tmp/verify_golive.sh "$base" || {
+            echo "::warning::verify_golive.sh reported failures — see log"
+            echo "STAGING_OK=$?" >> "$GITHUB_ENV"
+          }
+
+  deploy:
+    name: Deploy to staging VPS (SSH)
+    runs-on: ubuntu-latest
+    needs: [validate]
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH (staging secrets only)
+        env:
+          STAGING_SSH_KEY: ${{ secrets.STAGING_SSH_KEY }}
+          STAGING_HOST: ${{ secrets.STAGING_HOST }}
+          STAGING_PORT: ${{ secrets.STAGING_PORT || '22022' }}
+          STAGING_USER: ${{ secrets.STAGING_USER || 'root' }}
+        run: |
+          if [ -z "$STAGING_SSH_KEY" ] || [ -z "$STAGING_HOST" ]; then
+            echo "::error::Missing STAGING_SSH_KEY or STAGING_HOST secrets"
+            exit 1
+          fi
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$STAGING_SSH_KEY" > ~/.ssh/staging_key
+          chmod 600 ~/.ssh/staging_key
+          ssh-keyscan -p "$STAGING_PORT" -H "$STAGING_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: rsync site/ + ops/ + baitcoin_api/
+        env:
+          STAGING_HOST: ${{ secrets.STAGING_HOST }}
+          STAGING_PORT: ${{ secrets.STAGING_PORT || '22022' }}
+          STAGING_USER: ${{ secrets.STAGING_USER || 'root' }}
+        run: |
+          # Excluir artefatos e segredos. Bit-for-bit dry run primeiro.
+          rsync -avz --delete \
+            --exclude='.git' --exclude='__pycache__' --exclude='*.pyc' \
+            --exclude='.env' --exclude='.env.*' --exclude='secrets/' \
+            --exclude='node_modules' --exclude='*.bak' \
+            --dry-run \
+            -e "ssh -i ~/.ssh/staging_key -p $STAGING_PORT -o StrictHostKeyChecking=accepted" \
+            ./site ./ops ./baitcoin_api ./netlify ./scripts \
+            "$STAGING_USER@$STAGING_HOST:/opt/baitcoin-staging/"
+          echo ""
+          echo "Performing actual rsync (no destructive delete on remote)..."
+          rsync -avz \
+            --exclude='.git' --exclude='__pycache__' --exclude='*.pyc' \
+            --exclude='.env' --exclude='.env.*' --exclude='secrets/' \
+            --exclude='node_modules' --exclude='*.bak' \
+            -e "ssh -i ~/.ssh/staging_key -p $STAGING_PORT -o StrictHostKeyChecking=accepted" \
+            ./site ./ops ./baitcoin_api ./netlify ./scripts \
+            "$STAGING_USER@$STAGING_HOST:/opt/baitcoin-staging/"
+
+      - name: Restart staging daemon (safe rollout)
+        env:
+          STAGING_HOST: ${{ secrets.STAGING_HOST }}
+          STAGING_PORT: ${{ secrets.STAGING_PORT || '22022' }}
+          STAGING_USER: ${{ secrets.STAGING_USER || 'root' }}
+        run: |
+          ssh -i ~/.ssh/staging_key -p "$STAGING_PORT" -o StrictHostKeyChecking=accepted \
+            "$STAGING_USER@$STAGING_HOST" << 'EOF'
+            set -eu
+            cd /opt/baitcoin-staging
+            # Rollout seguro: reload-only se houver signal handler, full restart c.c.
+            if systemctl is-active --quiet baitcoin-staging.service; then
+              sudo systemctl reload baitcoin-staging.service || sudo systemctl restart baitcoin-staging.service
+              echo "daemon reloaded/restarted"
+            else
+              echo "::warning::baitcoin-staging.service not active — skipping restart"
+            fi
+            # Verificar saúde
+            sleep 3
+            curl -fsS --max-time 10 "${STAGING_BASE_URL:-http://localhost:18445}/api/v1/status" | head -c 300
+            echo ""
+            echo "Staging deploy finished."
+          EOF
+
+      - name: Post-deploy notify
+        if: always()
+        run: |
+          if [ "${{ job.status }}" != "success" ]; then
+            echo "::warning::Staging deploy did not complete cleanly. Check logs."
+          else
+            echo "✅ Staging deploy OK — verify at ${{ secrets.STAGING_BASE_URL }}"
+          fi

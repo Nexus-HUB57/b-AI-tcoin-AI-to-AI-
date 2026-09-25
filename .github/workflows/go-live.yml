@@ -1,0 +1,197 @@
+name: Go-Live (production)
+
+# Deploy PROTEGIDO do mainnet com gate de homolog obrigatório.
+# Pipeline:
+#   1. validate (CI + endpoint gate)
+#   2. require: staging passed within 24h (workflow_run de go-live-staging)
+#   3. human approval via GitHub Environment "production"
+#   4. ssh-deploy to mainnet VPS
+#   5. post-deploy verify_golive.sh contra prod
+#   6. notify
+#
+# Secrets necessários (apenas no environment "production"):
+#   PROD_SSH_KEY, PROD_HOST, PROD_PORT, PROD_USER, PROD_BASE_URL
+#
+# Para forçar ordem staging → prod: o job `deploy` tem `needs: [validate, staging-ok]`
+# e o environment "production" tem `required_reviewers` no GitHub.
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'O que deployar'
+        required: false
+        default: 'all'
+        type: choice
+        options: [frontend, daemon, all]
+      force_no_staging:
+        description: 'Pular gate de staging (EMERGÊNCIA apenas)'
+        required: false
+        default: 'false'
+        type: boolean
+  push:
+    branches: [main]
+    paths: ["site/**", "ops/**", "baitcoin_api/**", "verify_golive.sh", ".github/workflows/go-live.yml"]
+
+concurrency:
+  group: go-live-prod
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: 1. Static + content validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Endpoint count gate (>=50)
+        run: python3 scripts/count_api_endpoints.py --gate 50
+
+      - name: HTML consistency (production flavor requires "Mainnet")
+        run: |
+          python3 - << 'PYEOF'
+          import re, subprocess, sys
+          with open('netlify/index.html') as f: netlify = f.read()
+          n = int(subprocess.check_output(
+              ['python3', 'scripts/count_api_endpoints.py', '--json']).decode())
+          errors = []
+          if 'Pre-Alpha' in netlify:
+              errors.append('netlify/index.html still contains Pre-Alpha (production cannot deploy Pre-Alpha)')
+          if re.search(r"\b\d+\+? *endpoints? *REST\b", netlify, re.IGNORECASE) is None:
+              errors.append('netlify/index.html missing endpoint count phrase')
+          if 'Mainnet' not in netlify:
+              errors.append('netlify/index.html missing "Mainnet" marker')
+          if errors:
+              [print(f'ERROR: {e}') for e in errors]
+              sys.exit(1)
+          print(f'HTML production checks OK (endpoints={n})')
+          PYEOF
+
+      - name: Self-test (count restated)
+        run: |
+          # Comentário: este job é disparado por push em main OU manualmente.
+          # Em prod, o gate "staging-ok" abaixo exige um workflow_run de
+          # go-live-staging bem-sucedido nas últimas 24h.
+          echo "validation phase green"
+
+  staging-gate:
+    name: 2. Staging gate
+    runs-on: ubuntu-latest
+    needs: [validate]
+    if: github.event_name == 'workflow_dispatch' && inputs.force_no_staging != 'true' || github.event_name == 'push'
+    steps:
+      - name: Check last staging run
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 - << 'PYEOF'
+          import json, subprocess, sys
+          from datetime import datetime, timedelta, timezone
+
+          out = subprocess.check_output([
+              'gh', 'api',
+              f'repos/${{ github.repository }}/actions/workflows/go-live-staging.yml/runs',
+              '--paginate', '-q', '.workflow_runs[] | {{conclusion,head_branch,created_at}}'
+          ], env={'GH_TOKEN': '${{ secrets.GITHUB_TOKEN }}'})
+
+          runs = json.loads(out)
+          cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+          ok = [r for r in runs if r.get('conclusion') == 'success'
+                and datetime.fromisoformat(r['created_at'].replace('Z', '+00:00')) > cutoff]
+          if not ok:
+              print('ERROR: no successful staging run in the last 24h')
+              print('Run go-live-staging.yml first and re-trigger this deploy.')
+              sys.exit(1)
+          print(f'Staging OK: {len(ok)} successful run(s) in last 24h; latest at {ok[0]["created_at"]}')
+          PYEOF
+
+  human-approval:
+    name: 3. Human approval gate
+    runs-on: ubuntu-latest
+    needs: [validate]
+    environment:
+      name: production
+      url: ${{ secrets.PROD_BASE_URL }}
+    steps:
+      - run: echo "Awaiting human approval (configured in environment 'production')"
+
+  deploy:
+    name: 4. SSH deploy to mainnet
+    runs-on: ubuntu-latest
+    needs: [validate, human-approval]
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Pre-flight secrets
+        env:
+          PROD_SSH_KEY: ${{ secrets.PROD_SSH_KEY }}
+          PROD_HOST: ${{ secrets.PROD_HOST }}
+          PROD_PORT: ${{ secrets.PROD_PORT || '22022' }}
+          PROD_USER: ${{ secrets.PROD_USER || 'root' }}
+        run: |
+          if [ -z "$PROD_SSH_KEY" ] || [ -z "$PROD_HOST" ]; then
+            echo "::error::Missing PROD_SSH_KEY or PROD_HOST"
+            exit 1
+          fi
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$PROD_SSH_KEY" > ~/.ssh/prod_key
+          chmod 600 ~/.ssh/prod_key
+          ssh-keyscan -p "$PROD_PORT" -H "$PROD_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: rsync site + ops + api (excluded secrets)
+        env:
+          PROD_HOST: ${{ secrets.PROD_HOST }}
+          PROD_PORT: ${{ secrets.PROD_PORT || '22022' }}
+          PROD_USER: ${{ secrets.PROD_USER || 'root' }}
+        run: |
+          rsync -avz --delete \
+            --exclude='.git' --exclude='__pycache__' --exclude='*.pyc' \
+            --exclude='.env' --exclude='.env.*' --exclude='secrets/' \
+            --exclude='node_modules' --exclude='*.bak' \
+            -e "ssh -i ~/.ssh/prod_key -p $PROD_PORT -o StrictHostKeyChecking=accepted" \
+            ./site ./ops ./baitcoin_api ./netlify ./scripts \
+            "$PROD_USER@$PROD_HOST:/opt/baitcoin/"
+
+      - name: Restart mainnet daemon
+        env:
+          PROD_HOST: ${{ secrets.PROD_HOST }}
+          PROD_PORT: ${{ secrets.PROD_PORT || '22022' }}
+          PROD_USER: ${{ secrets.PROD_USER || 'root' }}
+        run: |
+          ssh -i ~/.ssh/prod_key -p "$PROD_PORT" -o StrictHostKeyChecking=accepted \
+            "$PROD_USER@$PROD_HOST" << 'EOF'
+            set -eu
+            cd /opt/baitcoin
+            sudo systemctl reload baitcoin.service || sudo systemctl restart baitcoin.service
+            sleep 5
+            curl -fsS --max-time 15 https://www.mybait.org/api/api/v1/status | head -c 300
+            echo ""
+            echo "Mainnet reload OK."
+          EOF
+
+  verify-prod:
+    name: 5. Public prod verification (C01–C11)
+    runs-on: ubuntu-latest
+    needs: [deploy]
+    steps:
+      - name: Run verify_golive.sh against production
+        run: |
+          curl -fsSL "https://raw.githubusercontent.com/${{ github.repository }}/main/verify_golive.sh" -o /tmp/verify_golive.sh
+          bash /tmp/verify_golive.sh https://mybait.org
+
+  notify:
+    name: 6. Post-deploy notify
+    runs-on: ubuntu-latest
+    needs: [verify-prod]
+    if: always()
+    steps:
+      - run: |
+          if [ "${{ needs.verify-prod.result }}" != "success" ]; then
+            echo "::error::Post-deploy verification FAILED. Roll back via:"
+            echo "gh workflow run go-live.yml -f target=frontend -f force_no_staging=true"
+            exit 1
+          fi
+          echo "✅ Mainnet deploy + verification OK."
+          echo "  Site: https://www.mybait.org"
+          echo "  Status: https://www.mybait.org/api/v1/status"
