@@ -1,0 +1,7 @@
+{
+  "title": "G-03 / L1 Investigation",
+  "g03_verdict": "BLOCKED_STRUCTURAL",
+  "utxo_per_block_ratio": 1.0,
+  "latest_tx_types": {"coinbase": 20},
+  "note": "See G03_L1_INVESTIGATION.md for full evidence and operator runbook"
+}
