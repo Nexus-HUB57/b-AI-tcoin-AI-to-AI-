@@ -8,9 +8,11 @@ Uso no VPS:
     python3 /tmp/blockchain_patch.py
     systemctl restart baitcoin-live
 """
+import os
 import re, sys, time
 
-DAEMON = "/home/baitcoin/app/daemon_live.py"
+DAEMON = os.environ.get("BAITCOIN_DAEMON_PATH", "/home/baitcoin/app/daemon_live.py")
+SERVICE = os.environ.get("BAITCOIN_SERVICE_NAME", "baitcoin-live")
 src = open(DAEMON, encoding="utf-8").read()
 
 HELPER = '''
@@ -40,4 +42,4 @@ if "_block_full_dict" not in src:
 else:
     print("helper ja presente — nada a fazer")
 
-print("OK. Reinicie o daemon: systemctl restart baitcoin-live")
+print(f"OK. Reinicie o daemon: systemctl restart {SERVICE}")

@@ -81,11 +81,44 @@ jobs:
         env:
           MYLINK_MASTER_KEY: ${{ secrets.MYLINK_MASTER_KEY }}
 
+  # Staging tem credenciais e destino próprios. Nunca reutiliza o VPS de produção.
+  validate-staging-secrets:
+    name: "Validate Staging Secrets"
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && inputs.environment == 'staging'
+    environment: staging
+    steps:
+      - name: Check isolated staging secrets
+        env:
+          STAGING_VPS_SSH_KEY: ${{ secrets.STAGING_VPS_SSH_KEY }}
+          STAGING_VPS_HOST: ${{ secrets.STAGING_VPS_HOST }}
+          STAGING_VPS_PORT: ${{ secrets.STAGING_VPS_PORT }}
+          STAGING_VPS_USER: ${{ secrets.STAGING_VPS_USER }}
+          STAGING_SERVICE_NAME: ${{ secrets.STAGING_SERVICE_NAME }}
+          STAGING_BASE_URL: ${{ secrets.STAGING_BASE_URL }}
+          STAGING_WWW_ROOT: ${{ secrets.STAGING_WWW_ROOT }}
+          STAGING_APP_ROOT: ${{ secrets.STAGING_APP_ROOT }}
+        run: |
+          set -euo pipefail
+          missing=0
+          for name in STAGING_VPS_SSH_KEY STAGING_VPS_HOST STAGING_VPS_PORT STAGING_VPS_USER STAGING_SERVICE_NAME STAGING_BASE_URL STAGING_WWW_ROOT STAGING_APP_ROOT; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Secret $name is missing from the staging environment"
+              missing=$((missing + 1))
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then exit 1; fi
+          [[ "$STAGING_VPS_PORT" =~ ^[0-9]{1,5}$ ]] || { echo "::error::STAGING_VPS_PORT must be numeric"; exit 1; }
+          [[ "$STAGING_SERVICE_NAME" =~ ^[A-Za-z0-9_.@-]+$ ]] || { echo "::error::invalid staging service name"; exit 1; }
+          [[ "$STAGING_WWW_ROOT" = /* ]] || { echo "::error::STAGING_WWW_ROOT must be absolute"; exit 1; }
+          [[ "$STAGING_APP_ROOT" = /* ]] || { echo "::error::STAGING_APP_ROOT must be absolute"; exit 1; }
+          [[ "$STAGING_BASE_URL" = https://* ]] || { echo "::error::STAGING_BASE_URL must use HTTPS"; exit 1; }
+          echo "Isolated staging target validated"
+
   # ── Job 2: E2E Tests ──
   e2e-tests:
     name: "E2E Validation"
     runs-on: ubuntu-latest
-    needs: validate-secrets
     steps:
       - uses: actions/checkout@v4
 
@@ -111,7 +144,7 @@ jobs:
     name: "Deploy → VPS"
     runs-on: ubuntu-latest
     needs: [validate-secrets, e2e-tests]
-    if: github.ref == 'refs/heads/production' || github.event_name == 'workflow_dispatch'
+    if: github.ref == 'refs/heads/production' || (github.event_name == 'workflow_dispatch' && inputs.environment == 'production')
     environment: production
     steps:
       - uses: actions/checkout@v4
@@ -185,11 +218,79 @@ jobs:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
 
+  # Staging deploya somente no alvo separado e nunca usa os segredos de produção.
+  deploy-staging:
+    name: "Deploy → Staging"
+    runs-on: ubuntu-latest
+    needs: [validate-staging-secrets, e2e-tests]
+    if: github.event_name == 'workflow_dispatch' && inputs.environment == 'staging'
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare isolated SSH
+        env:
+          STAGING_VPS_SSH_KEY: ${{ secrets.STAGING_VPS_SSH_KEY }}
+          STAGING_VPS_HOST: ${{ secrets.STAGING_VPS_HOST }}
+          STAGING_VPS_PORT: ${{ secrets.STAGING_VPS_PORT }}
+          STAGING_VPS_USER: ${{ secrets.STAGING_VPS_USER }}
+        run: |
+          set -euo pipefail
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$STAGING_VPS_SSH_KEY" > ~/.ssh/staging_key
+          chmod 600 ~/.ssh/staging_key
+          ssh-keyscan -p "$STAGING_VPS_PORT" -H "$STAGING_VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Send additive staging package
+        env:
+          STAGING_VPS_HOST: ${{ secrets.STAGING_VPS_HOST }}
+          STAGING_VPS_PORT: ${{ secrets.STAGING_VPS_PORT }}
+          STAGING_VPS_USER: ${{ secrets.STAGING_VPS_USER }}
+        run: |
+          set -euo pipefail
+          tar czf /tmp/baitcoin-staging.tgz site ops
+          scp -i ~/.ssh/staging_key -P "$STAGING_VPS_PORT" /tmp/baitcoin-staging.tgz \
+            "$STAGING_VPS_USER@$STAGING_VPS_HOST:/tmp/baitcoin-staging.tgz"
+
+      - name: Apply staging package with isolated paths
+        env:
+          STAGING_VPS_HOST: ${{ secrets.STAGING_VPS_HOST }}
+          STAGING_VPS_PORT: ${{ secrets.STAGING_VPS_PORT }}
+          STAGING_VPS_USER: ${{ secrets.STAGING_VPS_USER }}
+          STAGING_SERVICE_NAME: ${{ secrets.STAGING_SERVICE_NAME }}
+          STAGING_WWW_ROOT: ${{ secrets.STAGING_WWW_ROOT }}
+          STAGING_APP_ROOT: ${{ secrets.STAGING_APP_ROOT }}
+        run: |
+          set -euo pipefail
+          printf 'MYLINK_SERVICE_NAME=%q\nMYLINK_WWW_ROOT=%q\nMYLINK_APP_ROOT=%q\n' \
+            "$STAGING_SERVICE_NAME" "$STAGING_WWW_ROOT" "$STAGING_APP_ROOT" > /tmp/staging-env
+          scp -i ~/.ssh/staging_key -P "$STAGING_VPS_PORT" /tmp/staging-env \
+            "$STAGING_VPS_USER@$STAGING_VPS_HOST:/tmp/staging-env"
+          ssh -i ~/.ssh/staging_key -p "$STAGING_VPS_PORT" \
+            "$STAGING_VPS_USER@$STAGING_VPS_HOST" \
+            'set -euo pipefail; mkdir -p /tmp/staging-release; tar xzf /tmp/baitcoin-staging.tgz -C /tmp/staging-release; rm -rf /tmp/site /tmp/ops; cp -a /tmp/staging-release/site /tmp/site; cp -a /tmp/staging-release/ops /tmp/ops; set -a; source /tmp/staging-env; set +a; bash /tmp/ops/apply_mylink.sh'
+
+  smoke-test-staging:
+    name: "Staging Smoke Test"
+    runs-on: ubuntu-latest
+    needs: deploy-staging
+    if: github.event_name == 'workflow_dispatch' && inputs.environment == 'staging'
+    environment: staging
+    steps:
+      - name: Verify isolated staging health
+        env:
+          STAGING_BASE_URL: ${{ secrets.STAGING_BASE_URL }}
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --max-time 20 "$STAGING_BASE_URL/mylink" >/dev/null
+          echo "Staging smoke test passed"
+
   # ── Job 4: Post-deploy smoke test ──
   smoke-test:
     name: "Smoke Test"
     runs-on: ubuntu-latest
     needs: deploy-vps
+    if: github.ref == 'refs/heads/production' || (github.event_name == 'workflow_dispatch' && inputs.environment == 'production')
     steps:
       - name: Verify daemon health
         run: |
