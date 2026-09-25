@@ -92,3 +92,32 @@ class MiningTransportService:
             "network": self.network,
             "attestation": "share-only-no-payout",
         }
+
+    def submit_block(self, payload: dict, *, client_id: str, now: Optional[float] = None) -> dict:
+        """Admit a candidate for later application; never append or broadcast."""
+        now = self.clock() if now is None else now
+        if not self._check_rate(client_id, now):
+            raise PermissionError("rate limit exceeded")
+        if not isinstance(payload, dict) or not isinstance(payload.get("block"), dict):
+            raise ValueError("block payload must contain an object under block")
+        template_id = str(payload.get("template_id", ""))
+        try:
+            from baitcoin_core.ecosystem import _restore_block
+            block = _restore_block(payload["block"])
+        except (KeyError, TypeError, ValueError, OverflowError) as exc:
+            raise ValueError("invalid serialized block") from exc
+        result = self.manager.submit_block(template_id, block, now=now)
+        validation = result.validation
+        return {
+            "status": result.status,
+            "reason": result.reason,
+            "template_id": template_id,
+            "block_hash": block.block_hash.hex(),
+            "validation": {
+                "valid": validation.valid,
+                "reason": validation.reason,
+                "fees_sats": validation.fees_sats,
+            } if validation is not None else None,
+            "network": self.network,
+            "attestation": "candidate-only-no-application",
+        }

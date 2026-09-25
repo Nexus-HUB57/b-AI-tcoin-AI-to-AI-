@@ -84,6 +84,7 @@ class _TemplateState:
     template: WorkTemplate
     block: Block
     accepted_shares: set[str]
+    accepted_blocks: set[str]
 
 
 class WorkTemplateManager:
@@ -148,7 +149,7 @@ class WorkTemplateManager:
             created_at=now,
             expires_at=now + self.template_ttl_seconds,
         )
-        self._templates[template_id] = _TemplateState(template, block, set())
+        self._templates[template_id] = _TemplateState(template, block, set(), set())
         return template
 
     def submit_share(self, submission: ShareSubmission, *, now: Optional[float] = None) -> ShareResult:
@@ -180,18 +181,29 @@ class WorkTemplateManager:
             is_block_solution=int.from_bytes(expected_proof, "big") <= state.template.target,
         )
 
-    def submit_block(self, template_id: str, block: Block) -> BlockSubmissionResult:
+    def submit_block(self, template_id: str, block: Block, *, now: Optional[float] = None) -> BlockSubmissionResult:
         state = self._templates.get(template_id)
         if state is None:
             return BlockSubmissionResult("rejected", "unknown template")
         template = state.template
+        now = self.clock() if now is None else now
+        if now >= template.expires_at:
+            return BlockSubmissionResult("rejected", "template expired")
         if block.index != template.height or block.header.prev_block_hash.hex() != template.prev_hash:
             return BlockSubmissionResult("rejected", "block does not match template")
         if block.header.bits != template.bits:
             return BlockSubmissionResult("rejected", "block bits do not match template")
+        if block.header.agent_validator != state.block.header.agent_validator:
+            return BlockSubmissionResult("rejected", "block validator does not match template")
+        if not block.transactions or block.transactions[0].tx_id != state.block.transactions[0].tx_id:
+            return BlockSubmissionResult("rejected", "coinbase does not match template")
+        block_id = block.block_hash.hex()
+        if block_id in state.accepted_blocks:
+            return BlockSubmissionResult("duplicate", "block already admitted")
         result = self._validator.validate(block)
         if not result.valid:
             return BlockSubmissionResult("rejected", result.reason, result)
+        state.accepted_blocks.add(block_id)
         return BlockSubmissionResult("accepted", validation=result)
 
     def get_template(self, template_id: str) -> Optional[WorkTemplate]:

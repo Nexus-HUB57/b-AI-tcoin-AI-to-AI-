@@ -353,6 +353,7 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
             '/api/v1/bug-bounty/submit': self._post_bug_bounty_submit,
             '/api/v1/mining/template': self._post_mining_template,
             '/api/v1/mining/share': self._post_mining_share,
+            '/api/v1/mining/block': self._post_mining_block,
         }
         handler = routes.get(path)
         if handler:
@@ -437,6 +438,23 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
             return self._send_json(error, 400)
         try:
             result = self.mining_transport.submit_share(
+                body, client_id=self._mining_client_id(),
+            )
+        except PermissionError as exc:
+            return self._send_json({'error': str(exc)}, 429)
+        except (TypeError, ValueError) as exc:
+            return self._send_json({'error': str(exc)}, 400)
+        status = 200 if result.get('status') in {'accepted', 'duplicate'} else 400
+        return self._send_json(result, status)
+
+    def _post_mining_block(self):
+        if self.mining_transport is None:
+            return self._send_json({'error': 'mining_transport_disabled'}, 503)
+        body, error = self._read_json_body_bounded()
+        if error:
+            return self._send_json(error, 400)
+        try:
+            result = self.mining_transport.submit_block(
                 body, client_id=self._mining_client_id(),
             )
         except PermissionError as exc:

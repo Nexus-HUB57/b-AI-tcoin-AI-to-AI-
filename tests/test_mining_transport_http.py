@@ -1,3 +1,4 @@
+import copy
 import json
 import threading
 import urllib.error
@@ -18,7 +19,11 @@ def post(url, payload, headers=None):
         method="POST",
         headers={"Content-Type": "application/json", **(headers or {})},
     )
-    with urllib.request.urlopen(request, timeout=3) as response:
+    try:
+        response = urllib.request.urlopen(request, timeout=3)
+    except urllib.error.HTTPError as error:
+        return error.code, json.loads(error.read())
+    with response:
         return response.status, json.loads(response.read())
 
 
@@ -74,6 +79,53 @@ def test_http_template_then_share_is_e2e_and_read_only():
         assert duplicate["status"] == "duplicate"
         assert duplicate["share_id"] == share["share_id"]
         assert chain.height == 0
+    finally:
+        server.shutdown()
+        server.server_close()
+        BaitcoinAPIHandler.mining_transport = previous
+
+
+def test_http_candidate_block_is_validated_idempotently_without_application():
+    chain = Blockchain(ZkMLConsensus(target=2**256 - 1))
+    service = MiningTransportService(
+        chain,
+        network="regtest",
+        chain_id="transport-test",
+        share_target=2**256 - 1,
+    )
+    previous = BaitcoinAPIHandler.mining_transport
+    server = create_app(host="127.0.0.1", port=0)
+    BaitcoinAPIHandler.mining_transport = service
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        base = f"http://127.0.0.1:{server.server_address[1]}"
+        _, template = post(
+            base + "/api/v1/mining/template",
+            {"miner_id": "miner-http", "payout_script_hex": "7061796f7574"},
+        )
+        candidate = copy.deepcopy(service.manager._templates[template["template_id"]].block)
+        assert chain.consensus.mine_block(candidate, max_iterations=1) is True
+        candidate.finalize()
+        payload = {"template_id": template["template_id"], "block": candidate.to_dict()}
+
+        status, result = post(base + "/api/v1/mining/block", payload)
+        assert status == 200
+        assert result["status"] == "accepted"
+        assert result["validation"]["valid"] is True
+        assert result["attestation"] == "candidate-only-no-application"
+
+        status, duplicate = post(base + "/api/v1/mining/block", payload)
+        assert status == 200
+        assert duplicate["status"] == "duplicate"
+        assert duplicate["block_hash"] == result["block_hash"]
+        assert chain.height == 0
+
+        tampered = copy.deepcopy(payload)
+        tampered["block"]["header"]["nonce"] += 1
+        status, rejected = post(base + "/api/v1/mining/block", tampered)
+        assert status == 400
+        assert rejected["status"] == "rejected"
     finally:
         server.shutdown()
         server.server_close()
