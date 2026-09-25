@@ -80,8 +80,9 @@ contract DeployBAITAnvil is Script {
         console.log("  Predicted BridgeLock:", predictedBridgeLock);
 
         // ── Step 2: Deploy WBAIT with predicted BridgeLock address ──
+        // Anvil uses the deployer as the local timelock authority.
         console.log("--- Step 2: Deploy WBAIT ---");
-        wbait = new WBAIT(predictedBridgeLock);
+        wbait = new WBAIT(predictedBridgeLock, deployer);
         console.log("  WBAIT deployed at:", address(wbait));
         console.log("    name:", wbait.name());
         console.log("    symbol:", wbait.symbol());
@@ -92,7 +93,7 @@ contract DeployBAITAnvil is Script {
 
         // ── Step 3: Deploy BridgeLock ──
         console.log("--- Step 3: Deploy BridgeLock ---");
-        bridgeLock = new BridgeLock(address(wbait), operators);
+        bridgeLock = new BridgeLock(address(wbait), deployer, operators);
         console.log("  BridgeLock deployed at:", address(bridgeLock));
         console.log("    wbait ref:", address(bridgeLock.wbait()));
         console.log("    threshold:", bridgeLock.REQUIRED_CONFIRMATIONS());

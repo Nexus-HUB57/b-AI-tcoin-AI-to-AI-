@@ -137,12 +137,12 @@ contract TestBridgeLifecycleAnvil is Script {
         console.log("  Deployer nonce:", deployerNonce);
         console.log("  Predicted BridgeLock:", predictedBridgeLock);
 
-        // Deploy WBAIT
-        wbait = new WBAIT(predictedBridgeLock);
+        // Deploy WBAIT; the deployer is the local timelock authority.
+        wbait = new WBAIT(predictedBridgeLock, deployer);
         console.log("  WBAIT deployed at:", address(wbait));
 
         // Deploy BridgeLock
-        bridgeLock = new BridgeLock(address(wbait), operators);
+        bridgeLock = new BridgeLock(address(wbait), deployer, operators);
         console.log("  BridgeLock deployed at:", address(bridgeLock));
 
         // Verify address prediction
