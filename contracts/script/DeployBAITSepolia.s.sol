@@ -67,6 +67,13 @@ contract DeployBAITSepolia is Script {
             console.log("  [INFO] MULTISIG_OWNER not set, using deployer as owner");
         }
         multisig = targetMultisig;
+        address timelockAddress;
+        try vm.envAddress("TIMELOCK_ADDRESS") returns (address _timelock) {
+            timelockAddress = _timelock;
+        } catch {
+            timelockAddress = deployer;
+            console.log("  [INFO] TIMELOCK_ADDRESS not set, using deployer for testnet compatibility");
+        }
 
         // ── Pre-Deployment Checks ──
         _preDeploymentChecks(deployer, operators, multisig);
@@ -88,7 +95,7 @@ contract DeployBAITSepolia is Script {
 
         // ── Step 2: Deploy WBAIT with predicted BridgeLock address ──
         console.log("--- Step 2: Deploy WBAIT ---");
-        wbait = new WBAIT(predictedBridgeLock);
+        wbait = new WBAIT(predictedBridgeLock, timelockAddress);
         console.log("  WBAIT deployed at:", address(wbait));
         console.log("    name:", wbait.name());
         console.log("    symbol:", wbait.symbol());
@@ -99,7 +106,7 @@ contract DeployBAITSepolia is Script {
 
         // ── Step 3: Deploy BridgeLock ──
         console.log("--- Step 3: Deploy BridgeLock ---");
-        bridgeLock = new BridgeLock(address(wbait), operators);
+        bridgeLock = new BridgeLock(address(wbait), timelockAddress, operators);
         console.log("  BridgeLock deployed at:", address(bridgeLock));
         console.log("    wbait ref:", address(bridgeLock.wbait()));
         console.log("    threshold:", bridgeLock.REQUIRED_CONFIRMATIONS());

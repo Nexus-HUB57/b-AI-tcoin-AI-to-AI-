@@ -86,10 +86,10 @@ contract EchidnaBridgeTester {
         if (bal == 0) return;
         amount = amount % bal;
         if (amount == 0) amount = 1;
-        if (bytes(l1Addr).length == 0) l1Addr = "b'release";
+        string memory releaseAddress = bytes(l1Addr).length == 0 ? "b1release" : l1Addr;
         try wbait.approve(address(bridge), amount) {}
         catch { return; }
-        try bridge.initiateBurnRelease(amount, l1Addr) {}
+        try bridge.initiateBurnRelease(amount, releaseAddress) {}
         catch {}
     }
 

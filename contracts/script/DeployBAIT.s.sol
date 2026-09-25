@@ -49,6 +49,10 @@ contract DeployBAIT is Script {
 
         vm.startBroadcast(deployerPrivateKey);
 
+        address deployer = vm.addr(deployerPrivateKey);
+        uint256 deployerNonce = vm.getNonce(deployer);
+        address predictedBridgeLock = vm.computeCreateAddress(deployer, deployerNonce + 1);
+
         // Fix #3 (HIGH): Correct deployment order to break circular immutable dependency
         // Step 1: Deploy WBAIT with bridgeLock=address(0) placeholder + real timelock
         WBAIT wbait = new WBAIT(address(0), timelockAddress);

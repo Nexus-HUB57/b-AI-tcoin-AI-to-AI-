@@ -144,10 +144,10 @@ contract BAITVerifyingPaymaster is IPaymaster, Ownable2Step, Pausable {
 
     function parsePaymasterAndData(bytes calldata paymasterAndData)
         public
-        pure
+        view
         returns (uint48 validUntil, uint48 validAfter, bytes calldata signature)
     {
-        require(paymasterAndData.length >= 52 + 65, "Paymaster: short paymasterAndData");
+        require(paymasterAndData.length >= 20 + 6 + 6 + 65, "Paymaster: short paymasterAndData");
         require(address(bytes20(paymasterAndData[0:20])) == address(this), "Paymaster: wrong pm");
         validUntil = uint48(bytes6(paymasterAndData[20:26]));
         validAfter = uint48(bytes6(paymasterAndData[26:32]));

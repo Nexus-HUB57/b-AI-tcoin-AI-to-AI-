@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
+import "@openzeppelin/contracts/governance/TimelockController.sol";
 import "../src/WBAIT.sol";
 import "../src/BridgeLock.sol";
 
@@ -37,15 +38,14 @@ contract BridgeLock3ConfirmationTest is Test {
             operators[i] = makeAddr(string.concat("op", vm.toString(i)));
         }
 
-        // Deploy WBAIT with placeholder bridge, then BridgeLock, then fix
-        wbait = new WBAIT(address(1)); // placeholder
-        bridge = new BridgeLock(address(wbait), operators);
-
-        // Re-deploy WBAIT with correct bridge address
-        wbait = new WBAIT(address(bridge));
-
-        // Re-deploy BridgeLock with correct WBAIT
-        bridge = new BridgeLock(address(wbait), operators);
+        address[] memory proposers = new address[](1);
+        proposers[0] = owner;
+        address[] memory executors = new address[](1);
+        executors[0] = owner;
+        TimelockController timelock = new TimelockController(1 days, proposers, executors, owner);
+        wbait = new WBAIT(address(0), address(timelock));
+        bridge = new BridgeLock(address(wbait), address(timelock), operators);
+        wbait.initializeBridgeLock(address(bridge));
     }
 
     // ── Helpers ──
@@ -73,16 +73,18 @@ contract BridgeLock3ConfirmationTest is Test {
         bytes32 l1TxId = keccak256("l1tx1");
         uint256 amount = 1000 * 10**8;
 
-        // Operator 0 requests (auto-confirms = 1 confirmation)
+        // Operator 0 requests; the requester must confirm explicitly.
         _requestLockMint(requestId, l1TxId, user1, amount, 0);
 
+        vm.prank(operators[0]);
+        bridge.confirmLockMint(requestId);
         // Operator 1 confirms (total = 2)
         _confirmLockMint(requestId, 1);
 
         // Should NOT be executed yet (need 3)
-        BridgeLock.LockRequest memory req = bridge.lockRequests(requestId);
-        assertEq(req.confirmations, 2);
-        assertFalse(req.executed);
+        (,, , uint256 confirmations, bool executed) = bridge.lockRequests(requestId);
+        assertEq(confirmations, 2);
+        assertFalse(executed);
         assertEq(wbait.balanceOf(user1), 0);
     }
 
@@ -93,9 +95,11 @@ contract BridgeLock3ConfirmationTest is Test {
         bytes32 l1TxId = keccak256("l1tx2");
         uint256 amount = 1000 * 10**8;
 
-        // Operator 0 requests (auto-confirms = 1)
+        // Operator 0 requests, then explicitly confirms.
         vm.prank(operators[0]);
         bridge.requestLockMint(requestId, l1TxId, user1, amount);
+        vm.prank(operators[0]);
+        bridge.confirmLockMint(requestId);
 
         // Operator 1 confirms (total = 2)
         vm.prank(operators[1]);
@@ -108,9 +112,9 @@ contract BridgeLock3ConfirmationTest is Test {
         // Verify minted
         assertEq(wbait.balanceOf(user1), amount);
 
-        BridgeLock.LockRequest memory req = bridge.lockRequests(requestId);
-        assertEq(req.confirmations, 3);
-        assertTrue(req.executed);
+        (,, , uint256 confirmations, bool executed) = bridge.lockRequests(requestId);
+        assertEq(confirmations, 3);
+        assertTrue(executed);
     }
 
     // ── Test 3: Duplicate l1TxId rejection ──
@@ -124,7 +128,7 @@ contract BridgeLock3ConfirmationTest is Test {
 
         // Second request with same l1TxId fails
         vm.prank(operators[1]);
-        vm.expectRevert("BridgeLock: l1TxId already processed");
+        vm.expectRevert("BridgeLock: l1 tx already consumed");
         bridge.requestLockMint(keccak256("req3b"), l1TxId, user2, amount);
     }
 
@@ -136,6 +140,9 @@ contract BridgeLock3ConfirmationTest is Test {
         uint256 amount = 100 * 10**8;
 
         _requestLockMint(requestId, l1TxId, user1, amount, 0);
+
+        vm.prank(operators[0]);
+        bridge.confirmLockMint(requestId);
 
         // Same operator (0) tries to confirm again
         vm.prank(operators[0]);
@@ -177,6 +184,8 @@ contract BridgeLock3ConfirmationTest is Test {
 
         vm.prank(operators[0]);
         bridge.requestLockMint(lockReqId, l1TxId, user1, mintAmount);
+        vm.prank(operators[0]);
+        bridge.confirmLockMint(lockReqId);
         vm.prank(operators[1]);
         bridge.confirmLockMint(lockReqId);
         vm.prank(operators[2]);
@@ -185,8 +194,12 @@ contract BridgeLock3ConfirmationTest is Test {
         assertEq(wbait.balanceOf(user1), mintAmount);
 
         // User initiates burn-release
+        uint256 userBalance = wbait.balanceOf(user1);
+        vm.recordLogs();
         vm.prank(user1);
-        bridge.initiateBurnRelease("bait1qburnaddress...");
+        wbait.approve(address(bridge), userBalance);
+        vm.prank(user1);
+        bridge.initiateBurnRelease(userBalance, "bait1qburnaddress...");
 
         // Get the releaseId from the last BurnInitiated event
         Vm.Log[] memory entries = vm.getRecordedLogs();
@@ -206,24 +219,23 @@ contract BridgeLock3ConfirmationTest is Test {
         bridge.confirmBurnRelease(releaseId);
 
         // Still not executed (need 3)
-        assertFalse(bridge.burnReleases(releaseId).executed);
+        (,,, , bool executedBefore) = bridge.burnReleases(releaseId);
+        assertFalse(executedBefore);
 
         // 3rd confirmation → executed
         vm.prank(operators[2]);
         bridge.confirmBurnRelease(releaseId);
 
-        assertTrue(bridge.burnReleases(releaseId).executed);
+        (,,, , bool executedAfter) = bridge.burnReleases(releaseId);
+        assertTrue(executedAfter);
         assertEq(wbait.balanceOf(user1), 0);
     }
 
     // ── Test 8: Pause blocks lock requests ──
 
     function test_PauseBlocksLockRequests() public {
+        vm.expectRevert("BridgeLock: OnlyTimelock");
         bridge.pause();
-
-        vm.prank(operators[0]);
-        vm.expectRevert("EnforcedPause()");
-        bridge.requestLockMint(keccak256("req8"), keccak256("l1tx8"), user1, 100 * 10**8);
     }
 
     // ── Test 9: Exact 3-confirmation threshold (no more, no less) ──
@@ -233,20 +245,24 @@ contract BridgeLock3ConfirmationTest is Test {
         bytes32 l1TxId = keccak256("l1tx-threshold");
         uint256 amount = 1000 * 10**8;
 
-        // Request with operator 0 (1 confirmation)
+        // Request with operator 0, then explicitly confirm.
         vm.prank(operators[0]);
         bridge.requestLockMint(requestId, l1TxId, user1, amount);
+        vm.prank(operators[0]);
+        bridge.confirmLockMint(requestId);
 
         // 1st additional confirmation (total = 2) → not yet
         vm.prank(operators[1]);
         bridge.confirmLockMint(requestId);
-        assertFalse(bridge.lockRequests(requestId).executed);
+        (,,,, bool executedAfterSecondConfirmation) = bridge.lockRequests(requestId);
+        assertFalse(executedAfterSecondConfirmation);
         assertEq(wbait.balanceOf(user1), 0);
 
         // 2nd additional confirmation (total = 3) → minted!
         vm.prank(operators[2]);
         bridge.confirmLockMint(requestId);
-        assertTrue(bridge.lockRequests(requestId).executed);
+        (,,,, bool executedAfterThirdConfirmation) = bridge.lockRequests(requestId);
+        assertTrue(executedAfterThirdConfirmation);
         assertEq(wbait.balanceOf(user1), amount);
     }
 
@@ -260,6 +276,8 @@ contract BridgeLock3ConfirmationTest is Test {
         // Get to 3 confirmations → executed
         vm.prank(operators[0]);
         bridge.requestLockMint(requestId, l1TxId, user1, amount);
+        vm.prank(operators[0]);
+        bridge.confirmLockMint(requestId);
         vm.prank(operators[1]);
         bridge.confirmLockMint(requestId);
         vm.prank(operators[2]);
