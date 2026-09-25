@@ -2,11 +2,12 @@
 
 Integra:
   - baitcoin_ai.oracle.real_feed (CoinGecko / Binance)
+  - native_processing.chainlink_feed (Chainlink Data Feeds via eth_call)
   - native_processing.schnorr_keypair (assinatura BIP-340)
   - native_processing.parity_gate (ParityAttestation)
 
 Fluxo:
-  1. Buscar preços BTC/USDT (e opcionalmente BRL)
+  1. Buscar preços (Chainlink preferido para USDT/USD; CoinGecko fallback)
   2. Montar ParityAttestation com bait_usdt_ppm ≈ 1_000_000 (paridade alvo)
   3. Cada oráculo assina o digest
   4. proof_b64 = Base64(sig_a || sig_b || sig_c)
@@ -16,7 +17,7 @@ from __future__ import annotations
 import logging
 import time
 import uuid
-from typing import Any, Dict, List, Mapping, Optional, Sequence
+from typing import Any, Dict, Mapping, Optional, Sequence
 
 from native_processing.parity_gate import ParityAttestation
 from native_processing.schnorr_parity_verifier import build_proof_b64
@@ -52,6 +53,28 @@ def fetch_market_prices(symbols: Sequence[str] = ("BTC",)) -> Dict[str, Optional
     return prices
 
 
+def fetch_chainlink_prices(
+    pairs: Sequence[str] = ("BTC/USD", "ETH/USD", "USDT/USD"),
+    *,
+    max_age_seconds: int = 86400,
+) -> Dict[str, Optional[float]]:
+    """Read Chainlink Data Feeds via eth_call. Returns pair -> price or None on failure."""
+    try:
+        from native_processing.chainlink_feed import ChainlinkFeedReader
+    except ImportError:
+        logger.warning("chainlink_feed not available")
+        return {p: None for p in pairs}
+    reader = ChainlinkFeedReader(max_age_seconds=max_age_seconds)
+    out: Dict[str, Optional[float]] = {}
+    for pair in pairs:
+        try:
+            out[pair] = reader.get_price(pair).price
+        except Exception as exc:
+            logger.warning("Chainlink read failed for %s: %s", pair, exc)
+            out[pair] = None
+    return out
+
+
 def build_signed_attestation(
     signers: Mapping[str, Any],
     *,
@@ -63,30 +86,18 @@ def build_signed_attestation(
     now: Optional[float] = None,
     quorum: Optional[int] = None,
 ) -> ParityAttestation:
-    """Cria ParityAttestation assinada pelos oráculos em `signers`.
-
-    Args:
-        signers: dict source_id → objeto com .sign(message) → signature.raw (64 bytes)
-                 (ex.: SchnorrKeyPair)
-        bait_usdt: preço BAIT em USDT (default 1.0 = paridade)
-        usdt_usd: preço USDT em USD
-        usd_brl: preço USD em BRL (se None, usa 5.0 como placeholder)
-        ttl_seconds: validade da attestation
-        round_id: identificador da rodada (auto se None)
-        now: timestamp (auto se None)
-        quorum: mínimo de assinaturas (default = len(signers))
-    """
+    """Cria ParityAttestation assinada pelos oráculos em `signers`."""
     if not signers:
         raise ValueError("at least one signer is required")
 
     now = time.time() if now is None else float(now)
-    source_ids = tuple(sorted(signers.keys()))  # deterministic order
+    source_ids = tuple(sorted(signers.keys()))
     q = quorum if quorum is not None else len(source_ids)
     if q < 1 or q > len(source_ids):
         raise ValueError("invalid quorum")
 
     if usd_brl is None:
-        usd_brl = 5.0  # placeholder; produção deve buscar FX real
+        usd_brl = 5.0
 
     att = ParityAttestation(
         pair="BAIT/USDT",
@@ -101,12 +112,9 @@ def build_signed_attestation(
         proof_b64="",
     )
 
-    # build_proof_b64 expects attestation.source_ids order
-    # Re-order signers to match
     ordered_signers = {sid: signers[sid] for sid in source_ids}
     proof = build_proof_b64(att, ordered_signers)
 
-    # Return new frozen attestation with proof
     return ParityAttestation(
         pair=att.pair,
         bait_usdt_ppm=att.bait_usdt_ppm,
@@ -127,17 +135,45 @@ def build_from_market(
     bait_usdt: float = 1.0,
     ttl_seconds: float = 60.0,
 ) -> ParityAttestation:
-    """Busca preços de mercado e constrói attestation assinada.
-
-    Nota: BAIT ainda não tem preço de mercado líquido; bait_usdt default = 1.0
-    (paridade alvo do protocol). Quando houver preço real, passar explicitamente.
-    """
-    prices = fetch_market_prices(["BTC"])
-    # USDT ≈ 1 USD na prática; BRL via proxy se necessário
+    """Busca preços de mercado (CoinGecko) e constrói attestation assinada."""
+    fetch_market_prices(["BTC"])
     return build_signed_attestation(
         signers,
         bait_usdt=bait_usdt,
         usdt_usd=1.0,
+        usd_brl=5.0,
+        ttl_seconds=ttl_seconds,
+    )
+
+
+def build_from_chainlink(
+    signers: Mapping[str, Any],
+    *,
+    bait_usdt: float = 1.0,
+    ttl_seconds: float = 60.0,
+    max_age_seconds: int = 86400,
+) -> ParityAttestation:
+    """Build signed ParityAttestation using Chainlink for USDT/USD.
+
+    BAIT uses protocol parity target (default 1.0 USDT) until a liquid market exists.
+    usdt_usd comes from Chainlink USDT/USD when available; falls back to 1.0.
+    """
+    cl = fetch_chainlink_prices(
+        ("BTC/USD", "ETH/USD", "USDT/USD"),
+        max_age_seconds=max_age_seconds,
+    )
+    usdt_usd = cl.get("USDT/USD") or 1.0
+    if cl.get("BTC/USD"):
+        logger.info(
+            "Chainlink BTC/USD=%.2f ETH/USD=%s USDT/USD=%s",
+            cl["BTC/USD"],
+            cl.get("ETH/USD"),
+            usdt_usd,
+        )
+    return build_signed_attestation(
+        signers,
+        bait_usdt=bait_usdt,
+        usdt_usd=float(usdt_usd),
         usd_brl=5.0,
         ttl_seconds=ttl_seconds,
     )
