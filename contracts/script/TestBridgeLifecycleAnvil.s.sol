@@ -282,7 +282,7 @@ contract TestBridgeLifecycleAnvil is Script {
         // Recipient initiates burn
         uint256 preBurnCount = bridgeLock.getBurnReleaseCount();
         vm.startBroadcast(RECIPIENT_KEY);
-        bridgeLock.initiateBurnRelease(L1_RELEASE_ADDRESS);
+        bridgeLock.initiateBurnRelease(postMintBalance, L1_RELEASE_ADDRESS);
         vm.stopBroadcast();
         console.log("  [PASS] Recipient initiated burn-release");
 
@@ -505,7 +505,7 @@ contract TestBridgeLifecycleAnvil is Script {
         uint256 recipientBal = wbait.balanceOf(recipient);
         vm.startBroadcast(RECIPIENT_KEY);
         wbait.approve(address(bridgeLock), recipientBal);
-        bridgeLock.initiateBurnRelease(L1_RELEASE_ADDRESS);
+        bridgeLock.initiateBurnRelease(recipientBal, L1_RELEASE_ADDRESS);
         vm.stopBroadcast();
 
         uint256 bc = bridgeLock.getBurnReleaseCount();
@@ -559,7 +559,7 @@ contract TestBridgeLifecycleAnvil is Script {
         uint256 bal = wbait.balanceOf(recipient);
         vm.startBroadcast(RECIPIENT_KEY);
         wbait.approve(address(bridgeLock), bal);
-        bridgeLock.initiateBurnRelease(L1_RELEASE_ADDRESS);
+        bridgeLock.initiateBurnRelease(bal, L1_RELEASE_ADDRESS);
         vm.stopBroadcast();
 
         uint256 bc = bridgeLock.getBurnReleaseCount();

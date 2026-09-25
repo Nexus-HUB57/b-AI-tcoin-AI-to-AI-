@@ -186,7 +186,7 @@ contract TestBridgeLifecycle is Script {
         console.log("--- Step 6: Initiate Burn-Release (Recipient) ---");
         uint256 preBurnCount = bridgeLock.getBurnReleaseCount();
         vm.startBroadcast(recipientKey);
-        bridgeLock.initiateBurnRelease(L1_RELEASE_ADDRESS);
+        bridgeLock.initiateBurnRelease(postMintBalance, L1_RELEASE_ADDRESS);
         vm.stopBroadcast();
         console.log("  Burn initiated by:", recipient);
         console.log("  Amount burned:", postMintBalance);
