@@ -13,7 +13,7 @@ import os
 import json
 from datetime import datetime
 
-BASE = "/home/z/my-project/download/exchange-applications"
+BASE = os.environ.get("E2E_EXCHANGE_DIR", "/home/z/my-project/download/exchange-applications")
 os.makedirs(BASE, exist_ok=True)
 
 NOW = datetime.now().isoformat()

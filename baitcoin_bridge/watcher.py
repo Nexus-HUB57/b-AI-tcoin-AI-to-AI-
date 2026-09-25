@@ -101,9 +101,11 @@ class BridgeWatcher:
         }
         self._event_queue: List[ExternalEvent] = []
         self._processed_ids: set = set()
+        self._seen_tx_hashes: set = set()  # Duplicate tx_hash detection
         self._callbacks: List[Callable] = []
         self._total_detected = 0
         self._total_processed = 0
+        self._total_duplicates_rejected = 0
 
     def on_event(self, callback: Callable) -> None:
         r"""Register a callback for confirmed events."""
@@ -207,12 +209,19 @@ class BridgeWatcher:
         r"""Process the next pending event.
 
         Returns the event data and marks it as processed.
+        Rejects events with duplicate tx_hashes (anti-double-process).
         """
         for event in self._event_queue:
             if event.is_confirmed() and not event.processed:
+                # Duplicate tx_hash check — reject if already processed
+                if event.tx_hash in self._seen_tx_hashes:
+                    event.processed = True  # Mark as processed to skip in future
+                    self._total_duplicates_rejected += 1
+                    continue
                 event.processed = True
                 self._total_processed += 1
                 self._processed_ids.add(event.event_id)
+                self._seen_tx_hashes.add(event.tx_hash)
 
                 data = event.to_dict()
                 if callback:

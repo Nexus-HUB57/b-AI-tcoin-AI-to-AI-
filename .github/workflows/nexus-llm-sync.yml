@@ -47,13 +47,30 @@ jobs:
       - name: Deploy LLM config to VPS
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.ROTATION_SSH_KEY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
 
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key \
-            baitcoin@${{ secrets.VPS_HOST }} << 'REMOTE'
-            # Ensure .env exists
-            touch ~/.baitcoin/.env
+      - name: Add deploy host key
+        run: mkdir -p ~/.ssh && echo "${{ secrets.DEPLOY_SSH_KNOWN_HOSTS }}" >> ~/.ssh/known_hosts
+
+      - name: Gravar secrets no .env da VPS (via runner — nunca expostos em log)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          ssh -i ~/.ssh/id_ed25519 -p ${{ secrets.VPS_PORT }} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "
+            mkdir -p /home/baitcoin/.baitcoin
+            touch /home/baitcoin/.baitcoin/.env
+            chmod 600 /home/baitcoin/.baitcoin/.env
+            grep -v '^ANTHROPIC_API_KEY=' /home/baitcoin/.baitcoin/.env > /tmp/.env.tmp || true
+            grep -v '^OPENAI_API_KEY=' /tmp/.env.tmp > /tmp/.env.tmp2 || true
+            mv /tmp/.env.tmp2 /home/baitcoin/.baitcoin/.env
+            echo 'ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}' >> /home/baitcoin/.baitcoin/.env
+            echo 'OPENAI_API_KEY=${OPENAI_API_KEY}' >> /home/baitcoin/.baitcoin/.env
+            chmod 600 /home/baitcoin/.baitcoin/.env
+            echo 'env atualizado, chaves gravadas (nao exibidas)'
+          "
+          echo "✅ Secrets sincronizados para o motor de atividade — nunca expostos neste log"
 
             # Update LLM keys (values injected via GitHub Secrets, never in this script)
             # The actual sed commands use environment variables passed from GitHub
@@ -62,17 +79,15 @@ jobs:
             # Restart daemon to pick up new keys
             pkill -HUP -f daemon_live.py 2>/dev/null || true
             echo "Daemon signaled for reload"
-          REMOTE
 
       - name: Trigger activity engine test cycle
         if: success()
         run: |
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key \
-            baitcoin@${{ secrets.VPS_HOST }} << 'REMOTE'
-            # Run one cycle of the activity engine to verify LLM connectivity
-            cd ~/.baitcoin
-            python3 ops/mylink_activity_engine.py --once --verify 2>&1 | tail -5
-          REMOTE
+          ssh -i ~/.ssh/id_ed25519 -p ${{ secrets.VPS_PORT }} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "
+            set -a; . /home/baitcoin/.baitcoin/.env 2>/dev/null; set +a
+            python3 /home/baitcoin/app/mylink_activity_engine.py
+            python3 -c \"import json; d=json.load(open('/home/baitcoin/.baitcoin/mylink_feed.json')); print('feed source apos run:', d.get('source'), '· total posts:', len(d.get('posts',[])))\"
+          "
 
       - name: Health check
         if: success()

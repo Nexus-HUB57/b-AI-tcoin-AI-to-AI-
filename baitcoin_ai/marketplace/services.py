@@ -60,7 +60,10 @@ class PurchaseRecord:
     seller_agent: str
     price_sats: int
     timestamp: float = field(default_factory=time.time)
-    status: str = "completed"
+    status: str = "pending_settlement"
+    settlement_txid: Optional[str] = None
+    confirmations: int = 0
+    rated: bool = False
 
 
 class AIMarketplace:
@@ -81,6 +84,16 @@ class AIMarketplace:
                       name: str, description: str,
                       price_sats: int) -> str:
         """Cria listagem de serviço."""
+        if not isinstance(provider, str) or not provider.strip() or len(provider) > 128:
+            raise ValueError("provider must be a non-empty identifier")
+        if not isinstance(category, ServiceCategory):
+            raise ValueError("category must be a ServiceCategory")
+        if not isinstance(name, str) or not name.strip() or len(name) > 200:
+            raise ValueError("name must be a non-empty string")
+        if not isinstance(description, str) or len(description) > 4000:
+            raise ValueError("description is too long")
+        if type(price_sats) is not int or price_sats <= 0:
+            raise ValueError("price_sats must be a positive integer")
         lid = f"svc_{hashlib.sha256(f'{provider}:{name}:{time.time()}'.encode()).hexdigest()[:12]}"
         self.listings[lid] = ServiceListing(
             listing_id=lid,
@@ -94,6 +107,8 @@ class AIMarketplace:
 
     def purchase_service(self, listing_id: str, buyer: str) -> Optional[str]:
         """Compra/contrata um serviço."""
+        if not isinstance(buyer, str) or not buyer.strip() or len(buyer) > 128:
+            raise ValueError("buyer must be a non-empty identifier")
         listing = self.listings.get(listing_id)
         if listing is None or listing.state != ListingState.ACTIVE:
             return None
@@ -109,10 +124,31 @@ class AIMarketplace:
             seller_agent=listing.provider_agent,
             price_sats=total,
         )
+        return pid
+
+    def settle_purchase(self, purchase_id: str, settlement_txid: str, confirmations: int) -> bool:
+        """Mark a purchase settled only after an externally verified txid."""
+        purchase = self.purchases.get(purchase_id)
+        if purchase is None:
+            return False
+        if purchase.status == "settled":
+            return purchase.settlement_txid == settlement_txid
+        if not isinstance(settlement_txid, str) or len(settlement_txid) != 64:
+            return False
+        if any(char not in "0123456789abcdefABCDEF" for char in settlement_txid):
+            return False
+        if type(confirmations) is not int or confirmations < 1:
+            return False
+        listing = self.listings.get(purchase.listing_id)
+        if listing is None:
+            return False
+        purchase.status = "settled"
+        purchase.settlement_txid = settlement_txid.lower()
+        purchase.confirmations = confirmations
         listing.total_calls += 1
         listing.total_revenue_sats += listing.price_per_call_sats
-        self._total_volume += total
-        return pid
+        self._total_volume += purchase.price_sats
+        return True
 
     def rate_service(self, purchase_id: str, score: float) -> bool:
         """Avalia serviço comprado (1.0 a 5.0)."""
@@ -122,10 +158,13 @@ class AIMarketplace:
         listing = self.listings.get(purchase.listing_id)
         if listing is None:
             return False
+        if purchase.status != "settled" or purchase.rated:
+            return False
         score = max(1.0, min(5.0, score))
         total = listing.rating_avg * listing.rating_count + score
         listing.rating_count += 1
         listing.rating_avg = total / listing.rating_count
+        purchase.rated = True
         return True
 
     def search(self, category: Optional[ServiceCategory] = None,

@@ -1438,7 +1438,7 @@ ANEXO C — PARAMETROS DE REDE MAINNET
 ================================================================================
 """
 
-with open('/home/z/my-project/baitcoin-ecosystem/Whitelabel.txt', 'w', encoding='utf-8') as f:
+with open(os.environ.get("WHITELABEL_PATH", "/home/z/my-project/baitcoin-ecosystem/Whitelabel.txt"), 'w', encoding='utf-8') as f:
     f.write(doc)
 
 lines = doc.count('\n')

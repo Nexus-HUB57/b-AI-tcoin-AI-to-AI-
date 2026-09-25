@@ -223,6 +223,9 @@ class BlockchAInIndex:
         self._txs_by_address: Dict[str, List[str]] = {}  # address -> [tx_ids]
         self._txs_by_agent: Dict[str, List[str]] = {}   # agent_id -> [tx_ids]
         self._address_by_agent: Dict[str, str] = {}     # agent_id -> address
+        # UTXO set: (tx_id, output_index) -> {address, amount_sats}
+        # Tracks unspent outputs for accurate balance calculation
+        self._utxo_set: Dict[Tuple[str, int], Dict] = {}
         # Metadados
         self._total_txs: int = 0
         self._total_blocks: int = 0
@@ -263,6 +266,7 @@ class BlockchAInIndex:
             self._txs_by_address.clear()
             self._txs_by_agent.clear()
             self._address_by_agent.clear()
+            self._utxo_set.clear()
             self._total_txs = 0
             self._total_blocks = 0
 
@@ -370,10 +374,26 @@ class BlockchAInIndex:
             for inp in tx.inputs:
                 addr = inp.prev_tx_id.hex()[:16] + f":{inp.prev_output_index}"
                 input_addrs.append(addr)
-            for out in tx.outputs:
+                # ── UTXO spend: remove spent outpoint and deduct from balance ──
+                spent_key = (inp.prev_tx_id.hex(), inp.prev_output_index)
+                spent_utxo = self._utxo_set.pop(spent_key, None)
+                if spent_utxo and not tx.is_coinbase:
+                    spent_addr = spent_utxo["address"]
+                    spent_amount = spent_utxo["amount_sats"]
+                    # Deduct from address balance
+                    if spent_addr in self._address_info:
+                        ai = self._address_info[spent_addr]
+                        ai.balance_sats = max(0, ai.balance_sats - spent_amount)
+                        ai.total_sent_sats += spent_amount
+            for out_idx, out in enumerate(tx.outputs):
                 out_addr = _pubkey_to_bait_address(out.script_pubkey.hex())
                 output_addrs.append(out_addr)
                 total_out += out.amount_sats
+                # ── UTXO creation: add new unspent outpoint ──
+                self._utxo_set[(tx_id, out_idx)] = {
+                    "address": out_addr,
+                    "amount_sats": out.amount_sats,
+                }
 
             total_in = sum(o.amount_sats for o in tx.inputs) if tx.inputs else 0
             fee = max(0, total_in - total_out) if not tx.is_coinbase else 0
@@ -555,3 +575,22 @@ class BlockchAInIndex:
             for tx in self._tx_by_hash.values():
                 if tx.block_height >= 0:
                     tx.confirmations = current_height - tx.block_height + 1
+
+    def get_utxo(self, tx_id: str, output_index: int) -> Optional[Dict]:
+        r"""Retorna um UTXO especifico por outpoint (tx_id, output_index), ou None se ja gasto."""
+        with self._lock:
+            return self._utxo_set.get((tx_id, output_index))
+
+    def get_address_utxos(self, address: str) -> List[Dict]:
+        r"""Retorna todos os UTXOs nao gastos de um endereco."""
+        with self._lock:
+            return [
+                {"tx_id": k[0], "output_index": k[1], **v}
+                for k, v in self._utxo_set.items()
+                if v["address"] == address
+            ]
+
+    def get_utxo_count(self) -> int:
+        r"""Retorna o numero total de UTXOs nao gastos."""
+        with self._lock:
+            return len(self._utxo_set)

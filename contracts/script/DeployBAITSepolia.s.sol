@@ -25,12 +25,12 @@ import "../src/BridgeLock.sol";
  * Optional Environment Variables:
  *   MULTISIG_OWNER        - Multisig address for ownership transfer (defaults to deployer)
  *
- * Testnet Operators (deterministic Foundry default accounts for testing):
- *   Operator 0: 0xf39FD6E46aAd4f21Ab2D9B4D2386C90789b70653
- *   Operator 1: 0x70997970C51812DcdeA1F10b5BB9bd5F3f3dEB5D
- *   Operator 2: 0x3c44cDDdb6a900Fa2B385dD3C5a7C1A3c4D495F7
- *   Operator 3: 0x90f79bF6f509F8B6e11C0800b9Bd1C3d1FE8c73b
- *   Operator 4: 0x15d34aAf5dB67d33767E7f02D2D4C6C0C0C0c0C0
+ * Testnet Operators (deterministic Foundry/Anvil default accounts for testing):
+ *   Operator 0: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+ *   Operator 1: 0x70997970C51812dc3A010C7d01b50e0d17dc79C8
+ *   Operator 2: 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC
+ *   Operator 3: 0x90F79bf6EB2c4f870365E785982E1f101E93b906
+ *   Operator 4: 0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65
  *
  * [!] These are TESTNET ONLY. Production uses HSM-derived operator keys.
  */
@@ -39,12 +39,12 @@ contract DeployBAITSepolia is Script {
     uint256 constant MAX_SUPPLY = 21_000_000 * 10**8;
     uint256 constant SEPOLIA_CHAIN_ID = 11155111;
 
-    // Deterministic testnet operator addresses (Foundry default accounts)
-    address constant OP_0 = 0xf39FD6E46aAd4f21Ab2D9B4D2386C90789b70653;
-    address constant OP_1 = 0x70997970C51812DcdeA1F10b5BB9bd5F3f3dEB5D;
-    address constant OP_2 = 0x3c44cDDdb6a900Fa2B385dD3C5a7C1A3c4D495F7;
-    address constant OP_3 = 0x90f79bF6f509F8B6e11C0800b9Bd1C3d1FE8c73b;
-    address constant OP_4 = 0x15d34aAf5dB67d33767E7f02D2D4C6C0C0C0c0C0;
+    // Deterministic testnet operator addresses (Foundry/Anvil default accounts)
+    address constant OP_0 = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
+    address constant OP_1 = 0x70997970C51812dc3A010C7d01b50e0d17dc79C8;
+    address constant OP_2 = 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC;
+    address constant OP_3 = 0x90F79bf6EB2c4f870365E785982E1f101E93b906;
+    address constant OP_4 = 0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65;
 
     // ── State ──
     WBAIT public wbait;
@@ -67,6 +67,13 @@ contract DeployBAITSepolia is Script {
             console.log("  [INFO] MULTISIG_OWNER not set, using deployer as owner");
         }
         multisig = targetMultisig;
+        address timelockAddress;
+        try vm.envAddress("TIMELOCK_ADDRESS") returns (address _timelock) {
+            timelockAddress = _timelock;
+        } catch {
+            timelockAddress = deployer;
+            console.log("  [INFO] TIMELOCK_ADDRESS not set, using deployer for testnet compatibility");
+        }
 
         // ── Pre-Deployment Checks ──
         _preDeploymentChecks(deployer, operators, multisig);
@@ -88,7 +95,7 @@ contract DeployBAITSepolia is Script {
 
         // ── Step 2: Deploy WBAIT with predicted BridgeLock address ──
         console.log("--- Step 2: Deploy WBAIT ---");
-        wbait = new WBAIT(predictedBridgeLock);
+        wbait = new WBAIT(predictedBridgeLock, timelockAddress);
         console.log("  WBAIT deployed at:", address(wbait));
         console.log("    name:", wbait.name());
         console.log("    symbol:", wbait.symbol());
@@ -99,7 +106,7 @@ contract DeployBAITSepolia is Script {
 
         // ── Step 3: Deploy BridgeLock ──
         console.log("--- Step 3: Deploy BridgeLock ---");
-        bridgeLock = new BridgeLock(address(wbait), operators);
+        bridgeLock = new BridgeLock(address(wbait), timelockAddress, operators);
         console.log("  BridgeLock deployed at:", address(bridgeLock));
         console.log("    wbait ref:", address(bridgeLock.wbait()));
         console.log("    threshold:", bridgeLock.REQUIRED_CONFIRMATIONS());

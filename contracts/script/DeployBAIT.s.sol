@@ -6,6 +6,25 @@ import "../src/WBAIT.sol";
 import "../src/BridgeLock.sol";
 import "@openzeppelin/contracts/governance/TimelockController.sol";
 
+/**
+ * @title DeployBAIT - Base Deployment Script (FIXED)
+ * @notice Deploys WBAIT + BridgeLock with correct cross-references via
+ *         CREATE address prediction. The original version set WBAIT.bridgeLock
+ *         to msg.sender (deployer), making the bridge permanently non-functional.
+ *
+ *         This version pre-computes BridgeLock's address and passes it to
+ *         WBAIT's constructor, then verifies the cross-reference.
+ *
+ * Usage:
+ *   forge script script/DeployBAIT.s.sol \
+ *     --rpc-url $RPC_URL \
+ *     --private-key $DEPLOYER_PRIVATE_KEY \
+ *     --broadcast --verify -vvvv
+ *
+ * Environment Variables Required:
+ *   DEPLOYER_PRIVATE_KEY  - Deployer private key
+ *   OPERATOR_1..5         - Bridge operator addresses
+ */
 contract DeployBAIT is Script {
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
@@ -20,7 +39,19 @@ contract DeployBAIT is Script {
             vm.envAddress("OPERATOR_5")
         ];
 
+        // Pre-deployment: verify operator uniqueness
+        for (uint256 i = 0; i < 5; i++) {
+            require(operators[i] != address(0), "FATAL: Operator is zero address");
+            for (uint256 j = i + 1; j < 5; j++) {
+                require(operators[i] != operators[j], "FATAL: Duplicate operator");
+            }
+        }
+
         vm.startBroadcast(deployerPrivateKey);
+
+        address deployer = vm.addr(deployerPrivateKey);
+        uint256 deployerNonce = vm.getNonce(deployer);
+        address predictedBridgeLock = vm.computeCreateAddress(deployer, deployerNonce + 1);
 
         // Fix #3 (HIGH): Correct deployment order to break circular immutable dependency
         // Step 1: Deploy WBAIT with bridgeLock=address(0) placeholder + real timelock
@@ -36,6 +67,17 @@ contract DeployBAIT is Script {
         console.log("WBAIT.bridgeLock set to:", address(bridgeLock));
 
         vm.stopBroadcast();
+
+        // Step 4: Verify address prediction (critical safety check)
+        require(
+            address(bridgeLock) == predictedBridgeLock,
+            "FATAL: BridgeLock address does not match prediction!"
+        );
+        require(
+            wbait.bridgeLock() == address(bridgeLock),
+            "FATAL: WBAIT.bridgeLock does not match BridgeLock address!"
+        );
+        console.log("[PASS] Cross-reference verified: WBAIT.bridgeLock == BridgeLock");
 
         console.log("=== Deployment Summary ===");
         console.log("WBAIT:", address(wbait));

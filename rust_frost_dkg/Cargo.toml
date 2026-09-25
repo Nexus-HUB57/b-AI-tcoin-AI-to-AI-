@@ -1,0 +1,19 @@
+[package]
+name = "bait_frost_dkg"
+version = "0.1.0"
+edition = "2021"
+description = "Pedersen DKG (educational) for BAIT ParityGate — secp256k1 scalar math"
+license = "MIT"
+
+[dependencies]
+hex = "0.4"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "1"
+sha2 = "0.10"
+rand = "0.8"
+
+# Avoid edition2024 transitive deps — use pure modular arithmetic for demo DKG
+# Production should use frost-secp256k1 on Rust >= 1.80
+
+[dev-dependencies]

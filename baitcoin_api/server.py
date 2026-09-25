@@ -162,6 +162,7 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
     explorer_analytics = None # OnChainAnalytics instance
     explorer_docs = None      # DeveloperDocs instance
     rate_limiter = None       # RateLimiter instance
+    mining_transport = None   # MiningTransportService; explicit testnet/regtest opt-in
 
     # Moltbook-protected routes (requerem X-Moltbook-Identity header)
     MOLTBOOK_PROTECTED_POST = {
@@ -173,6 +174,9 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
         '/api/v1/obscura/scrape',
         '/api/v1/dev/api-keys',
         '/api/v1/bug-bounty/submit',
+        '/api/v1/marketplace/list',
+        '/api/v1/marketplace/purchase',
+        '/api/v1/marketplace/rate',
     }
 
     def log_message(self, format, *args):
@@ -211,6 +215,8 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
             '/api/v1/marketplace': self._get_marketplace,
             '/api/v1/marketplace/products': self._get_marketplace_products,
             '/api/v1/p2p/peers': self._get_peers,
+            '/api/v1/p2p/status': self._get_p2p_status,
+            '/api/v1/validators': self._get_validators_status,
             '/api/v1/moltbook/auth-stats': self._get_moltbook_stats,
             '/api/v1/auth/status': self._get_auth_status_handler,
             '/api/v1/whitelabel': self._get_whitelabel_info,
@@ -345,6 +351,9 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
             '/api/v1/marketplace/search': self._post_marketplace_search,
             # Phase 21: Bug Bounty
             '/api/v1/bug-bounty/submit': self._post_bug_bounty_submit,
+            '/api/v1/mining/template': self._post_mining_template,
+            '/api/v1/mining/share': self._post_mining_share,
+            '/api/v1/mining/block': self._post_mining_block,
         }
         handler = routes.get(path)
         if handler:
@@ -384,6 +393,76 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
         self.moltbook_agent = result.agent
         self.moltbook_headers = headers_dict
         return None
+
+    # --- External mining transport (explicit regtest/testnet opt-in) ---
+    def _mining_client_id(self) -> str:
+        return (self.headers.get('X-Mining-Client') or
+                self.headers.get('X-Forwarded-For') or
+                self.client_address[0])[:128]
+
+    def _read_json_body_bounded(self):
+        try:
+            length = int(self.headers.get('Content-Length', 0))
+        except ValueError:
+            return None, {'error': 'invalid_content_length'}
+        if length <= 0 or length > 16 * 1024:
+            return None, {'error': 'request_body_out_of_bounds'}
+        try:
+            return json.loads(self.rfile.read(length).decode('utf-8')), None
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            return None, {'error': 'invalid_json'}
+
+    def _post_mining_template(self):
+        if self.mining_transport is None:
+            return self._send_json({'error': 'mining_transport_disabled'}, 503)
+        body, error = self._read_json_body_bounded()
+        if error:
+            return self._send_json(error, 400)
+        try:
+            result = self.mining_transport.issue_template(
+                miner_id=body.get('miner_id', ''),
+                payout_script_hex=body.get('payout_script_hex', ''),
+                client_id=self._mining_client_id(),
+            )
+        except PermissionError as exc:
+            return self._send_json({'error': str(exc)}, 429)
+        except (TypeError, ValueError) as exc:
+            return self._send_json({'error': str(exc)}, 400)
+        return self._send_json(result, 201)
+
+    def _post_mining_share(self):
+        if self.mining_transport is None:
+            return self._send_json({'error': 'mining_transport_disabled'}, 503)
+        body, error = self._read_json_body_bounded()
+        if error:
+            return self._send_json(error, 400)
+        try:
+            result = self.mining_transport.submit_share(
+                body, client_id=self._mining_client_id(),
+            )
+        except PermissionError as exc:
+            return self._send_json({'error': str(exc)}, 429)
+        except (TypeError, ValueError) as exc:
+            return self._send_json({'error': str(exc)}, 400)
+        status = 200 if result.get('status') in {'accepted', 'duplicate'} else 400
+        return self._send_json(result, status)
+
+    def _post_mining_block(self):
+        if self.mining_transport is None:
+            return self._send_json({'error': 'mining_transport_disabled'}, 503)
+        body, error = self._read_json_body_bounded()
+        if error:
+            return self._send_json(error, 400)
+        try:
+            result = self.mining_transport.submit_block(
+                body, client_id=self._mining_client_id(),
+            )
+        except PermissionError as exc:
+            return self._send_json({'error': str(exc)}, 429)
+        except (TypeError, ValueError) as exc:
+            return self._send_json({'error': str(exc)}, 400)
+        status = 200 if result.get('status') in {'accepted', 'duplicate'} else 400
+        return self._send_json(result, status)
 
     def _get_auth_status(self):
         r"""Retorna info do agente Moltbook autenticado (se houver)."""
@@ -642,6 +721,28 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
             self._send_json(self.p2p_node.get_stats())
         else:
             self._send_json({'peers': [], 'node_id': getattr(self.p2p_node, 'node_id', 'unknown')})
+
+    def _get_p2p_status(self):
+        """GET /api/v1/p2p/status — transport evidence, not consensus attestation."""
+        if not self.p2p_node:
+            return self._send_json({'error': 'p2p_not_initialized'}, 503)
+        if hasattr(self.p2p_node, 'get_public_status'):
+            return self._send_json(self.p2p_node.get_public_status())
+        stats = self.p2p_node.get_stats() if hasattr(self.p2p_node, 'get_stats') else {}
+        peers = self.p2p_node.get_peer_list() if hasattr(self.p2p_node, 'get_peer_list') else []
+        self._send_json({**stats, 'peer_count': len(peers), 'peers': peers, 'attestation': 'transport-only'})
+
+    def _get_validators_status(self):
+        """GET /api/v1/validators — expose configured validators without claiming quorum."""
+        validators = []
+        if self.staking_pool and hasattr(self.staking_pool, 'get_validators'):
+            validators = self.staking_pool.get_validators()
+        return self._send_json({
+            'validators': validators,
+            'count': len(validators),
+            'attestation': 'configured-set-only',
+            'quorum_proven': False,
+        })
 
     def _get_faucet_balance(self, agent_id):
         if not self.faucet:
@@ -1205,13 +1306,16 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
         category = cat_map.get(body.get('category'))
         if not category:
             return self._send_json({'error': 'invalid_category', 'valid': list(cat_map.keys())}, 400)
-        lid = self.marketplace.list_service(
-            provider=body.get('provider', 'anonymous'),
-            category=category,
-            name=body.get('name', ''),
-            description=body.get('description', ''),
-            price_sats=int(body.get('price_sats', 0)),
-        )
+        try:
+            lid = self.marketplace.list_service(
+                provider=body.get('provider', ''),
+                category=category,
+                name=body.get('name', ''),
+                description=body.get('description', ''),
+                price_sats=int(body.get('price_sats', 0)),
+            )
+        except (TypeError, ValueError) as exc:
+            return self._send_json({'error': 'invalid_listing', 'detail': str(exc)}, 400)
         self._send_json({'success': True, 'listing_id': lid})
 
     def _post_marketplace_purchase(self):
@@ -1225,12 +1329,15 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
             body = json.loads(self._read_body().decode())
         except Exception:
             return self._send_json({'error': 'invalid_json'}, 400)
-        pid = self.marketplace.purchase_service(
-            listing_id=body.get('listing_id', ''),
-            buyer=body.get('buyer_agent', 'anonymous'),
-        )
+        try:
+            pid = self.marketplace.purchase_service(
+                listing_id=body.get('listing_id', ''),
+                buyer=body.get('buyer_agent', ''),
+            )
+        except ValueError as exc:
+            return self._send_json({'error': 'invalid_purchase', 'detail': str(exc)}, 400)
         if pid:
-            self._send_json({'success': True, 'purchase_id': pid})
+            self._send_json({'success': True, 'purchase_id': pid, 'status': 'pending_settlement'})
         else:
             self._send_json({'error': 'listing_not_found_or_inactive'}, 404)
 
@@ -1245,10 +1352,13 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
             body = json.loads(self._read_body().decode())
         except Exception:
             return self._send_json({'error': 'invalid_json'}, 400)
-        ok = self.marketplace.rate_service(
-            purchase_id=body.get('purchase_id', ''),
-            score=float(body.get('score', 3.0)),
-        )
+        try:
+            ok = self.marketplace.rate_service(
+                purchase_id=body.get('purchase_id', ''),
+                score=float(body.get('score', 3.0)),
+            )
+        except (TypeError, ValueError):
+            return self._send_json({'error': 'invalid_rating'}, 400)
         if ok:
             self._send_json({'success': True})
         else:
@@ -1388,17 +1498,22 @@ class BaitcoinAPIHandler(BaseHTTPRequestHandler):
     def _get_mainnet_health(self):
         r"""GET /api/v1/mainnet/health — Get mainnet health status."""
         try:
-            from baitcoin_mainnet.launcher import MainnetLauncher
-            launcher = MainnetLauncher()
-            # Simulated metrics for current system
-            metrics = {
-                'orphan_rate': 0.0,
-                'peer_count': len(self.p2p_node.get_peer_list()) if self.p2p_node else 0,
-                'block_propagation_s': 0.5,
-                'mempool_size': len(self.blockchain.mempool) if self.blockchain else 0,
-            }
-            health = launcher.check_health(**metrics)
-            self._send_json(health)
+            p2p = self.p2p_node.get_public_status() if self.p2p_node and hasattr(self.p2p_node, 'get_public_status') else {}
+            chain = self.blockchain
+            tip = chain.last_block if chain and hasattr(chain, 'last_block') else None
+            required = bool(chain and p2p.get('running') and p2p.get('peer_count', 0) >= 3)
+            self._send_json({
+                'status': 'ok' if required else 'not_ready',
+                'chain_height': chain.height if chain else 0,
+                'tip_hash': tip.block_hash.hex() if tip else None,
+                'genesis_hash': chain.chain[0].block_hash.hex() if chain and chain.chain else None,
+                'peer_count': p2p.get('peer_count', 0),
+                'inbound_count': p2p.get('inbound_count', 0),
+                'outbound_count': p2p.get('outbound_count', 0),
+                'mainnet_attested': False,
+                'go_live_gate': 'PASS' if required else 'BLOCKED',
+                'reasons': [] if required else ['at least three live P2P peers are required'],
+            })
         except Exception as e:
             self._send_json({'error': str(e)}, 500)
 

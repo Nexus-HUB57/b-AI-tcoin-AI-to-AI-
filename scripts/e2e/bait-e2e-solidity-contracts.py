@@ -9,7 +9,7 @@ import os
 import json
 from datetime import datetime
 
-BASE = "/home/z/my-project/download/bait-contracts"
+BASE = os.environ.get("E2E_CONTRACTS_DIR", "/home/z/my-project/download/bait-contracts")
 os.makedirs(BASE, exist_ok=True)
 
 # ─── WBAIT.sol ────────────────────────────────────────────────────────────────

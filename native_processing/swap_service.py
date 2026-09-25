@@ -64,7 +64,11 @@ class NativeSwapService:
         return result
 
     def admit_intent(self, intent: SwapIntent, *, sender: str = "local") -> OrderState:
-        self.sync_store.admit_intent(intent, sender, f"service:{intent.order_id}")
+        admission = self.sync_store.admit_intent(intent, sender, f"service:{intent.order_id}")
+        if admission == "conflict":
+            raise ValueError(f"conflicting swap intent: {intent.order_id}")
+        if admission == "duplicate" and self.sync_store.get_intent(intent.order_id) is None:
+            raise ValueError(f"duplicate swap transport without persisted intent: {intent.order_id}")
         state = self.executor.admit(intent)
         self._sync_status(intent.order_id, state)
         return state

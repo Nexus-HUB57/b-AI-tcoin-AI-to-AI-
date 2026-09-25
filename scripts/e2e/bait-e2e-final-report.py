@@ -8,7 +8,7 @@ import os
 import json
 from datetime import datetime
 
-BASE = "/home/z/my-project/download"
+BASE = os.environ.get("E2E_OUTPUT_DIR", "/home/z/my-project/download")
 NOW = datetime.now().isoformat()
 
 # ─── Load master tracker ──────────────────────────────────────────────────────

@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import { query } from "../db.js";
 import { logger } from "../logger.js";
 import { config } from "../config.js";
+import { escrowCreated, escrowSettled } from "../metrics/registry.js";
 
 class X402Client {
   async createEscrow({ tradeId, buyerAgent, sellerAgent, buyerAmount, sellerAmount, pair, deadlineSeconds = 300 }) {
@@ -17,6 +18,7 @@ class X402Client {
        VALUES ($1,$2,$3,$4,'XCHANGE',$5,$6,'pending',$7)`,
       [tradeId, buyerAgent, sellerAgent, buyerAmount, pair, paymentRequiredId, deadline]);
     logger.info({ tradeId, escrowId: escrowId.slice(0, 8), paymentRequiredId: paymentRequiredId.slice(0, 16), mode: config.x402.mode }, "x402: escrow criado");
+    escrowCreated.inc({ pair });
     return {
       escrowId, paymentRequiredId,
       buyerPaymentRequest: { paymentRequiredId, amount: buyerAmount, asset: "XCHANGE" },
@@ -30,9 +32,11 @@ class X402Client {
     if (rows.length === 0) return { valid: false, reason: "not_found" };
     if (new Date(rows[0].expires_at) < new Date()) {
       await query(`UPDATE x402_payments SET status='expired' WHERE id=$1`, [rows[0].id]);
+      escrowSettled.inc({ pair: rows[0].asset ?? "unknown", status: "expired" });
       return { valid: false, reason: "expired" };
     }
     await query(`UPDATE x402_payments SET status='authorized' WHERE id=$1`, [rows[0].id]);
+    escrowSettled.inc({ pair: rows[0].asset ?? "unknown", status: "authorized" });
     return { valid: true };
   }
 
