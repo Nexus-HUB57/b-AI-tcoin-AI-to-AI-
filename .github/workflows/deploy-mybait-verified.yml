@@ -1,0 +1,192 @@
+name: Deploy mybait.org (verified)
+
+on:
+  workflow_dispatch:
+    inputs:
+      deploy_target:
+        description: "Deployment scope"
+        required: true
+        default: all
+        type: choice
+        options:
+          - frontend
+          - api
+          - all
+      deploy_sha:
+        description: "Exact 40-character commit SHA to deploy"
+        required: true
+        type: string
+permissions:
+  contents: read
+
+concurrency:
+  group: mybait-production-deploy
+  cancel-in-progress: false
+
+env:
+  PUBLIC_BASE_URL: ${{ vars.MYBAIT_PUBLIC_BASE_URL }}
+  PUBLIC_API_BASE_URL: ${{ vars.MYBAIT_PUBLIC_API_BASE_URL }}
+
+jobs:
+  preflight:
+    name: Preflight and immutable source check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+    outputs:
+      deploy_sha: ${{ steps.resolve.outputs.deploy_sha }}
+      deploy_target: ${{ steps.resolve.outputs.deploy_target }}
+    steps:
+      - name: Resolve deploy inputs
+        id: resolve
+        shell: bash
+        env:
+          INPUT_SHA: ${{ github.event.inputs.deploy_sha || github.sha }}
+          INPUT_TARGET: ${{ github.event.inputs.deploy_target || 'all' }}
+        run: |
+          set -euo pipefail
+          [[ "$INPUT_SHA" =~ ^[0-9a-fA-F]{40}$ ]] || {
+            echo "::error::deploy_sha must be exactly 40 hexadecimal characters"
+            exit 1
+          }
+          case "$INPUT_TARGET" in frontend|api|all) ;; *)
+            echo "::error::unsupported deploy target: $INPUT_TARGET"
+            exit 1
+            ;;
+          esac
+          echo "deploy_sha=$INPUT_SHA" >> "$GITHUB_OUTPUT"
+          echo "deploy_target=$INPUT_TARGET" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.resolve.outputs.deploy_sha }}
+          fetch-depth: 1
+
+      - name: Confirm checkout is immutable target
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ steps.resolve.outputs.deploy_sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          git status --short
+          test -z "$(git status --porcelain)"
+
+      - name: Require production configuration
+        shell: bash
+        env:
+          WEBHOOK_URL: ${{ secrets.DEPLOY_WEBHOOK_URL }}
+          WEBHOOK_SECRET: ${{ secrets.DEPLOY_WEBHOOK_SECRET }}
+          PUBLIC_BASE_URL: ${{ env.PUBLIC_BASE_URL }}
+          PUBLIC_API_BASE_URL: ${{ env.PUBLIC_API_BASE_URL }}
+        run: |
+          set -euo pipefail
+          test -n "$WEBHOOK_URL" || { echo "::error::DEPLOY_WEBHOOK_URL is required"; exit 1; }
+          test -n "$WEBHOOK_SECRET" || { echo "::error::DEPLOY_WEBHOOK_SECRET is required"; exit 1; }
+          test -n "$PUBLIC_BASE_URL" || { echo "::error::MYBAIT_PUBLIC_BASE_URL repository variable is required"; exit 1; }
+          test -n "$PUBLIC_API_BASE_URL" || { echo "::error::MYBAIT_PUBLIC_API_BASE_URL repository variable is required"; exit 1; }
+          case "$WEBHOOK_URL" in https://*) ;; *) echo "::error::deploy webhook must use HTTPS"; exit 1;; esac
+          case "$PUBLIC_BASE_URL" in https://*) ;; *) echo "::error::public base URL must use HTTPS"; exit 1;; esac
+          case "$PUBLIC_API_BASE_URL" in https://*) ;; *) echo "::error::public API base URL must use HTTPS"; exit 1;; esac
+
+      - name: Compile deployment surface
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile baitcoin_api/server.py baitcoin_core/consensus/mining_transport.py main_daemon.py
+          python3 -m pytest -q \
+            tests/test_mining_transport_http.py \
+            tests/test_work_template_manager.py \
+            tests/test_external_block_validation.py \
+            tests/test_public_pool_e2e.py \
+            tests/test_p2p_api_status.py
+
+  deploy:
+    name: Trigger verified HostGator pull deploy
+    needs: preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment:
+      name: production
+    steps:
+      - name: Trigger webhook with exact SHA
+        shell: bash
+        env:
+          WEBHOOK_URL: ${{ secrets.DEPLOY_WEBHOOK_URL }}
+          WEBHOOK_SECRET: ${{ secrets.DEPLOY_WEBHOOK_SECRET }}
+          DEPLOY_TARGET: ${{ needs.preflight.outputs.deploy_target }}
+          DEPLOY_SHA: ${{ needs.preflight.outputs.deploy_sha }}
+        run: |
+          set -euo pipefail
+          payload=$(printf '{"target":"%s","sha":"%s"}' "$DEPLOY_TARGET" "$DEPLOY_SHA")
+          signature=$(printf '%s' "$payload" | openssl dgst -sha256 -hmac "$WEBHOOK_SECRET" -hex | awk '{print $NF}')
+          response_file=$(mktemp)
+          http_code=$(curl --fail-with-body --silent --show-error --http1.1 \
+            --max-time 60 -o "$response_file" -w '%{http_code}' \
+            -X POST "$WEBHOOK_URL" \
+            -H 'Content-Type: application/json' \
+            -H "X-Deploy-Signature: $signature" \
+            --data "$payload")
+          cat "$response_file"
+          case "$http_code" in 200|202) ;; *)
+            echo "::error::deploy webhook returned HTTP $http_code"
+            exit 1
+            ;;
+          esac
+
+  verify:
+    name: Verify public deployment and P2P evidence
+    needs: [preflight, deploy]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Verify frontend
+        shell: bash
+        env:
+          PUBLIC_BASE_URL: ${{ env.PUBLIC_BASE_URL }}
+        run: |
+          set -euo pipefail
+          code=$(curl --fail --silent --show-error --max-time 20 -o /tmp/index.html -w '%{http_code}' "$PUBLIC_BASE_URL/")
+          test "$code" = 200
+          test -s /tmp/index.html
+
+      - name: Verify API health and exact deployment marker
+        if: ${{ needs.preflight.outputs.deploy_target != 'frontend' }}
+        shell: bash
+        env:
+          PUBLIC_API_BASE_URL: ${{ env.PUBLIC_API_BASE_URL }}
+          DEPLOY_SHA: ${{ needs.preflight.outputs.deploy_sha }}
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --max-time 20 "$PUBLIC_API_BASE_URL/status" > /tmp/status.json
+          python3 - <<'PY'
+          import json
+          with open('/tmp/status.json', encoding='utf-8') as f:
+              payload = json.load(f)
+          assert payload.get('chain_valid') is True, payload
+          assert payload.get('blocks_immutable') is True, payload
+          print('API health: chain_valid=true, blocks_immutable=true')
+          PY
+
+      - name: Verify P2P transport evidence
+        if: ${{ needs.preflight.outputs.deploy_target != 'frontend' }}
+        shell: bash
+        env:
+          PUBLIC_API_BASE_URL: ${{ env.PUBLIC_API_BASE_URL }}
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --max-time 20 "$PUBLIC_API_BASE_URL/p2p/status" > /tmp/p2p.json
+          curl --fail --silent --show-error --max-time 20 "$PUBLIC_API_BASE_URL/p2p/peers" > /tmp/peers.json
+          python3 - <<'PY'
+          import json
+          status = json.load(open('/tmp/p2p.json', encoding='utf-8'))
+          peers = json.load(open('/tmp/peers.json', encoding='utf-8'))
+          assert status.get('attestation') == 'transport-only', status
+          assert status.get('running') is True, status
+          assert status.get('peer_count', 0) >= 3, status
+          assert status.get('handshake_peers', 0) >= 3, status
+          assert isinstance(peers, (dict, list)), peers
+          print('P2P evidence: running=true, peer_count>=3, handshake_peers>=3')
+          PY
