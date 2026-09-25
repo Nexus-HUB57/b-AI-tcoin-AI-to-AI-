@@ -4,22 +4,18 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable2Step.sol";
-import "@openzeppelin/contracts/governance/TimelockController.sol"; // Fix #1: TimelockController for pause/unpause
+import "@openzeppelin/contracts/governance/TimelockController.sol";
 import "./WBAIT.sol";
 
 /**
  * @title BridgeLock — 3-of-5 Multisig Lock-and-Mint Bridge
- * @notice Secures the BAIT L1 → wBAIT ERC-20 bridge.
- *         - Lock events on L1 trigger mint on Ethereum (after 3-of-5 operator confirmation)
- *         - Burn on Ethereum triggers release on L1 (after operator confirmation)
- *         - 24h timelock on operator parameter changes
- *         - Rate limit: 100,000 wBAIT/day/address
- * @dev All state changes go through confirmed operator actions.
+ * @notice BAIT L1 ↔ wBAIT bridge with explicit 3/5 confirms (no auto-confirm),
+ *         rate-limit reservation, and conservation counters.
+ * @dev Pause/unpause via TimelockController. L1 lock is still operator-trusted
+ *      (no on-chain L1 proof) — document that residual risk for mainnet.
  */
 contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
     WBAIT public immutable wbait;
-
-    // Fix #1 (CRITICAL): TimelockController for pause/unpause — prevents instant rug by owner
     TimelockController public immutable timelock;
 
     modifier onlyTimelock() {
@@ -27,20 +23,20 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
         _;
     }
 
-    // Fix #2 (CRITICAL): On-chain bridge invariant tracking — totalMinted <= totalLockedOnL1
+    /// @notice Sum of amounts claimed locked on L1 (increased on requestLockMint).
+    ///         Decreased when burn-release is fully confirmed (L1 release attested).
     uint256 public totalLockedOnL1;
+    /// @notice Sum of wBAIT minted via bridge; decreased on user burn initiate.
     uint256 public totalMinted;
 
-    // ── Multisig Operator Config ──
     uint256 public constant REQUIRED_CONFIRMATIONS = 3;
     uint256 public constant NUM_OPERATORS = 5;
-    uint256 public constant RATE_LIMIT = 100_000 * 10**8; // 100K wBAIT/day
+    uint256 public constant RATE_LIMIT = 100_000 * 10**8;
     uint256 public constant TIMELOCK_DURATION = 24 hours;
 
     address[NUM_OPERATORS] public operators;
     mapping(address => bool) public isOperator;
 
-    // ── Lock-Mint State ──
     struct LockRequest {
         bytes32 l1TxId;
         address recipient;
@@ -54,7 +50,6 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
     mapping(bytes32 => bool) public consumedL1TxIds;
     bytes32[] public lockRequestIds;
 
-    // ── Burn-Release State ──
     struct BurnRelease {
         address burner;
         uint256 amount;
@@ -67,12 +62,10 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
     mapping(bytes32 => BurnRelease) public burnReleases;
     bytes32[] public burnReleaseIds;
 
-    // ── Rate Limiting ──
     mapping(address => uint256) public dailyMinted;
     mapping(address => uint256) public dailyReserved;
     mapping(address => uint256) public lastMintDay;
 
-    // ── Timelocked Operator Update ──
     struct PendingOperatorUpdate {
         uint256 index;
         address newOperator;
@@ -81,7 +74,6 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
     }
     PendingOperatorUpdate public pendingOperatorUpdate;
 
-    // ── Events ──
     event LockRequested(bytes32 indexed requestId, bytes32 l1TxId, address recipient, uint256 amount);
     event LockConfirmed(bytes32 indexed requestId, address operator);
     event LockExecuted(bytes32 indexed requestId, address recipient, uint256 amount);
@@ -116,6 +108,7 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
         }
     }
 
+    /// @notice Operator submits L1 lock evidence. Does NOT auto-confirm (P0).
     function requestLockMint(
         bytes32 requestId,
         bytes32 l1TxId,
@@ -137,7 +130,10 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
             dailyReserved[recipient] = 0;
             lastMintDay[recipient] = currentDay;
         }
-        require(dailyMinted[recipient] + dailyReserved[recipient] + amount <= RATE_LIMIT, "BridgeLock: rate limit exceeded");
+        require(
+            dailyMinted[recipient] + dailyReserved[recipient] + amount <= RATE_LIMIT,
+            "BridgeLock: rate limit exceeded"
+        );
 
         LockRequest storage req = lockRequests[requestId];
         consumedL1TxIds[l1TxId] = true;
@@ -146,16 +142,13 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
         req.recipient = recipient;
         req.amount = amount;
         req.executed = false;
-        // confirmations stays 0 — Fix H-02: no auto-confirm by requester
+        // confirmations remains 0 — requester must call confirmLockMint explicitly
         lockRequestIds.push(requestId);
 
         emit LockRequested(requestId, l1TxId, recipient, amount);
     }
 
-    /**
-     * @notice Confirm a pending lock-mint request.
-     * @dev Fix H-02: all 3 confirmations must be explicit (including the original requester).
-     */
+    /// @notice Explicit confirmation. All 3 must be distinct operators (including requester).
     function confirmLockMint(bytes32 requestId) external onlyOperator whenNotPaused {
         LockRequest storage req = lockRequests[requestId];
         require(!req.executed, "BridgeLock: already executed");
@@ -175,10 +168,13 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
     function _executeLockMint(bytes32 requestId) internal nonReentrant {
         LockRequest storage req = lockRequests[requestId];
         require(!req.executed, "BridgeLock: already executed");
+        require(req.confirmations >= REQUIRED_CONFIRMATIONS, "BridgeLock: insufficient confirmations");
+        require(
+            totalMinted + req.amount <= totalLockedOnL1,
+            "InvariantViolation: totalMinted > totalLocked"
+        );
 
-        require(totalMinted + req.amount <= totalLockedOnL1, "InvariantViolation: totalMinted > totalLocked");
         totalMinted += req.amount;
-
         req.executed = true;
         dailyMinted[req.recipient] += req.amount;
         dailyReserved[req.recipient] -= req.amount;
@@ -188,12 +184,7 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
         emit LockExecuted(requestId, req.recipient, req.amount);
     }
 
-    /**
-     * @notice Initiate burn-release: user burns a specified amount of wBAIT and provides L1 release address.
-     * @param amount Amount of wBAIT to burn (s'AI'toshi). Must be > 0 and <= balance.
-     * @param l1ReleaseAddress BAIT L1 address (b'...)
-     * @dev Partial burns supported. Decrements totalMinted for conservation symmetry.
-     */
+    /// @notice Burn partial or full balance; decrements totalMinted immediately.
     function initiateBurnRelease(uint256 amount, string calldata l1ReleaseAddress)
         external
         whenNotPaused
@@ -203,9 +194,9 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
         require(wbait.balanceOf(msg.sender) >= amount, "BridgeLock: insufficient wBAIT");
         require(bytes(l1ReleaseAddress).length > 0, "BridgeLock: empty L1 address");
 
-        bytes32 releaseId = keccak256(abi.encodePacked(
-            msg.sender, amount, block.number, burnReleaseIds.length
-        ));
+        bytes32 releaseId = keccak256(
+            abi.encodePacked(msg.sender, amount, block.number, burnReleaseIds.length)
+        );
 
         BurnRelease storage rel = burnReleases[releaseId];
         rel.burner = msg.sender;
@@ -225,6 +216,7 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
         emit BurnInitiated(releaseId, msg.sender, amount, l1ReleaseAddress);
     }
 
+    /// @notice Operators attest L1 release; on threshold, decrease totalLockedOnL1 (P0).
     function confirmBurnRelease(bytes32 releaseId) external onlyOperator whenNotPaused {
         BurnRelease storage rel = burnReleases[releaseId];
         require(!rel.executed, "BridgeLock: already executed");
@@ -238,19 +230,32 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
 
         if (rel.confirmations >= REQUIRED_CONFIRMATIONS) {
             rel.executed = true;
+            // P0: reconcile L1 locked accounting when operators attest L1 unlock
+            if (totalLockedOnL1 >= rel.amount) {
+                totalLockedOnL1 -= rel.amount;
+            } else {
+                totalLockedOnL1 = 0;
+            }
             emit BurnExecuted(releaseId, rel.amount, rel.l1ReleaseAddress);
         }
     }
 
-    function pause() external onlyTimelock { _pause(); }
-    function unpause() external onlyTimelock { _unpause(); }
+    function pause() external onlyTimelock {
+        _pause();
+    }
+
+    function unpause() external onlyTimelock {
+        _unpause();
+    }
 
     function proposeOperatorUpdate(uint256 index, address newOperator) external onlyOwner {
         require(index < NUM_OPERATORS, "BridgeLock: invalid index");
         require(newOperator != address(0), "BridgeLock: zero operator");
         require(!isOperator[newOperator], "BridgeLock: already operator");
-        require(newOperator != pendingOperatorUpdate.newOperator || !pendingOperatorUpdate.active,
-                "BridgeLock: duplicate proposal");
+        require(
+            newOperator != pendingOperatorUpdate.newOperator || !pendingOperatorUpdate.active,
+            "BridgeLock: duplicate proposal"
+        );
 
         pendingOperatorUpdate = PendingOperatorUpdate({
             index: index,
@@ -293,6 +298,16 @@ contract BridgeLock is Ownable2Step, ReentrancyGuard, Pausable {
         emit OperatorUpdateCancelled();
     }
 
-    function getLockRequestCount() external view returns (uint256) { return lockRequestIds.length; }
-    function getBurnReleaseCount() external view returns (uint256) { return burnReleaseIds.length; }
+    function getLockRequestCount() external view returns (uint256) {
+        return lockRequestIds.length;
+    }
+
+    function getBurnReleaseCount() external view returns (uint256) {
+        return burnReleaseIds.length;
+    }
+
+    /// @notice Conservation helper: minted never exceeds claimed L1 locked.
+    function conservationHolds() external view returns (bool) {
+        return totalMinted <= totalLockedOnL1;
+    }
 }
