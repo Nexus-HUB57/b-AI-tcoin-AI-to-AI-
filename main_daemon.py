@@ -67,6 +67,17 @@ def load_p2p_port(value: str | None = None) -> int:
     return port
 
 
+def get_chain_identity(blockchain) -> dict[str, str]:
+    """Return canonical tip/genesis hashes for read-only public status."""
+    if blockchain is None or not getattr(blockchain, "chain", None):
+        raise RuntimeError("chain identity unavailable: blockchain has no blocks")
+    tip_hash = blockchain.last_block.block_hash.hex()
+    genesis_hash = blockchain.chain[0].block_hash.hex()
+    if len(tip_hash) != 64 or len(genesis_hash) != 64:
+        raise RuntimeError("chain identity unavailable: invalid block hash length")
+    return {"tip_hash": tip_hash, "genesis_hash": genesis_hash}
+
+
 class BAITDaemon:
     r"""Daemon principal do b'AI'tcoin.
 
@@ -6465,9 +6476,11 @@ class BAITDaemon:
             for sym in self.oracle.feeds:
                 oracle_prices[sym] = self.oracle.get_price(sym)
         or_data["prices"] = oracle_prices
+        chain_identity = get_chain_identity(self.blockchain)
         return {
             "network": "b'AI'tcoin Mainnet",
             "chain_height": self.blockchain.height,
+            **chain_identity,
             "chain_valid": chain_valid,
             "blocks_immutable": True,
             "persistence": "WAL + Snapshots",
