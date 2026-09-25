@@ -32,6 +32,8 @@ O daemon agora rejeita inicialização Mainnet sem `BAIT_P2P_SEEDS` contendo pel
 
 Também foi criada uma topologia de referência com quatro nós, para que cada nó possa manter três peers externos sem conectar-se a si próprio. O runbook e o verificador de convergência exigem identidades persistentes, origens públicas distintas, três handshakes por origem e igualdade dos tips observados.
 
+O harness `scripts/run_public_pool_e2e.py` foi executado com quatro nós locais: todos reportaram três peers, três handshakes e `running=true`, e um bloco sintético foi propagado para três destinatários. Isso valida o transporte TCP e o gossip; não substitui a evidência de quatro operadores, IPs públicos, DNS, firewall ou consenso independente.
+
 Foi adicionado um gate read-only que consulta a API pública, o manifesto e um RPC Ethereum. O gate nunca assina, transmite, implanta, abre portas ou altera custódia. O workflow de produção deve executá-lo antes de qualquer deploy.
 
 ## Critérios de bloqueio automático

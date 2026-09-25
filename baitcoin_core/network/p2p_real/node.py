@@ -122,6 +122,10 @@ class P2PNode:
         self._server = await asyncio.start_server(
             self._accept_connection, self.host, self.port
         )
+        # Port 0 is useful for isolated E2E probes; expose the kernel-selected
+        # port rather than the request value so status is externally truthful.
+        if self._server.sockets:
+            self.port = int(self._server.sockets[0].getsockname()[1])
         logger.info(f"P2P node {self.node_id} listening on {self.host}:{self.port}")
 
         # Start background tasks

@@ -28,6 +28,8 @@ Depois, configure `MAINNET_API_BASE_URL` e `ETH_RPC_URL` como variáveis de ambi
 
 Para provar convergência entre operadores independentes, execute `scripts/verify_public_pool.py` repetindo `--api` três vezes com origens públicas diferentes. O verificador exige três handshakes por origem, cadeia válida e alturas convergentes.
 
+Antes da publicação, o harness local pode ser executado com `python3 scripts/run_public_pool_e2e.py --nodes 4`. Ele inicia quatro servidores TCP efêmeros, cria uma única conexão por par, exige três handshakes por nó e propaga um bloco sintético. Esse resultado é uma prova de transporte e gossip do código; não é evidência de independência operacional, IP público ou consenso Mainnet.
+
 ## Limites
 
 O Compose fornecido é uma topologia de referência local. Os três serviços usam a rede interna do Compose e, portanto, não são prova de descentralização por operadores independentes. Para Mainnet, substitua os nomes internos por hosts públicos reais, registre os operadores e gere evidências de handshake a partir de redes externas distintas.
