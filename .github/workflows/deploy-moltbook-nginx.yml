@@ -5,10 +5,6 @@ name: Deploy Moltbook Nginx Proxy
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - 'site/moltbook/**'
 
 jobs:
   add-nginx-proxy:
@@ -31,46 +27,67 @@ jobs:
             ConnectTimeout 10
           EOF
 
-      - name: Check current nginx config
-        run: |
-          ssh vps "grep -c 'moltbook' /etc/nginx/sites-available/mybait.conf 2>/dev/null || echo 0"
-
       - name: Add Moltbook proxy location
         run: |
-          ssh vps bash -s << 'REMOTE_SCRIPT'
+          ssh vps 'bash -s' << 'REMOTE_SCRIPT'
           set -euo pipefail
-          
+
           CONF="/etc/nginx/sites-available/mybait.conf"
           if [ ! -f "$CONF" ]; then
             CONF="/etc/nginx/conf.d/mybait.conf"
           fi
-          
+          if [ ! -f "$CONF" ]; then
+            CONF=$(find /etc/nginx -name "*.conf" -exec grep -l "mybait" {} \; | head -1)
+          fi
+
+          echo "Using config: $CONF"
+
           # Check if moltbook location already exists
           if grep -q 'moltbook' "$CONF" 2>/dev/null; then
-            echo "Moltbook location already exists in $CONF — skipping"
+            echo "Moltbook location already exists in $CONF - skipping"
             exit 0
           fi
-          
-          # Add location block before the closing brace of the server block
-          PROXY_BLOCK='
-              location /moltbook/ {
-                  proxy_pass http://108.167.132.234/moltbook/;
-                  proxy_set_header Host mybait.org;
-                  proxy_set_header X-Real-IP $remote_addr;
-                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                  proxy_set_header X-Forwarded-Proto $scheme;
-              }'
-          
-          # Insert before last closing brace
-          sed -i "s|^\s*}$|${PROXY_BLOCK}\n    }|" "$CONF"
-          
-          # Test nginx config
+
+          # Create a temp file with the proxy block inserted before the last }
+          TMP=$(mktemp)
+          awk '
+          BEGIN { found=0 }
+          {
+            buf = buf $0 ORS
+          }
+          /^}$/ && !found {
+            # This is the last closing brace - insert proxy block before it
+            sub(/\n$/, "", buf)
+            print buf
+            print ""
+            print "    location /moltbook/ {"
+            print "        proxy_pass http://108.167.132.234/moltbook/;"
+            print "        proxy_set_header Host mybait.org;"
+            print "        proxy_set_header X-Real-IP $remote_addr;"
+            print "        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;"
+            print "        proxy_set_header X-Forwarded-Proto $scheme;"
+            print "    }"
+            print "}"
+            buf = ""
+            found = 1
+          }
+          END {
+            if (buf != "") printf "%s", buf
+          }
+          ' "$CONF" > "$TMP"
+
+          # Validate the new config
+          nginx -t -c "$TMP" 2>&1 || { echo "nginx -t failed, keeping old config"; rm "$TMP"; exit 1; }
+
+          # Replace the config
+          cp "$TMP" "$CONF"
+          rm "$TMP"
+
+          # Test and reload
           nginx -t
-          
-          # Reload nginx
           systemctl reload nginx
-          
-          echo "✅ Moltbook proxy added and nginx reloaded"
+
+          echo "Moltbook proxy added and nginx reloaded"
           REMOTE_SCRIPT
 
       - name: Verify Moltbook accessible
@@ -78,7 +95,7 @@ jobs:
           sleep 2
           HTTP_CODE=$(curl -sS --max-time 10 -o /dev/null -w "%{http_code}" "https://mybait.org/moltbook/" 2>/dev/null || echo "000")
           if [ "$HTTP_CODE" = "200" ]; then
-            echo "✅ Moltbook accessible via VPS nginx (HTTP $HTTP_CODE)"
+            echo "Moltbook accessible via VPS nginx (HTTP $HTTP_CODE)"
           else
-            echo "⚠️ Moltbook returned HTTP $HTTP_CODE — may need manual nginx reload"
+            echo "Moltbook returned HTTP $HTTP_CODE - may need manual nginx reload"
           fi
