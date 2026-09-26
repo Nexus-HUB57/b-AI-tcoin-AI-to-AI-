@@ -1,0 +1,154 @@
+name: P2P host preflight
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: p2p-host-preflight
+  cancel-in-progress: true
+
+jobs:
+  preflight:
+    name: Validate four independent full-node hosts
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+    steps:
+      - name: Checkout validation scripts
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Require host configuration without printing secrets
+        shell: bash
+        env:
+          NODE_A_HOST: ${{ secrets.NODE_A_SSH_HOST }}
+          NODE_B_HOST: ${{ secrets.NODE_B_SSH_HOST }}
+          NODE_C_HOST: ${{ secrets.NODE_C_SSH_HOST }}
+          NODE_D_HOST: ${{ secrets.NODE_D_SSH_HOST }}
+          NODE_A_PORT: ${{ secrets.NODE_A_SSH_PORT }}
+          NODE_B_PORT: ${{ secrets.NODE_B_SSH_PORT }}
+          NODE_C_PORT: ${{ secrets.NODE_C_SSH_PORT }}
+          NODE_D_PORT: ${{ secrets.NODE_D_SSH_PORT }}
+          NODE_A_USER: ${{ secrets.NODE_A_SSH_USER }}
+          NODE_B_USER: ${{ secrets.NODE_B_SSH_USER }}
+          NODE_C_USER: ${{ secrets.NODE_C_SSH_USER }}
+          NODE_D_USER: ${{ secrets.NODE_D_SSH_USER }}
+          NODE_A_KEY: ${{ secrets.NODE_A_SSH_KEY }}
+          NODE_B_KEY: ${{ secrets.NODE_B_SSH_KEY }}
+          NODE_C_KEY: ${{ secrets.NODE_C_SSH_KEY }}
+          NODE_D_KEY: ${{ secrets.NODE_D_SSH_KEY }}
+          NODE_A_KNOWN_HOSTS: ${{ secrets.NODE_A_SSH_KNOWN_HOSTS }}
+          NODE_B_KNOWN_HOSTS: ${{ secrets.NODE_B_SSH_KNOWN_HOSTS }}
+          NODE_C_KNOWN_HOSTS: ${{ secrets.NODE_C_SSH_KNOWN_HOSTS }}
+          NODE_D_KNOWN_HOSTS: ${{ secrets.NODE_D_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          for name in \
+            NODE_A_HOST NODE_B_HOST NODE_C_HOST NODE_D_HOST \
+            NODE_A_PORT NODE_B_PORT NODE_C_PORT NODE_D_PORT \
+            NODE_A_USER NODE_B_USER NODE_C_USER NODE_D_USER \
+            NODE_A_KEY NODE_B_KEY NODE_C_KEY NODE_D_KEY \
+            NODE_A_KNOWN_HOSTS NODE_B_KNOWN_HOSTS NODE_C_KNOWN_HOSTS NODE_D_KNOWN_HOSTS; do
+            test -n "${!name:-}" || { echo "::error::$name is required"; exit 1; }
+          done
+          for name in NODE_A_HOST NODE_B_HOST NODE_C_HOST NODE_D_HOST; do
+            value="${!name}"
+            case "$value" in
+              127.*|localhost|::1|*.test.invalid) echo "::error::$name must be a real external host"; exit 1 ;;
+            esac
+          done
+          test "$NODE_A_HOST" != "$NODE_B_HOST" || { echo "::error::A and B use the same host"; exit 1; }
+          test "$NODE_A_HOST" != "$NODE_C_HOST" || { echo "::error::A and C use the same host"; exit 1; }
+          test "$NODE_A_HOST" != "$NODE_D_HOST" || { echo "::error::A and D use the same host"; exit 1; }
+          test "$NODE_B_HOST" != "$NODE_C_HOST" || { echo "::error::B and C use the same host"; exit 1; }
+          test "$NODE_B_HOST" != "$NODE_D_HOST" || { echo "::error::B and D use the same host"; exit 1; }
+          test "$NODE_C_HOST" != "$NODE_D_HOST" || { echo "::error::C and D use the same host"; exit 1; }
+          mkdir -p /tmp/p2p-known-hosts
+          printf '%s\n' "$NODE_A_KNOWN_HOSTS" > /tmp/p2p-known-hosts/a
+          printf '%s\n' "$NODE_B_KNOWN_HOSTS" > /tmp/p2p-known-hosts/b
+          printf '%s\n' "$NODE_C_KNOWN_HOSTS" > /tmp/p2p-known-hosts/c
+          printf '%s\n' "$NODE_D_KNOWN_HOSTS" > /tmp/p2p-known-hosts/d
+          umask 077
+          printf '%s\n' "$NODE_A_KEY" > /tmp/node-a.key
+          printf '%s\n' "$NODE_B_KEY" > /tmp/node-b.key
+          printf '%s\n' "$NODE_C_KEY" > /tmp/node-c.key
+          printf '%s\n' "$NODE_D_KEY" > /tmp/node-d.key
+          chmod 600 /tmp/node-*.key
+
+      - name: Check DNS and TCP SSH reachability
+        shell: bash
+        env:
+          NODE_A_HOST: ${{ secrets.NODE_A_SSH_HOST }}
+          NODE_B_HOST: ${{ secrets.NODE_B_SSH_HOST }}
+          NODE_C_HOST: ${{ secrets.NODE_C_SSH_HOST }}
+          NODE_D_HOST: ${{ secrets.NODE_D_SSH_HOST }}
+          NODE_A_PORT: ${{ secrets.NODE_A_SSH_PORT }}
+          NODE_B_PORT: ${{ secrets.NODE_B_SSH_PORT }}
+          NODE_C_PORT: ${{ secrets.NODE_C_SSH_PORT }}
+          NODE_D_PORT: ${{ secrets.NODE_D_SSH_PORT }}
+        run: |
+          set -euo pipefail
+          for suffix in A B C D; do
+            case "$suffix" in
+              A) host="$NODE_A_HOST"; port="$NODE_A_PORT" ;;
+              B) host="$NODE_B_HOST"; port="$NODE_B_PORT" ;;
+              C) host="$NODE_C_HOST"; port="$NODE_C_PORT" ;;
+              D) host="$NODE_D_HOST"; port="$NODE_D_PORT" ;;
+            esac
+            getent ahosts "$host" >/dev/null || { echo "::error::node-$suffix DNS does not resolve"; exit 1; }
+            nc -z -w 8 "$host" "$port" || { echo "::error::node-$suffix SSH port is unreachable"; exit 1; }
+          done
+
+      - name: Verify remote host capabilities without provisioning
+        shell: bash
+        env:
+          NODE_A_HOST: ${{ secrets.NODE_A_SSH_HOST }}
+          NODE_B_HOST: ${{ secrets.NODE_B_SSH_HOST }}
+          NODE_C_HOST: ${{ secrets.NODE_C_SSH_HOST }}
+          NODE_D_HOST: ${{ secrets.NODE_D_SSH_HOST }}
+          NODE_A_PORT: ${{ secrets.NODE_A_SSH_PORT }}
+          NODE_B_PORT: ${{ secrets.NODE_B_SSH_PORT }}
+          NODE_C_PORT: ${{ secrets.NODE_C_SSH_PORT }}
+          NODE_D_PORT: ${{ secrets.NODE_D_SSH_PORT }}
+          NODE_A_USER: ${{ secrets.NODE_A_SSH_USER }}
+          NODE_B_USER: ${{ secrets.NODE_B_SSH_USER }}
+          NODE_C_USER: ${{ secrets.NODE_C_SSH_USER }}
+          NODE_D_USER: ${{ secrets.NODE_D_SSH_USER }}
+        run: |
+          set -euo pipefail
+          for suffix in A B C D; do
+            case "$suffix" in
+              A) host="$NODE_A_HOST"; port="$NODE_A_PORT"; user="$NODE_A_USER" ;;
+              B) host="$NODE_B_HOST"; port="$NODE_B_PORT"; user="$NODE_B_USER" ;;
+              C) host="$NODE_C_HOST"; port="$NODE_C_PORT"; user="$NODE_C_USER" ;;
+              D) host="$NODE_D_HOST"; port="$NODE_D_PORT"; user="$NODE_D_USER" ;;
+            esac
+            key="/tmp/node-${suffix,,}.key"
+            known="/tmp/p2p-known-hosts/${suffix,,}"
+            ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$known" \
+              -o ConnectTimeout=8 -i "$key" -p "$port" "$user@$host" \
+              'set -eu; command -v python3 >/dev/null; test -r /etc/os-release; if command -v docker >/dev/null 2>&1; then echo docker; elif command -v systemctl >/dev/null 2>&1; then echo systemd; else echo no-persistent-runtime; exit 1; fi' \
+              | grep -Eq 'docker|systemd' || { echo "::error::node-$suffix lacks a supported persistent runtime"; exit 1; }
+          done
+
+      - name: Verify P2P and API endpoints
+        shell: bash
+        env:
+          PEER_API_1: ${{ vars.BAIT_PEER_API_1 }}
+          PEER_API_2: ${{ vars.BAIT_PEER_API_2 }}
+          PEER_API_3: ${{ vars.BAIT_PEER_API_3 }}
+          PEER_API_4: ${{ vars.BAIT_PEER_API_4 }}
+        run: |
+          set -euo pipefail
+          python3 scripts/verify_public_pool.py \
+            --api "$PEER_API_1" \
+            --api "$PEER_API_2" \
+            --api "$PEER_API_3" \
+            --api "$PEER_API_4" \
+            --min-peers 3 \
+            --require-tip-hash
